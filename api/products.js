@@ -49,7 +49,7 @@ function sanitizeProduct(body) {
 }
 
 export default async function handler(req, res) {
-  if (!requireAdmin(req, res, ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])) return;
+  if (!(await requireAdmin(req, res, ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']))) return;
   const col = getDb().collection('products');
 
   try {

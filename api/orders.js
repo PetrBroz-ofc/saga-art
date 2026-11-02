@@ -48,7 +48,7 @@ function publicOrder(id, o) {
 }
 
 export default async function handler(req, res) {
-  if (!requireAdmin(req, res, ['GET', 'PATCH'])) return;
+  if (!(await requireAdmin(req, res, ['GET', 'PATCH']))) return;
   const col = getDb().collection('orders');
 
   try {

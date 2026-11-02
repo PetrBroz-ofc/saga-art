@@ -56,19 +56,26 @@ async function api(path, method = 'GET', body) {
     throw new Error('unauthorized');
   }
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || 'Chyba ' + res.status);
+  if (!res.ok) throw Object.assign(new Error(data.error || 'Chyba ' + res.status), { data });
   return data;
 }
 
 // ═══ PŘIHLÁŠENÍ ═══
+// 1) jméno + heslo, 2) na novém zařízení kód z e-mailu (zařízení pak platí 30 dní)
+function loginStep(step) {
+  $('loginForm').hidden = step !== 'password';
+  $('codeForm').hidden = step !== 'code';
+  $('loginError').textContent = '';
+  setTimeout(() => (step === 'code' ? $('loginCode') : $('loginUser').value ? $('loginPass') : $('loginUser')).focus(), 50);
+}
 function showLogin() {
   closeAllSheets();
   $('loginScreen').hidden = false;
   $('adminScreen').hidden = true;
   $('loginPass').value = '';
-  $('loginTotp').value = '';
+  $('loginCode').value = '';
   state.products = []; state.orders = [];
-  setTimeout(() => $('loginPass').focus(), 50);
+  loginStep('password');
 }
 function showAdmin() {
   $('loginScreen').hidden = true;
@@ -77,36 +84,93 @@ function showAdmin() {
   routeFromHash();
   loadAll();
 }
+function loginError(msg) {
+  const err = $('loginError');
+  err.classList.remove('shake');
+  err.textContent = msg;
+  void err.offsetWidth;
+  err.classList.add('shake');
+}
 
 $('loginForm').addEventListener('submit', async e => {
   e.preventDefault();
-  const btn = $('loginBtn'), err = $('loginError');
-  err.textContent = '';
-  err.classList.remove('shake');
+  const btn = $('loginBtn');
+  $('loginError').textContent = '';
   btn.disabled = true;
   try {
-    await api('/api/auth', 'POST', { password: $('loginPass').value, totp: $('loginTotp').value.trim() });
+    const r = await api('/api/auth', 'POST', { username: $('loginUser').value.trim(), password: $('loginPass').value });
     $('loginPass').value = '';
+    if (r.needCode) {
+      $('codeEmail').textContent = r.email || 'váš e-mail';
+      $('loginCode').value = '';
+      loginStep('code');
+    } else {
+      showAdmin();
+    }
+  } catch (ex) {
+    loginError(ex.message);
+    $('loginPass').select();
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+$('codeForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = $('codeBtn');
+  if (btn.disabled) return;
+  btn.disabled = true;
+  try {
+    await api('/api/auth', 'POST', { code: $('loginCode').value.trim() });
     showAdmin();
   } catch (ex) {
-    err.textContent = ex.message;
-    void err.offsetWidth;
-    err.classList.add('shake');
-    $('loginTotp').value = '';
-    $('loginTotp').focus();
+    $('loginCode').value = '';
+    if (ex.data?.restart) { loginStep('password'); }
+    loginError(ex.message);
   } finally {
     btn.disabled = false;
   }
 });
 // kód: jen číslice; po šesté rovnou odeslat
-$('loginTotp').addEventListener('input', e => {
+$('loginCode').addEventListener('input', e => {
   e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6);
-  if (e.target.value.length === 6 && $('loginPass').value) $('loginForm').requestSubmit();
+  if (e.target.value.length === 6) $('codeForm').requestSubmit();
 });
 
-async function logout() {
-  try { await api('/api/auth', 'DELETE', {}); } catch {}
+async function logout(forget = false) {
+  try { await api('/api/auth', 'DELETE', forget ? { forget: true } : {}); } catch {}
   showLogin();
+}
+
+// ═══ ZABEZPEČENÍ: ověřená zařízení ═══
+async function openSecurity() {
+  $('devicesList').innerHTML = '<div class="skel" style="height:68px"></div>';
+  openSheet('securitySheet');
+  try {
+    const { devices } = await api('/api/auth?devices=1');
+    $('devicesList').innerHTML = devices.length ? devices.map(d => `
+      <div class="device">
+        <span class="device-ico">${icon(/iPhone|Android/.test(d.label) ? 'phone' : 'laptop')}</span>
+        <div>
+          <b>${esc(d.label)} ${d.current ? '<span class="pill ok">toto zařízení</span>' : ''}</b>
+          <small>naposledy ${esc(dateShort(d.lastUsedAt))} · ověřit znovu ${esc(new Date(d.expiresAt).toLocaleDateString('cs-CZ'))}</small>
+        </div>
+        <button class="btn btn-ghost btn-sm" data-action="revokeDevice" data-arg="${esc(safeId(d.id))}">Odebrat</button>
+      </div>`).join('') : '<p class="empty-note">Žádné ověřené zařízení.</p>';
+  } catch (err) {
+    if (err.message !== 'unauthorized') $('devicesList').innerHTML = '<p class="empty-note">Seznam se nepodařilo načíst.</p>';
+  }
+}
+async function revokeDevice(id) {
+  if (!(await ask({ title: 'Odebrat zařízení?', text: 'Na tomhle zařízení se bude potřeba znovu přihlásit a ověřit kódem z e-mailu.', yes: 'Odebrat', danger: true }))) return;
+  try {
+    const r = await api('/api/auth', 'DELETE', { revoke: id });
+    if (r.loggedOut) { showLogin(); toast('Toto zařízení je odebrané.'); return; }
+    toast('Zařízení odebrané.');
+    openSecurity();
+  } catch (err) {
+    if (err.message !== 'unauthorized') toast(err.message, { err: true });
+  }
 }
 
 // ═══ DATA ═══
@@ -867,7 +931,13 @@ async function copyText(text, btn) {
 
 // ═══ UDÁLOSTI ═══
 const ACTIONS = {
-  logout,
+  logout: () => logout(),
+  forgetDevice: async () => {
+    if (await ask({ title: 'Zapomenout toto zařízení?', text: 'Při příštím přihlášení přijde nový kód na e-mail.', yes: 'Odhlásit a zapomenout' })) logout(true);
+  },
+  openSecurity: () => { closeAllSheets(); openSecurity(); },
+  revokeDevice: a => revokeDevice(a),
+  loginRestart: () => loginStep('password'),
   view: v => { closeAllSheets(); setView(v); },
   togglePass: (a, el) => {
     const inp = $('loginPass');

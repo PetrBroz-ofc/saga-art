@@ -20,6 +20,12 @@
 
   let products = [];
   let orders = [];
+  let loggedIn = true;
+  const day = n => new Date(Date.now() - n * 864e5).toISOString();
+  let devices = [
+    { id: 'a'.repeat(32), label: 'Chrome · Windows', current: true, createdAt: day(12), lastUsedAt: day(0), expiresAt: day(-18) },
+    { id: 'b'.repeat(32), label: 'Safari · iPhone / iPad', current: false, createdAt: day(20), lastUsedAt: day(2), expiresAt: day(-10) },
+  ];
   const clone = v => JSON.parse(JSON.stringify(v));
   const wait = ms => new Promise(r => setTimeout(r, ms));
 
@@ -75,7 +81,23 @@
 
   async function api(path, method, body) {
     await wait(180 + Math.random() * 220);
-    if (path === '/api/auth') return { authenticated: true, ok: true };
+    // přihlášení v ukázce: jakékoli jméno a heslo, pak jakýkoli šestimístný kód
+    if (path === '/api/auth?devices=1') return { devices: clone(devices) };
+    if (path === '/api/auth') {
+      if (method === 'GET') return { authenticated: loggedIn };
+      if (method === 'DELETE') {
+        if (body.revoke && body.revoke !== devices[0].id) { devices = devices.filter(d => d.id !== body.revoke); return { ok: true }; }
+        loggedIn = false;
+        return { ok: true, loggedOut: true };
+      }
+      if (body.code !== undefined) {
+        if (!/^\d{6}$/.test(body.code)) throw new Error('Kód má 6 číslic.');
+        loggedIn = true;
+        return { ok: true };
+      }
+      if (!body.username || !body.password) throw new Error('Špatné jméno nebo heslo');
+      return { needCode: true, email: 'i•••o@gmail.com' };
+    }
     if (path === '/api/upload-sign') throw new Error('v ukázce se fotky nenahrávají');
 
     if (path === '/api/products') {

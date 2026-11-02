@@ -40,6 +40,8 @@
   <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
   <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
   <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4 2.5 20h19z"/><path d="M12 10v4.5M12 17.2v.3"/></symbol>
+  <symbol id="i-laptop" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M2 19h20"/></symbol>
+  <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M11 18.5h2"/></symbol>
   <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
 </svg>
 
@@ -52,27 +54,44 @@
       <p>Šperky z pravých říčních perel, minerálů a oceli.</p>
     </div>
   </div>
-  <form class="login-box" id="loginForm" autocomplete="on">
-    <div class="login-head">
-      <span class="login-mark small">Sága <em>Art</em></span>
-      <h1>Vítejte zpátky</h1>
-      <p>Přihlaste se do správy obchodu.</p>
-    </div>
-    <label class="field">
-      <span>Heslo</span>
-      <span class="input-wrap">
-        <input type="password" id="loginPass" autocomplete="current-password" required maxlength="200">
-        <button type="button" class="input-eye" data-action="togglePass" aria-label="Zobrazit heslo"><svg class="i"><use href="#i-eye"/></svg></button>
-      </span>
-    </label>
-    <label class="field">
-      <span>Kód z ověřovací aplikace</span>
-      <input type="text" id="loginTotp" class="otp" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="000000" required>
-    </label>
-    <button class="btn btn-dark btn-block" type="submit" id="loginBtn">Přihlásit se <svg class="i"><use href="#i-arrow"/></svg></button>
+  <div class="login-box">
+    <span class="login-mark small">Sága <em>Art</em></span>
+
+    <form id="loginForm" class="login-step" autocomplete="on">
+      <div class="login-head">
+        <h1>Vítejte zpátky</h1>
+        <p>Přihlaste se do správy obchodu.</p>
+      </div>
+      <label class="field">
+        <span>Jméno</span>
+        <input type="text" id="loginUser" autocomplete="username" autocapitalize="none" spellcheck="false" required maxlength="100">
+      </label>
+      <label class="field">
+        <span>Heslo</span>
+        <span class="input-wrap">
+          <input type="password" id="loginPass" autocomplete="current-password" required maxlength="200">
+          <button type="button" class="input-eye" data-action="togglePass" aria-label="Zobrazit heslo"><svg class="i"><use href="#i-eye"/></svg></button>
+        </span>
+      </label>
+      <button class="btn btn-dark btn-block" type="submit" id="loginBtn">Pokračovat <svg class="i"><use href="#i-arrow"/></svg></button>
+    </form>
+
+    <form id="codeForm" class="login-step" autocomplete="off" hidden>
+      <div class="login-head">
+        <h1>Ověření zařízení</h1>
+        <p>Na <b id="codeEmail"></b> jsme poslali šestimístný kód. Platí 10 minut.</p>
+      </div>
+      <label class="field">
+        <span>Kód z e-mailu</span>
+        <input type="text" id="loginCode" class="otp" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="000000" required>
+      </label>
+      <button class="btn btn-dark btn-block" type="submit" id="codeBtn">Ověřit a přihlásit <svg class="i"><use href="#i-arrow"/></svg></button>
+      <p class="login-alt">Kód nepřišel? Mrkněte do spamu, nebo <button type="button" class="link-btn" data-action="loginRestart">začněte znovu</button>.</p>
+    </form>
+
     <p class="login-error" id="loginError" role="alert"></p>
-    <p class="login-note"><svg class="i"><use href="#i-lock"/></svg> Chráněno heslem a dvoufázovým ověřením</p>
-  </form>
+    <p class="login-note"><svg class="i"><use href="#i-lock"/></svg> Nové zařízení se ověřuje kódem z e-mailu, pak znovu každých 30 dní</p>
+  </div>
 </div>
 
 <!-- ═══ ADMINISTRACE ═══ -->
@@ -86,6 +105,7 @@
     </nav>
     <button class="btn btn-accent side-add" data-action="newProduct"><svg class="i"><use href="#i-plus"/></svg>Nový šperk</button>
     <div class="side-foot">
+      <button class="side-link" data-action="openSecurity"><svg class="i"><use href="#i-lock"/></svg>Zabezpečení</button>
       <a class="side-link" href="/" target="_blank" rel="noopener"><svg class="i"><use href="#i-ext"/></svg>Otevřít e-shop</a>
       <button class="side-link" data-action="logout"><svg class="i"><use href="#i-out"/></svg>Odhlásit se</button>
     </div>
@@ -180,7 +200,7 @@
     <button class="tab" data-action="view" data-arg="objednavky"><svg class="i"><use href="#i-box"/></svg>Objednávky<b class="tab-dot" id="tabOrderDot" hidden></b></button>
     <button class="tab tab-add" data-action="newProduct" aria-label="Nový šperk"><svg class="i"><use href="#i-plus"/></svg></button>
     <button class="tab" data-action="view" data-arg="sperky"><svg class="i"><use href="#i-gem"/></svg>Šperky</button>
-    <button class="tab" data-action="logout"><svg class="i"><use href="#i-out"/></svg>Odhlásit</button>
+    <button class="tab" data-action="openSecurity"><svg class="i"><use href="#i-lock"/></svg>Účet</button>
   </nav>
 </div>
 
@@ -270,6 +290,37 @@
       <button type="submit" class="btn btn-dark" id="saveBtn"><svg class="i"><use href="#i-check"/></svg>Uložit</button>
     </footer>
   </form>
+</div>
+
+<!-- ═══ ZABEZPEČENÍ ═══ -->
+<div class="sheet" id="securitySheet" aria-hidden="true">
+  <div class="sheet-scrim" data-action="closeSheet"></div>
+  <div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="secTitle">
+    <header class="sheet-head">
+      <div><p class="eyebrow">Účet</p><h2 id="secTitle">Zabezpečení</h2></div>
+      <button type="button" class="icon-btn" data-action="closeSheet" aria-label="Zavřít"><svg class="i"><use href="#i-x"/></svg></button>
+    </header>
+    <div class="sheet-body">
+      <section class="od-sec">
+        <h3>Jak je admin chráněný</h3>
+        <ul class="sec-list">
+          <li><svg class="i"><use href="#i-check"/></svg>Jméno a heslo. Heslo je uložené jen zašifrované, nikdo ho nepřečte.</li>
+          <li><svg class="i"><use href="#i-check"/></svg>Každé nové zařízení potvrdíte kódem z e-mailu.</li>
+          <li><svg class="i"><use href="#i-check"/></svg>Po 30 dnech se zařízení musí ověřit znovu.</li>
+          <li><svg class="i"><use href="#i-check"/></svg>Po 5 špatných pokusech se přihlášení na čas zablokuje.</li>
+        </ul>
+      </section>
+      <section class="od-sec">
+        <h3>Ověřená zařízení</h3>
+        <div class="devices" id="devicesList"></div>
+        <p class="hint" style="margin:12px 0 0">Neznáte některé zařízení? Odeberte ho a změňte heslo.</p>
+      </section>
+    </div>
+    <div class="od-actions">
+      <button class="btn btn-ghost" data-action="logout">Odhlásit se</button>
+      <button class="btn btn-ghost danger" data-action="forgetDevice">Odhlásit a zapomenout toto zařízení</button>
+    </div>
+  </div>
 </div>
 
 <!-- ═══ POTVRZENÍ ═══ -->

@@ -4,7 +4,7 @@ const { fail, requireAdmin } = require('./_utils');
 // POST /api/upload-sign — podpis pro nahrání fotky do Cloudinary.
 // Nahrávat smí JEN přihlášený admin; API secret nikdy neopustí server.
 export default async function handler(req, res) {
-  if (!requireAdmin(req, res, ['POST'])) return;
+  if (!(await requireAdmin(req, res, ['POST']))) return;
 
   const { CLOUDINARY_CLOUD_NAME: cloud, CLOUDINARY_API_KEY: apiKey, CLOUDINARY_API_SECRET: apiSecret } = process.env;
   if (!cloud || !apiKey || !apiSecret) return fail(res, 500, 'Cloudinary není nakonfigurován');

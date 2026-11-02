@@ -2,10 +2,25 @@ const crypto = require('crypto');
 const { promisify } = require('util');
 const {
   getDb, sha256, safeEqual, noStore, clientIp, sleep, fail, guard, limitOrReject,
-  setSessionCookie, clearSessionCookie, isAdmin,
+  adminDevice, readToken, trustedDevice, jwtSecret, DEVICE_COOKIE, CHALLENGE_COOKIE,
+  setSessionCookie, clearSessionCookie, setDeviceCookie, clearDeviceCookie, setChallengeCookie, clearChallengeCookie,
 } = require('./_utils');
+const { sendEmail } = require('./_shop');
+
+// Přihlášení do adminu:
+//  1) jméno + heslo
+//  2) na neznámém zařízení (nebo po 30 dnech) přijde na e-mail jednorázový kód na 10 minut
+//  3) po zadání kódu je zařízení ověřené na 30 dní
+//
+// GET    /api/auth             – jsem přihlášená?
+// GET    /api/auth?devices=1   – seznam ověřených zařízení (jen admin)
+// POST   /api/auth             – {username, password} nebo {code}
+// DELETE /api/auth             – odhlásit; {forget:true} zapomene i toto zařízení; {revoke:id} odebere zařízení
 
 const scrypt = promisify(crypto.scrypt);
+const CODE_TTL_MS = 10 * 60 * 1000;
+const MAX_CODE_ATTEMPTS = 5;
+const DEVICE_RE = /^[a-f0-9]{32}$/;
 
 // ── Heslo: ADMIN_PASSWORD_HASH = "scrypt$<salt hex>$<hash hex>" (vygeneruje scripts/hash-password.js) ──
 async function checkPassword(password) {
@@ -16,95 +31,203 @@ async function checkPassword(password) {
     { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 });
   return crypto.timingSafeEqual(actual, expected);
 }
+function checkUsername(username) {
+  const expected = String(process.env.ADMIN_USERNAME || '').trim().toLowerCase();
+  if (!expected) throw new Error('ADMIN_USERNAME není nastaven');
+  return safeEqual(String(username).trim().toLowerCase(), expected);
+}
 
-// ── Dvoufázové ověření TOTP (RFC 6238) — kód z Google Authenticator / Authy ──
-function base32Decode(s) {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-  let bits = 0, value = 0;
-  const out = [];
-  for (const c of String(s).toUpperCase().replace(/[\s=]/g, '')) {
-    const i = alphabet.indexOf(c);
-    if (i < 0) throw new Error('Neplatný TOTP secret');
-    value = (value << 5) | i;
-    bits += 5;
-    if (bits >= 8) { out.push((value >>> (bits - 8)) & 255); bits -= 8; }
+// Kód se v databázi drží jen jako HMAC (kdo by četl databázi, kód nezjistí)
+const codeHash = (cid, code) => crypto.createHmac('sha256', jwtSecret()).update(cid + ':' + code).digest('hex');
+
+function adminEmail() {
+  const e = process.env.ADMIN_EMAIL || process.env.OWNER_EMAIL;
+  if (!e) throw new Error('ADMIN_EMAIL není nastaven');
+  return e;
+}
+const maskEmail = e => {
+  const [user, domain] = String(e).split('@');
+  return (user[0] || '') + '•••' + (user.length > 1 ? user.slice(-1) : '') + '@' + domain;
+};
+
+// Krátký popis zařízení pro e-mail a seznam ("Chrome · Windows")
+function deviceLabel(ua) {
+  ua = String(ua || '');
+  const browser = /Edg\//.test(ua) ? 'Edge' : /OPR\//.test(ua) ? 'Opera' : /Firefox\//.test(ua) ? 'Firefox'
+    : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'Prohlížeč';
+  const os = /iPhone|iPad/.test(ua) ? 'iPhone / iPad' : /Android/.test(ua) ? 'Android' : /Windows/.test(ua) ? 'Windows'
+    : /Mac OS X/.test(ua) ? 'Mac' : /Linux/.test(ua) ? 'Linux' : 'neznámý systém';
+  return `${browser} · ${os}`;
+}
+const iso = v => (v?.toDate ? v.toDate().toISOString() : null);
+
+async function failSlow(res, status, message, extra) {
+  await sleep(400 + Math.random() * 400);
+  noStore(res);
+  return res.status(status).json({ error: message, ...extra });
+}
+
+// ── 1. krok: jméno + heslo ──
+async function loginStep(req, res) {
+  const ip = clientIp(req);
+  if (!(await limitOrReject(res, 'login_ip', ip, 5, 15 * 60 * 1000))) return;
+  if (!(await limitOrReject(res, 'login_all', 'global', 20, 60 * 60 * 1000))) return;
+
+  const { username, password } = req.body;
+  if (typeof username !== 'string' || typeof password !== 'string' || username.length > 100 || password.length > 200) {
+    return failSlow(res, 401, 'Špatné jméno nebo heslo');
   }
-  return Buffer.from(out);
-}
-
-function totpAt(key, step) {
-  const buf = Buffer.alloc(8);
-  buf.writeBigUInt64BE(BigInt(step));
-  const h = crypto.createHmac('sha1', key).update(buf).digest();
-  const o = h[h.length - 1] & 15;
-  return String((h.readUInt32BE(o) & 0x7fffffff) % 1000000).padStart(6, '0');
-}
-
-// Vrací použitý časový krok, nebo null. Tolerance ±30 s.
-function matchTotp(code) {
-  const secret = process.env.ADMIN_TOTP_SECRET;
-  if (!secret) throw new Error('ADMIN_TOTP_SECRET není nastaven');
-  if (!/^\d{6}$/.test(String(code))) return null;
-  const key = base32Decode(secret);
-  const now = Math.floor(Date.now() / 30000);
-  let found = null;
-  for (const step of [now - 1, now, now + 1]) {
-    if (safeEqual(totpAt(key, step), code)) found = step; // projde vždy všechny kroky (konstantní čas)
+  // heslo se ověřuje vždy (i při špatném jménu), aby odpověď netrvala jinak dlouho
+  const passOk = await checkPassword(password);
+  const userOk = checkUsername(username);
+  if (!passOk || !userOk) {
+    console.warn('Neúspěšné přihlášení do adminu', { ipHash: sha256(ip).slice(0, 12) });
+    return failSlow(res, 401, 'Špatné jméno nebo heslo');
   }
-  return found;
-}
 
-// Stejný kód nejde použít dvakrát (ochrana proti odposlechu / replay).
-async function consumeTotpStep(step) {
-  const db = getDb();
-  const ref = db.collection('admin').doc('totp');
-  return db.runTransaction(async tx => {
-    const snap = await tx.get(ref);
-    const last = snap.exists ? Number(snap.data().lastStep) : -1;
-    if (step <= last) return false;
-    tx.set(ref, { lastStep: step, usedAt: new Date() });
-    return true;
+  // Ověřené zařízení (do 30 dní) rovnou pustí dál
+  const dev = readToken(req, DEVICE_COOKIE, 'device');
+  if (dev && (await trustedDevice(dev.did))) {
+    await getDb().collection('admin_devices').doc(dev.did).update({ lastUsedAt: new Date() });
+    clearChallengeCookie(res);
+    setSessionCookie(res, dev.did);
+    return res.status(200).json({ ok: true });
+  }
+
+  // Jinak kód e-mailem. Nejvýš 8 e-mailů za hodinu (proti zahlcení schránky).
+  if (!(await limitOrReject(res, 'login_mail', 'global', 8, 60 * 60 * 1000))) return;
+  const cid = crypto.randomBytes(16).toString('hex');
+  const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+  const label = deviceLabel(req.headers['user-agent']);
+  const now = Date.now();
+  await getDb().collection('admin_challenges').doc(cid).set({
+    codeHash: codeHash(cid, code), attempts: 0, label,
+    ipHash: sha256(ip).slice(0, 16),
+    createdAt: new Date(now), expiresAt: new Date(now + CODE_TTL_MS), expireAt: new Date(now + CODE_TTL_MS),
   });
+  const email = adminEmail();
+  try {
+    await sendEmail(process.env.EMAILJS_TEMPLATE_LOGIN, {
+      to_email: email,
+      code,
+      device: label,
+      time: new Date(now).toLocaleString('cs-CZ', { timeZone: 'Europe/Prague' }),
+      valid_minutes: '10',
+    });
+  } catch (e) {
+    console.error('Kód pro přihlášení se nepodařilo odeslat:', e.message);
+    await getDb().collection('admin_challenges').doc(cid).delete();
+    return fail(res, 503, 'Kód se nepodařilo odeslat. Zkuste to prosím za chvíli.');
+  }
+  if (dev) clearDeviceCookie(res);
+  setChallengeCookie(res, cid);
+  return res.status(200).json({ needCode: true, email: maskEmail(email) });
+}
+
+// ── 2. krok: kód z e-mailu ──
+async function codeStep(req, res) {
+  const ip = clientIp(req);
+  if (!(await limitOrReject(res, 'code_ip', ip, 10, 15 * 60 * 1000))) return;
+
+  const code = String(req.body.code || '').replace(/\s/g, '');
+  const ch = readToken(req, CHALLENGE_COOKIE, 'challenge');
+  if (!ch) return failSlow(res, 401, 'Platnost kódu vypršela. Přihlaste se prosím znovu.', { restart: true });
+  if (!/^\d{6}$/.test(code)) return failSlow(res, 401, 'Kód má 6 číslic.');
+
+  const db = getDb();
+  const ref = db.collection('admin_challenges').doc(ch.cid);
+  const result = await db.runTransaction(async tx => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return { restart: true };
+    const d = snap.data();
+    if (d.expiresAt.toDate().getTime() < Date.now() || d.attempts >= MAX_CODE_ATTEMPTS) {
+      tx.delete(ref);
+      return { restart: true };
+    }
+    const ok = crypto.timingSafeEqual(Buffer.from(codeHash(ch.cid, code), 'hex'), Buffer.from(d.codeHash, 'hex'));
+    if (!ok) {
+      const left = MAX_CODE_ATTEMPTS - d.attempts - 1;
+      if (left <= 0) tx.delete(ref); else tx.update(ref, { attempts: d.attempts + 1 });
+      return left <= 0 ? { restart: true } : { left };
+    }
+    tx.delete(ref); // kód jde použít jen jednou
+    return { ok: true, label: d.label };
+  });
+
+  if (result.restart) {
+    clearChallengeCookie(res);
+    return failSlow(res, 401, 'Kód už neplatí. Přihlaste se prosím znovu, pošleme nový.', { restart: true });
+  }
+  if (!result.ok) {
+    console.warn('Špatný kód do adminu', { ipHash: sha256(ip).slice(0, 12) });
+    return failSlow(res, 401, `Špatný kód. Zbývá ${result.left} ${result.left === 1 ? 'pokus' : 'pokusy'}.`);
+  }
+
+  const did = crypto.randomBytes(16).toString('hex');
+  const now = new Date();
+  await db.collection('admin_devices').doc(did).set({
+    label: result.label, createdAt: now, verifiedAt: now, lastUsedAt: now, ipHash: sha256(ip).slice(0, 16),
+  });
+  clearChallengeCookie(res);
+  setDeviceCookie(res, did);
+  setSessionCookie(res, did);
+  return res.status(200).json({ ok: true });
+}
+
+// ── Seznam zařízení ──
+async function listDevices(req, res, current) {
+  const col = getDb().collection('admin_devices');
+  const snap = await col.get();
+  const limit = Date.now() - 30 * 864e5;
+  const devices = [];
+  for (const doc of snap.docs) {
+    const d = doc.data();
+    const verified = d.verifiedAt?.toDate?.().getTime() || 0;
+    if (d.revoked || verified < limit) { await doc.ref.delete(); continue; } // propadlá zařízení uklidit
+    devices.push({
+      id: doc.id, label: d.label || 'Zařízení', current: doc.id === current,
+      createdAt: iso(d.createdAt), lastUsedAt: iso(d.lastUsedAt),
+      expiresAt: new Date(verified + 30 * 864e5).toISOString(),
+    });
+  }
+  devices.sort((a, b) => (b.current - a.current) || String(b.lastUsedAt).localeCompare(String(a.lastUsedAt)));
+  return res.status(200).json({ devices });
 }
 
 export default async function handler(req, res) {
   noStore(res);
   if (!guard(req, res, ['GET', 'POST', 'DELETE'])) return;
 
-  // Stav přihlášení (admin.html se ptá při načtení)
-  if (req.method === 'GET') {
-    return res.status(200).json({ authenticated: isAdmin(req) });
-  }
-
-  // Odhlášení
-  if (req.method === 'DELETE') {
-    clearSessionCookie(res);
-    return res.status(200).json({ ok: true });
-  }
-
-  // Přihlášení — limit 5 pokusů / 15 min na IP a 20 / hod celkově (proti distribuovanému útoku)
-  const ip = clientIp(req);
-  if (!(await limitOrReject(res, 'login_ip', ip, 5, 15 * 60 * 1000))) return;
-  if (!(await limitOrReject(res, 'login_all', 'global', 20, 60 * 60 * 1000))) return;
-
-  const { password, totp } = req.body;
-  if (typeof password !== 'string' || password.length > 200 || typeof totp !== 'string') {
-    await sleep(400 + Math.random() * 400);
-    return fail(res, 401, 'Neplatné přihlašovací údaje');
-  }
-
   try {
-    const passOk = await checkPassword(password);
-    const step = matchTotp(totp.trim());
-    if (!passOk || step === null || !(await consumeTotpStep(step))) {
-      console.warn('Neúspěšné přihlášení do adminu', { ipHash: sha256(ip).slice(0, 12) });
-      await sleep(400 + Math.random() * 400);
-      return fail(res, 401, 'Neplatné přihlašovací údaje');
+    if (req.method === 'GET') {
+      const current = await adminDevice(req);
+      if (req.query?.devices) {
+        if (!current) return fail(res, 401, 'Neautorizováno');
+        return await listDevices(req, res, current);
+      }
+      return res.status(200).json({ authenticated: !!current });
     }
-    setSessionCookie(res);
-    return res.status(200).json({ ok: true });
+
+    if (req.method === 'DELETE') {
+      const current = await adminDevice(req);
+      const { revoke, forget } = req.body;
+      if (revoke !== undefined) {
+        if (!current) return fail(res, 401, 'Neautorizováno');
+        if (typeof revoke !== 'string' || !DEVICE_RE.test(revoke)) return fail(res, 400, 'Neplatné zařízení');
+        await getDb().collection('admin_devices').doc(revoke).delete();
+        if (revoke !== current) return res.status(200).json({ ok: true });
+      } else if (forget === true && current) {
+        await getDb().collection('admin_devices').doc(current).delete();
+      }
+      clearSessionCookie(res);
+      if (revoke !== undefined || forget === true) clearDeviceCookie(res);
+      return res.status(200).json({ ok: true, loggedOut: true });
+    }
+
+    // POST
+    return req.body.code !== undefined ? await codeStep(req, res) : await loginStep(req, res);
   } catch (e) {
     console.error('auth error:', e.message);
-    return fail(res, 500, 'Server není správně nakonfigurován');
+    return fail(res, 500, 'Přihlášení teď nefunguje. Zkuste to prosím později.');
   }
 }

@@ -159,5 +159,5 @@ async function sendOrderEmails(order) {
 
 module.exports = {
   SHIPPING, COUNTRIES, PAYMENTS, ID_RE, clean, validateCustomer, priceCart,
-  createOrder, sendOrderEmails, bankInfo,
+  createOrder, sendOrderEmails, sendEmail, bankInfo,
 };

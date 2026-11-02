@@ -126,6 +126,15 @@ async function limitOrReject(res, bucket, key, max, windowMs) {
 }
 
 // ── Admin session (JWT v HttpOnly cookie) ──
+// Tři cookies, všechny HttpOnly; Secure; SameSite=Strict s prefixem __Host-:
+//   sa_admin     – přihlášení (2 h)
+//   sa_device    – ověřené zařízení (30 dní, pak je potřeba nový kód z e-mailu)
+//   sa_challenge – rozpracované přihlášení čekající na kód (10 min)
+const DEVICE_COOKIE = '__Host-sa_device';
+const CHALLENGE_COOKIE = '__Host-sa_challenge';
+const DEVICE_TTL_S = 30 * 24 * 60 * 60;
+const CHALLENGE_TTL_S = 10 * 60;
+
 function jwtSecret() {
   const secret = process.env.ADMIN_JWT_SECRET;
   if (!secret || secret.length < 32) throw new Error('ADMIN_JWT_SECRET chybí nebo je kratší než 32 znaků');
@@ -134,19 +143,42 @@ function jwtSecret() {
 const JWT_OPTS = { issuer: 'sagaart', audience: 'sagaart-admin' };
 const sessionVersion = () => process.env.ADMIN_SESSION_VERSION || '1';
 
-function setSessionCookie(res) {
-  const token = jwt.sign(
-    { role: 'admin', sv: sessionVersion() },
-    jwtSecret(),
-    { ...JWT_OPTS, algorithm: 'HS256', expiresIn: SESSION_TTL_S, jwtid: crypto.randomUUID() }
-  );
-  res.setHeader('Set-Cookie',
-    `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${SESSION_TTL_S}`);
+function signToken(typ, data, ttl) {
+  return jwt.sign({ typ, sv: sessionVersion(), ...data }, jwtSecret(),
+    { ...JWT_OPTS, algorithm: 'HS256', expiresIn: ttl, jwtid: crypto.randomUUID() });
+}
+// Vrací obsah tokenu daného typu, nebo null (špatný podpis, vypršel, jiná verze, jiný typ)
+function readToken(req, name, typ) {
+  const token = readCookie(req, name);
+  if (!token) return null;
+  try {
+    const p = jwt.verify(token, jwtSecret(), { ...JWT_OPTS, algorithms: ['HS256'] });
+    return p.typ === typ && p.sv === sessionVersion() ? p : null;
+  } catch {
+    return null;
+  }
 }
 
-function clearSessionCookie(res) {
-  res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0`);
+// Více Set-Cookie v jedné odpovědi: hlavičky se přidávají, ne přepisují
+function addCookie(res, name, value, maxAge) {
+  const prev = res.getHeader('Set-Cookie');
+  const list = Array.isArray(prev) ? prev : prev ? [String(prev)] : [];
+  list.push(`${name}=${value}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAge}`);
+  res.setHeader('Set-Cookie', list);
 }
+
+function setSessionCookie(res, deviceId) {
+  addCookie(res, SESSION_COOKIE, signToken('session', { role: 'admin', did: deviceId }, SESSION_TTL_S), SESSION_TTL_S);
+}
+function clearSessionCookie(res) { addCookie(res, SESSION_COOKIE, '', 0); }
+function setDeviceCookie(res, deviceId) {
+  addCookie(res, DEVICE_COOKIE, signToken('device', { did: deviceId }, DEVICE_TTL_S), DEVICE_TTL_S);
+}
+function clearDeviceCookie(res) { addCookie(res, DEVICE_COOKIE, '', 0); }
+function setChallengeCookie(res, challengeId) {
+  addCookie(res, CHALLENGE_COOKIE, signToken('challenge', { cid: challengeId }, CHALLENGE_TTL_S), CHALLENGE_TTL_S);
+}
+function clearChallengeCookie(res) { addCookie(res, CHALLENGE_COOKIE, '', 0); }
 
 function readCookie(req, name) {
   const header = req.headers.cookie || '';
@@ -157,22 +189,36 @@ function readCookie(req, name) {
   return null;
 }
 
-function isAdmin(req) {
-  const token = readCookie(req, SESSION_COOKIE);
-  if (!token) return false;
-  try {
-    const p = jwt.verify(token, jwtSecret(), { ...JWT_OPTS, algorithms: ['HS256'] });
-    return p.role === 'admin' && p.sv === sessionVersion();
-  } catch {
-    return false;
-  }
+// Zařízení platí, jen když je v databázi, není odebrané a ověření není starší než 30 dní.
+async function trustedDevice(deviceId) {
+  if (typeof deviceId !== 'string' || !/^[a-f0-9]{32}$/.test(deviceId)) return null;
+  const snap = await getDb().collection('admin_devices').doc(deviceId).get();
+  if (!snap.exists) return null;
+  const d = snap.data();
+  const verified = d.verifiedAt?.toDate ? d.verifiedAt.toDate().getTime() : 0;
+  if (d.revoked || Date.now() - verified > DEVICE_TTL_S * 1000) return null;
+  return { id: deviceId, ...d };
 }
 
+// Vrací id zařízení přihlášeného admina, nebo null. Každý požadavek ověří i zařízení v databázi,
+// takže odebrané zařízení se odhlásí okamžitě.
+async function adminDevice(req) {
+  const p = readToken(req, SESSION_COOKIE, 'session');
+  if (!p || p.role !== 'admin') return null;
+  try {
+    return (await trustedDevice(p.did)) ? p.did : null;
+  } catch (e) {
+    console.error('device check error:', e.message);
+    return null; // fail-closed
+  }
+}
+const isAdmin = async req => (await adminDevice(req)) !== null;
+
 // guard() + ověření admina. Vrací true, když smí pokračovat.
-function requireAdmin(req, res, methods) {
+async function requireAdmin(req, res, methods) {
   noStore(res);
   if (!guard(req, res, methods)) return false;
-  if (!isAdmin(req)) {
+  if (!(await isAdmin(req))) {
     fail(res, 401, 'Neautorizováno');
     return false;
   }
@@ -181,5 +227,7 @@ function requireAdmin(req, res, methods) {
 
 module.exports = {
   SITE_URL, IS_PROD, getDb, sha256, safeEqual, noStore, clientIp, sleep, fail,
-  guard, rateLimit, limitOrReject, setSessionCookie, clearSessionCookie, isAdmin, requireAdmin,
+  guard, rateLimit, limitOrReject, isAdmin, adminDevice, requireAdmin, readToken, trustedDevice,
+  DEVICE_COOKIE, CHALLENGE_COOKIE, DEVICE_TTL_S, jwtSecret,
+  setSessionCookie, clearSessionCookie, setDeviceCookie, clearDeviceCookie, setChallengeCookie, clearChallengeCookie,
 };

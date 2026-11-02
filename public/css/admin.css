@@ -119,7 +119,7 @@ input[type=number] { -moz-appearance:textfield; }
 .login-mark em { color:var(--accent); }
 .login-art .login-mark em { color:#f8e9ef; }
 .login-mark.small { display:none; font-size:1.8rem; margin-bottom:28px; }
-.login-box { align-self:center; justify-self:center; width:min(400px, 100% - 40px); padding:40px 0; animation:rise .8s var(--ease) both .1s; }
+.login-box { align-self:center; justify-self:center; width:min(400px, 100% - 40px); padding:40px 0; }
 .login-head { margin-bottom:32px; }
 .login-head h1 { font-family:var(--serif); font-size:2.4rem; line-height:1.1; }
 .login-head p { color:var(--ink-3); margin-top:8px; }
@@ -127,6 +127,10 @@ input[type=number] { -moz-appearance:textfield; }
 .login-box .btn { height:50px; margin-top:8px; }
 .login-box .btn .i { transition:transform .25s var(--ease); }
 .login-box .btn:hover .i { transform:translateX(4px); }
+.login-step { animation:rise .5s var(--ease) both; }
+.login-head b { color:var(--ink); font-weight:500; }
+.login-alt { margin-top:18px; font-size:.85rem; color:var(--ink-3); text-align:center; }
+.login-alt .link-btn { font-size:inherit; }
 .login-error { min-height:1.5em; margin-top:14px; color:var(--bad); font-size:.85rem; text-align:center; }
 .login-error.shake { animation:shake .4s; }
 .login-note { display:flex; align-items:center; justify-content:center; gap:6px; margin-top:24px; font-size:.78rem; color:var(--ink-3); }
@@ -383,6 +387,17 @@ button.kpi:hover { transform:translateY(-3px); box-shadow:0 14px 34px -14px rgba
 @keyframes spin { to { transform:rotate(360deg); } }
 .upload-progress { font-size:.8rem; color:var(--ink-3); margin-top:10px; min-height:1.2em; }
 .upload-progress.err { color:var(--bad); }
+
+/* zabezpečení */
+.sec-list { list-style:none; display:flex; flex-direction:column; gap:10px; font-size:.9rem; color:var(--ink-2); }
+.sec-list li { display:flex; gap:10px; align-items:flex-start; }
+.sec-list .i { color:var(--ok); margin-top:2px; }
+.devices { display:flex; flex-direction:column; gap:8px; }
+.device { display:flex; align-items:center; gap:14px; padding:14px 16px; border:1px solid var(--line); border-radius:var(--r-sm); background:var(--paper); }
+.device-ico { display:grid; place-items:center; width:38px; height:38px; border-radius:50%; background:var(--sand); color:var(--accent); flex-shrink:0; }
+.device b { display:flex; align-items:center; gap:8px; font-weight:500; font-size:.92rem; }
+.device small { display:block; color:var(--ink-3); font-size:.8rem; }
+.device .btn { margin-left:auto; }
 
 /* potvrzení */
 .confirm { position:fixed; inset:0; z-index:80; display:grid; place-items:center; padding:20px; background:rgba(40,36,58,.45); backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); opacity:0; pointer-events:none; transition:opacity .25s; }

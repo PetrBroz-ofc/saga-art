@@ -5,7 +5,6 @@
   "engines": { "node": "22.x" },
   "scripts": {
     "hash-password": "node scripts/hash-password.js",
-    "totp-setup": "node scripts/totp-setup.js",
     "seed": "node --env-file=.env.local scripts/seed-products.js",
     "audit": "npm audit --omit=dev"
   },
