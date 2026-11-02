@@ -49,7 +49,7 @@ function sanitizeProduct(body) {
 }
 
 export default async function handler(req, res) {
-  if (!requireAdmin(req, res, ['GET', 'POST', 'PUT', 'DELETE'])) return;
+  if (!requireAdmin(req, res, ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])) return;
   const col = getDb().collection('products');
 
   try {
@@ -72,6 +72,13 @@ export default async function handler(req, res) {
       const { data, error } = sanitizeProduct(req.body);
       if (error) return fail(res, 400, error);
       await col.doc(id).update({ ...data, updatedAt: new Date().toISOString() });
+      return res.status(200).json({ ok: true });
+    }
+
+    // rychlé přepnutí Skladem / Prodáno z přehledu šperků
+    if (req.method === 'PATCH') {
+      if (typeof req.body.inStock !== 'boolean') return fail(res, 400, 'Neplatná hodnota');
+      await col.doc(id).update({ inStock: req.body.inStock, updatedAt: new Date().toISOString() });
       return res.status(200).json({ ok: true });
     }
 

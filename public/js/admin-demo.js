@@ -1,0 +1,109 @@
+'use strict';
+// Sága Art · ukázkový režim administrace (/admin?demo, jen localhost a *.vercel.app).
+// Šperky jsou skutečné z /data/products.json, objednávky jsou smyšlené. Nic se neukládá.
+
+(() => {
+  let seed = 7;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const pick = a => a[Math.floor(rnd() * a.length)];
+
+  const FIRST = ['Jana', 'Petra', 'Lucie', 'Kateřina', 'Tereza', 'Veronika', 'Markéta', 'Eva', 'Barbora', 'Klára', 'Zuzana', 'Michaela', 'Hana', 'Adéla', 'Nikola'];
+  const LAST = ['Nováková', 'Svobodová', 'Dvořáková', 'Černá', 'Procházková', 'Kučerová', 'Veselá', 'Horáková', 'Němcová', 'Marková', 'Pokorná', 'Králová', 'Benešová'];
+  const PLACES = [['Praha 3', '130 00'], ['Brno', '602 00'], ['Olomouc', '779 00'], ['Plzeň', '301 00'], ['Liberec', '460 01'], ['České Budějovice', '370 01'], ['Hradec Králové', '500 02'], ['Zlín', '760 01']];
+  const STREETS = ['Lipová 12', 'Husova 5', 'Na Výsluní 1840', 'Masarykova 33', 'Polní 7', 'Dlouhá 21', 'Zahradní 402'];
+  const SHIP = { zasilkovna: 109, balikovna: 109, posta: 130 };
+  const NOTES = ['Prosím o dárkové balení, je to pro maminku.', 'Můžete přibalit malou kartičku? Děkuji!', ''];
+  const TRANSITIONS = {
+    awaiting_transfer: ['paid', 'cancelled'], awaiting_payment: ['cancelled'], amount_mismatch: ['paid', 'cancelled'],
+    paid: ['shipped', 'cancelled'], shipped: ['paid'], cancelled: [],
+  };
+
+  let products = [];
+  let orders = [];
+  const clone = v => JSON.parse(JSON.stringify(v));
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+
+  function makeOrders() {
+    const now = Date.now(), DAY = 864e5, out = [];
+    for (let i = 0; i < 52; i++) {
+      const age = i < 6 ? rnd() * 2.5 : Math.pow(rnd(), 1.4) * 95;
+      const created = now - age * DAY - rnd() * 3600e3;
+      const n = rnd() < .75 ? 1 : 2;
+      const lines = [];
+      for (let k = 0; k < n; k++) {
+        const p = pick(products);
+        if (!lines.some(l => l.id === p.id)) lines.push({ id: p.id, name: p.name, price: p.price, qty: rnd() < .9 ? 1 : 2 });
+      }
+      const shipping = pick(Object.keys(SHIP));
+      const payment = rnd() < .62 ? 'card' : 'transfer';
+      const subtotal = lines.reduce((s, l) => s + l.price * l.qty, 0);
+      let status = age > 5 ? 'shipped' : age > 1.5 ? (rnd() < .5 ? 'shipped' : 'paid') : 'paid';
+      if (payment === 'transfer' && age < 6 && rnd() < .7) status = 'awaiting_transfer';
+      if (i === 9) status = 'cancelled';
+      if (i === 3) status = 'awaiting_payment';
+      const [mesto, psc] = pick(PLACES);
+      const d = new Date(created);
+      const number = String(d.getFullYear()).slice(2) + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0') + String(1000 + i * 137 % 9000).padStart(4, '0');
+      const jmeno = pick(FIRST), prijmeni = pick(LAST);
+      const iso = t => new Date(t).toISOString();
+      out.push({
+        number, status, payment, shipping, shippingPrice: SHIP[shipping], subtotal, total: subtotal + SHIP[shipping], lines,
+        customer: {
+          jmeno, prijmeni,
+          email: (jmeno + '.' + prijmeni).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '') + '@email.cz',
+          telefon: '+420 ' + (600 + Math.floor(rnd() * 199)) + ' ' + String(Math.floor(rnd() * 1e3)).padStart(3, '0') + ' ' + String(Math.floor(rnd() * 1e3)).padStart(3, '0'),
+          ulice: pick(STREETS), mesto, psc, zeme: 'CZ', poznamka: i < 8 ? pick(NOTES) : '',
+        },
+        tracking: status === 'shipped' && shipping === 'zasilkovna' ? 'Z' + Math.floor(1e9 + rnd() * 9e9) : '',
+        adminNote: '',
+        emailsSent: status !== 'awaiting_payment',
+        createdAt: iso(created),
+        paidAt: ['paid', 'shipped'].includes(status) ? iso(created + (payment === 'card' ? 60e3 : DAY * rnd())) : null,
+        shippedAt: status === 'shipped' ? iso(created + DAY * (1 + rnd() * 2)) : null,
+        cancelledAt: status === 'cancelled' ? iso(created + DAY) : null,
+      });
+    }
+    return out.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  const ready = fetch('/data/products.json').then(r => r.json()).then(list => {
+    products = list.map(p => ({ inStock: true, ...p }));
+    products[4].inStock = false;
+    products[11].inStock = false;
+    orders = makeOrders();
+  });
+
+  async function api(path, method, body) {
+    await wait(180 + Math.random() * 220);
+    if (path === '/api/auth') return { authenticated: true, ok: true };
+    if (path === '/api/upload-sign') throw new Error('v ukázce se fotky nenahrávají');
+
+    if (path === '/api/products') {
+      if (method === 'GET') return clone(products).sort((a, b) => a.name.localeCompare(b.name, 'cs'));
+      if (method === 'POST') { const id = 'demo-' + Date.now(); products.push({ id, ...body }); return { id }; }
+      const p = products.find(x => x.id === body.id);
+      if (!p) throw new Error('Šperk neexistuje');
+      if (method === 'PUT') Object.assign(p, body);
+      if (method === 'PATCH') p.inStock = body.inStock;
+      if (method === 'DELETE') products = products.filter(x => x !== p);
+      return { ok: true };
+    }
+
+    if (path === '/api/orders') {
+      if (method === 'GET') return clone(orders);
+      const o = orders.find(x => x.number === body.number);
+      if (!o) throw new Error('Objednávka neexistuje');
+      if (body.status && body.status !== o.status) {
+        if (!TRANSITIONS[o.status].includes(body.status)) throw new Error('Tuhle změnu stavu nejde udělat');
+        o.status = body.status;
+        if (!o[body.status + 'At']) o[body.status + 'At'] = new Date().toISOString();
+      }
+      if (body.tracking !== undefined) o.tracking = String(body.tracking).slice(0, 40);
+      if (body.adminNote !== undefined) o.adminNote = String(body.adminNote).slice(0, 1000);
+      return clone(o);
+    }
+    throw new Error('Neznámá adresa');
+  }
+
+  window.SA_DEMO = { api, ready };
+})();
