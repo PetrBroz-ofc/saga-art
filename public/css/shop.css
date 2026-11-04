@@ -16,7 +16,7 @@
 * { margin:0; padding:0; box-sizing:border-box; }
 html { scroll-behavior:smooth; scroll-padding-top:84px; }
 html.smooth-scroll { scroll-behavior:auto; overflow-anchor:none; }   /* plynulost řídí js/smooth.js */
-body { font-family:var(--sans); font-size:16px; line-height:1.6; background:radial-gradient(ellipse 60% 520px at 88% 120px, rgba(140,196,189,.22), transparent 70%) no-repeat, radial-gradient(ellipse 55% 480px at 8% 420px, rgba(248,214,228,.38), transparent 70%) no-repeat, var(--bg); color:var(--ink); overflow-x:hidden; -webkit-font-smoothing:antialiased; }
+body { font-family:var(--sans); font-size:16px; line-height:1.6; background:var(--bg); color:var(--ink); overflow-x:hidden; -webkit-font-smoothing:antialiased; }
 img { max-width:100%; display:block; }
 :focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
 .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
@@ -131,7 +131,7 @@ img { max-width:100%; display:block; }
 .hero-media .caption { margin-left:12%; padding-left:calc(38% - 12% + 8px); }
 
 /* ── FAKTA ── */
-.facts { background:linear-gradient(90deg, rgba(230,242,241,.6), rgba(239,233,247,.6), rgba(248,233,239,.6)); display:grid; grid-template-columns:repeat(3,1fr); border-top:1px solid var(--line); border-bottom:1px solid var(--line); max-width:1360px; margin:0 auto; }
+.facts { background:var(--lilac); display:grid; grid-template-columns:repeat(3,1fr); border-top:1px solid var(--line); border-bottom:1px solid var(--line); max-width:1360px; margin:0 auto; }
 .facts li { list-style:none; padding:22px 48px; font-size:.95rem; color:var(--ink-2); display:flex; gap:12px; align-items:center; }
 .facts li + li { border-left:1px solid var(--line); }
 .facts strong { color:var(--ink); font-weight:500; }
@@ -146,7 +146,7 @@ img { max-width:100%; display:block; }
 
 /* ── CITÁT ── */
 .quote-strip { max-width:900px; margin:0 auto; padding:96px 48px 8px; text-align:center; font-family:var(--serif); font-style:italic; font-size:clamp(1.6rem,3vw,2.4rem); font-weight:400; line-height:1.3; color:var(--ink); }
-.quote-strip cite { display:block; margin-top:18px; font-family:var(--sans); font-style:normal; font-size:.82rem; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); }
+.quote-strip cite { display:block; margin-top:18px; font-family:var(--sans); font-style:normal; font-size:.95rem; color:var(--ink-2); }
 
 /* ── KOLEKCE (vodorovný pás s fotkami) ── */
 .cat-grid { display:grid; grid-auto-flow:column; grid-auto-columns:calc((100% - 3*24px) / 4.3); gap:24px; overflow-x:auto; scroll-snap-type:x mandatory; padding-bottom:18px; scrollbar-width:thin; scrollbar-color:var(--line) transparent; }
@@ -172,7 +172,7 @@ img { max-width:100%; display:block; }
 .filter-info { font-size:.92rem; color:var(--ink-2); margin:-20px 0 28px; }
 .filter-info button { background:none; border:none; color:var(--accent); text-decoration:underline; cursor:pointer; font:inherit; }
 .products-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:44px 24px; }
-.product-card { cursor:pointer; position:relative; }
+.product-card { cursor:pointer; position:relative; display:flex; flex-direction:column; }
 .product-img { aspect-ratio:4/5; background:var(--sand); position:relative; overflow:hidden; border-radius:var(--radius); }
 .product-img img, .product-img .ph { width:100%; height:100%; object-fit:cover; transition:transform .6s cubic-bezier(.2,.8,.2,1), opacity .4s; }
 .product-img img.alt { position:absolute; inset:0; opacity:0; }
@@ -180,16 +180,16 @@ img { max-width:100%; display:block; }
   .product-card:hover .product-img img.alt { opacity:1; }
   .product-card:hover .product-img img { transform:scale(1.03); }
 }
-.product-badge { position:absolute; top:12px; left:12px; background:var(--paper); color:var(--accent-dk); font-size:.76rem; letter-spacing:.06em; text-transform:uppercase; padding:4px 9px; border-radius:2px; z-index:2; }
+.product-badge { position:absolute; top:12px; left:12px; background:var(--paper); color:var(--accent-dk); font-size:.85rem; padding:4px 9px; border-radius:2px; z-index:2; }
 .product-wishlist { position:absolute; top:8px; right:8px; width:40px; height:40px; background:rgba(255,253,250,.9); border-radius:50%; display:flex; align-items:center; justify-content:center; color:var(--ink); cursor:pointer; border:none; z-index:2; transition:color .2s, background .2s; }
 .product-wishlist:hover { color:var(--accent); }
 .product-wishlist.on { color:var(--accent); }
 .product-wishlist.on .icon { fill:currentColor; }
-.product-info { padding-top:14px; }
-.product-collection { font-size:.78rem; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:2px; }
+.product-info { padding-top:14px; flex:1; display:flex; flex-direction:column; }
+.product-collection { font-size:.88rem; color:var(--ink-3); margin-bottom:2px; }
 .product-name { font-family:var(--serif); font-size:1.22rem; font-weight:400; line-height:1.25; }
 .product-material { font-size:.9rem; color:var(--ink-2); margin:4px 0 10px; line-height:1.45; }
-.product-bottom { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.product-bottom { margin-top:auto; display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .product-price { font-size:1rem; font-weight:500; color:var(--ink); }
 .product-add { display:inline-flex; align-items:center; gap:6px; height:40px; padding:0 14px; background:transparent; color:var(--ink); border:1px solid var(--line); border-radius:var(--radius); font-family:var(--sans); font-size:.86rem; cursor:pointer; transition:background .2s, color .2s, border-color .2s; }
 .product-add:hover { background:var(--accent-dk); color:#fff; border-color:var(--accent-dk); }
@@ -202,12 +202,12 @@ img { max-width:100%; display:block; }
 .about { display:grid; grid-template-columns:1fr 1fr; gap:80px; align-items:center; }
 .about-img { aspect-ratio:4/5; overflow:hidden; border-radius:var(--radius); }
 .about-img img { width:100%; height:100%; object-fit:cover; }
-.about-text p { color:var(--ink-2); font-size:1.04rem; line-height:1.8; margin-bottom:18px; max-width:540px; }
+.about-text p { color:var(--ink); font-size:1.08rem; line-height:1.8; margin-bottom:18px; max-width:540px; }
 .about-quote { font-family:var(--serif); font-style:italic; font-size:1.55rem !important; line-height:1.35 !important; color:var(--ink) !important; margin:30px 0 !important; }
 .about-sign { font-family:var(--serif); font-size:1.15rem !important; color:var(--accent) !important; }
 
 /* ── MATERIÁLY ── */
-.materials { background:linear-gradient(180deg, var(--sea), #edf1f8); }
+.materials { background:var(--sea); }
 .mat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:28px; }
 .mat-photo { aspect-ratio:4/3; overflow:hidden; border-radius:var(--radius); margin-bottom:18px; }
 .mat-photo img { width:100%; height:100%; object-fit:cover; }
@@ -226,7 +226,7 @@ img { max-width:100%; display:block; }
 .ship-note { margin-top:22px; font-size:1.02rem; color:var(--ink-2); line-height:1.7; }
 
 /* ── NEWSLETTER ── */
-.newsletter { border-top:1px solid var(--line); background:linear-gradient(120deg, var(--pink), var(--lilac)); }
+.newsletter { border-top:1px solid var(--line); background:var(--pink); }
 .newsletter .wrap { display:grid; grid-template-columns:1fr 1fr; gap:48px; align-items:end; }
 .newsletter-desc { color:var(--ink-2); margin-top:12px; max-width:420px; }
 .newsletter-form { display:flex; border-bottom:1.5px solid var(--accent); }
@@ -236,7 +236,7 @@ img { max-width:100%; display:block; }
 .newsletter-submit:hover { color:var(--accent); }
 
 /* ── FOOTER ── */
-.site-footer { background:linear-gradient(165deg, #e4eff3 0%, #ece7f6 50%, #f7e7ef 100%); color:var(--ink); overflow:hidden; border-top:1px solid var(--line); }
+.site-footer { background:var(--lilac); color:var(--ink); overflow:hidden; border-top:1px solid var(--line); }
 .footer-strip { max-width:1360px; margin:0 auto; padding:72px 48px 0; }
 .footer-strip-head { display:flex; justify-content:space-between; align-items:baseline; gap:24px; margin-bottom:22px; }
 .footer-strip-head .eyebrow { color:var(--ink-3); margin:0; }
@@ -245,7 +245,7 @@ img { max-width:100%; display:block; }
 .footer-photos { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; }
 .footer-photo { position:relative; aspect-ratio:4/5; overflow:hidden; border:none; padding:0; background:var(--lilac); border-radius:var(--radius); cursor:pointer; }
 .footer-photo img { width:100%; height:100%; object-fit:cover; transition:transform .7s cubic-bezier(.2,.8,.2,1), filter .4s; filter:saturate(.9); }
-.footer-photo span { position:absolute; left:10px; right:10px; bottom:10px; text-align:left; font-family:var(--serif); font-size:1.02rem; color:#fff; opacity:0; transform:translateY(8px); transition:opacity .3s, transform .4s cubic-bezier(.2,.8,.2,1); text-shadow:0 1px 10px rgba(0,0,0,.45); }
+.footer-photo span { position:absolute; left:10px; right:10px; bottom:10px; text-align:left; font-family:var(--serif); font-size:1.02rem; color:#fff; opacity:0; transform:translateY(8px); transition:opacity .3s, transform .4s cubic-bezier(.2,.8,.2,1); }
 .footer-photo::after { content:""; position:absolute; inset:0; background:linear-gradient(to top, rgba(62,58,82,.55), transparent 50%); opacity:0; transition:opacity .3s; }
 .footer-photo:hover img, .footer-photo:focus-visible img { transform:scale(1.06); filter:none; }
 .footer-photo:hover::after, .footer-photo:focus-visible::after { opacity:1; }
@@ -256,7 +256,7 @@ img { max-width:100%; display:block; }
 .footer-brand .nav-logo em { color:var(--accent); }
 .footer-desc { font-size:.98rem; color:var(--ink-2); line-height:1.7; max-width:340px; }
 .footer-meta { margin-top:18px; font-size:.9rem; line-height:1.8; color:var(--ink-3); }
-.footer-col h4 { font-size:.78rem; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3); margin-bottom:16px; font-weight:400; }
+.footer-col h4 { font-family:var(--serif); font-size:1.15rem; color:var(--ink); margin-bottom:14px; font-weight:400; }
 .footer-col ul { list-style:none; display:flex; flex-direction:column; gap:10px; }
 /* podtržení, které se rozjede zleva */
 .footer-col ul a, .footer-bottom a { text-decoration:none; color:var(--ink-2); background:linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat; padding-bottom:2px; transition:color .2s, background-size .35s cubic-bezier(.2,.8,.2,1); }
@@ -316,7 +316,7 @@ img { max-width:100%; display:block; }
 .cart-item-qty button { width:22px; height:22px; border:1px solid var(--rose); background:white; border-radius:50%; cursor:pointer; font-size:.85rem; display:flex; align-items:center; justify-content:center; line-height:1; }
 .cart-item-qty button:hover { background:var(--deep-rose); color:white; border-color:var(--deep-rose); }
 .cart-item-qty span { font-size:.85rem; font-weight:500; min-width:20px; text-align:center; }
-.cart-item-remove { background:none; border:none; color:var(--text-light); cursor:pointer; font-size:.85rem; padding:4px; align-self:flex-start; }
+.cart-item-remove { background:none; border:none; color:var(--text-light); cursor:pointer; font-size:.85rem; padding:8px; display:flex; align-self:flex-start; }
 .cart-item-remove:hover { color:var(--deep-rose); }
 .cart-empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; font-family:var(--serif); font-style:italic; font-size:1.2rem; color:var(--text-light); text-align:center; }
 .cart-footer-box { padding-top:20px; border-top:1px solid var(--rose); margin-top:20px; }
@@ -457,7 +457,7 @@ img { max-width:100%; display:block; }
   .wrap { padding:0 16px; }
   .section { padding:72px 0; }
   .section-head { flex-direction:column; align-items:flex-start; }
-  .quote-strip { padding:64px 16px 0; }
+  .quote-strip { padding:64px 16px 0; font-size:1.35rem; }
   .cat-grid { grid-auto-columns:72%; gap:16px; }
   .products-grid { grid-template-columns:repeat(2,1fr); gap:32px 14px; }
   .product-name { font-size:1.06rem; }
@@ -569,7 +569,7 @@ img { max-width:100%; display:block; }
 .carousel .section-lead { margin-top:12px; }
 
 /* ── GALERIE NA MODELCE (samostatná sekce před šperky) ── */
-.gallery-sec { background:linear-gradient(165deg, #ece7f6 0%, #f7e7ef 100%); padding-bottom:96px; }
+.gallery-sec { background:var(--sea); padding-bottom:96px; }
 .gallery-sec .footer-strip { padding-top:96px; }
 @media(max-width:860px) {
   .gallery-sec { padding-bottom:64px; }

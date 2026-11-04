@@ -276,7 +276,7 @@ function renderCart() {
           <button data-action="changeQty" data-arg="${i}:-1" aria-label="Ubrat">−</button><span>${l.qty}</span><button data-action="changeQty" data-arg="${i}:1" aria-label="Přidat">+</button>
         </div>
       </div>
-      <button class="cart-item-remove" data-action="removeFromCart" data-arg="${i}" aria-label="Odebrat">✕</button>
+      <button class="cart-item-remove" data-action="removeFromCart" data-arg="${i}" aria-label="Odebrat"><svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button>
     </div>`).join('');
   $('cartSubtotal').textContent = kc(getCartSubtotal());
   $('cartTotal').textContent = kc(getCartSubtotal());
