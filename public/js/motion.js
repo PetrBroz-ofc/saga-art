@@ -61,20 +61,7 @@
       };
       hero.addEventListener('pointermove', onMove);
       hero.addEventListener('pointerleave', () => layers.forEach(l => { l.x(0); l.y(0); }));
-    } else if (hero) {
-      // dotyk (mobil, tablet): fotky v rámečcích pomalu dýchají, každá v jiném rytmu
-      $$('.hero-main img, .hero-side img', hero).forEach((img, i) => {
-        gsap.fromTo(img, { scale: 1 }, { scale: 1.08, duration: 5 + i * .8, ease: 'sine.inOut', repeat: -1, yoyo: true, delay: i * .6 });
-      });
     }
-
-    // ── Pás s materiály, který jede do strany podle scrollu ──
-    $$('.ribbon-track').forEach((track, i) => {
-      gsap.fromTo(track, { xPercent: i % 2 ? -30 : 0 }, {
-        xPercent: i % 2 ? 0 : -30, ease: 'none',
-        scrollTrigger: { trigger: track.parentElement, start: 'top bottom', end: 'bottom top', scrub: .4 },
-      });
-    });
 
     // ── Nadpisy sekcí vyjedou po slovech zespodu ──
     $$('.section-title, .footer-strip-text').forEach(title => {
