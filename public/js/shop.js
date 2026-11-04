@@ -32,7 +32,7 @@ const SHIP_META = {
 const COLLECTIONS = {
   Charlotte: { cover:'/img/produkty/charlotte-nahrdelnik/1.jpg', desc:'Jemný amazonit, pravé říční perly a čtyřlístek pro štěstí.', ph1:'#e3f1ec', ph2:'#a7cfc1', gem:'#9cc9b9' },
   Euforie:   { cover:'/img/produkty/euforie-gold-long/1.jpg', desc:'Drobné říční perly a zlatá ocel. Šperky na každý den, které se krásně vrství.', ph1:'#fbf3e4', ph2:'#e6cf9f', gem:'' },
-  'Moře':    { cover:'/img/produkty/more-kvet-nahrdelnik/1.jpg', desc:'Barvy, lehkost a klid mořské hladiny v odstínech akvamarínu.', ph1:'#e5f0f5', ph2:'#a9c8d8', gem:'#a3c8da' },
+  'Moře':    { cover:'/img/produkty/more-kvet-nahrdelnik/1.jpg', desc:'Světle modrý akvamarín a říční perly v barvách mořské hladiny.', ph1:'#e5f0f5', ph2:'#a9c8d8', gem:'#a3c8da' },
   Duna:      { cover:'/img/produkty/duna-nahrdelnik/1.jpg', desc:'Výrazný zlatý řetízek, krémové perly a světlý amazonit se stromem života.', ph1:'#f7f0e1', ph2:'#d9c9a0', gem:'#c9dccf' },
   Pure:      { cover:'/img/produkty/pure-nahrdelnik/1.jpg', desc:'Nepravidelné říční perly s jemnými nerezovými detaily.', ph1:'#fbf1ef', ph2:'#e8c9c6', gem:'' },
   Best:      { cover:'/img/produkty/best-harmonie/1.jpg', desc:'Amazonit z Peru, říční perly a perleťové srdce.', ph1:'#e8f2ec', ph2:'#b6d3c2', gem:'#a9cdb9' },
@@ -521,10 +521,10 @@ document.addEventListener('keydown', e => {
   try {
     const res = await fetch('/api/verify-payment?session_id=' + encodeURIComponent(sessionId));
     const data = await res.json();
-    if (!data.paid) { showNotification('Platbu se nepodařilo ověřit. Kontaktujte nás prosím.'); return; }
+    if (!data.paid) { showNotification('Platbu se nepodařilo ověřit. Napište mi prosím na info@sagaart.cz.'); return; }
     showSuccess({ orderNumber: data.orderNumber });
   } catch {
-    showNotification('Platbu se nepodařilo ověřit. Kontaktujte nás prosím.');
+    showNotification('Platbu se nepodařilo ověřit. Napište mi prosím na info@sagaart.cz.');
   }
 })();
 
