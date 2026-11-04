@@ -39,11 +39,14 @@
     // ── Hero: text se při odjezdu rozplyne, fotky vlevo a vpravo jedou každá jinou rychlostí ──
     const hero = document.querySelector('.hero');
     if (hero) {
-      const tl = gsap.timeline({ scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: .6 } });
+      // na užších displejích jsou fotky menší, tak se posouvají méně
+      const k = () => (innerWidth >= 1000 ? 1 : innerWidth > 600 ? .6 : .4);
+      const tl = gsap.timeline({ scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: .6, invalidateOnRefresh: true } });
       tl.to('.hero-text', { yPercent: -35, autoAlpha: 0, ease: 'none' }, 0)
-        .to('.hero-media--left', { y: -140, ease: 'none' }, 0)
-        .to('.hero-media--right', { y: -70, ease: 'none' }, 0)
-        .to('.hero-media .hero-side', { y: -90, rotation: (i) => (i ? 3 : -3), ease: 'none' }, 0);
+        .to('.hero-media--left', { y: () => -140 * k(), ease: 'none' }, 0)
+        .to('.hero-media--right', { y: () => -70 * k(), ease: 'none' }, 0)
+        // yPercent, aby se to nepralo s posunem za myší (ten používá x/y)
+        .to('.hero-media .hero-side', { yPercent: -50, rotation: (i) => (i ? 3 : -3), ease: 'none' }, 0);
     }
 
     // ── Hero: fotky se jemně natáčejí za kurzorem (jen myš) ──
@@ -58,6 +61,11 @@
       };
       hero.addEventListener('pointermove', onMove);
       hero.addEventListener('pointerleave', () => layers.forEach(l => { l.x(0); l.y(0); }));
+    } else if (hero) {
+      // dotyk (mobil, tablet): fotky v rámečcích pomalu dýchají, každá v jiném rytmu
+      $$('.hero-main img, .hero-side img', hero).forEach((img, i) => {
+        gsap.fromTo(img, { scale: 1 }, { scale: 1.08, duration: 5 + i * .8, ease: 'sine.inOut', repeat: -1, yoyo: true, delay: i * .6 });
+      });
     }
 
     // ── Pás s materiály, který jede do strany podle scrollu ──
