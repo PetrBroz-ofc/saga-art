@@ -486,11 +486,33 @@ img { max-width:100%; display:block; }
 .product-add.added { background:var(--accent-dk); color:#fff; border-color:var(--accent-dk); }
 .cat-card { background:none; border:none; padding:0; font:inherit; color:inherit; }
 .opt-radio { margin-right:4px; }
+.hero-media--left { display:none; }
 @media (min-width:861px) {
   .hero { min-height:calc(100vh - 70px); padding-top:32px; padding-bottom:40px; }
+}
+@media (min-width:861px) and (max-width:1100px) {
   .hero-main { height:min(74vh, 700px); width:auto; aspect-ratio:4/5; margin-left:auto; margin-right:0; }
   .hero-media .caption { text-align:right; margin-left:0; padding-left:0; }
   .hero-side { width:min(34%, 240px); left:2%; }
+}
+
+@media (min-width:1101px) {
+  .hero { grid-template-columns:1fr minmax(380px,1.15fr) 1fr; gap:56px; max-width:1480px; align-content:center; align-items:start; }
+  .hero-text { grid-column:2; grid-row:1; align-self:center; text-align:center; display:flex; flex-direction:column; align-items:center; }
+  .hero-title { font-size:clamp(2.8rem,4.3vw,4.4rem); }
+  .hero-desc { margin-left:auto; margin-right:auto; }
+  .hero-btns { justify-content:center; }
+  .hero-media--left { display:block; grid-column:1; grid-row:1; }
+  .hero-media--right { grid-column:3; grid-row:1; }
+  .hero-main { width:94%; aspect-ratio:4/5; max-height:72vh; }
+  .hero-media--right .hero-main { margin-left:auto; margin-right:0; }
+  .hero-media--left .hero-main { margin-left:0; margin-right:auto; }
+  .hero-side { width:42%; }
+  .hero-media--right .hero-side { left:0; right:auto; }
+  .hero-media--left .hero-side { left:auto; right:0; }
+  .hero-media .caption { margin:0; padding:0; }
+  .hero-media--right .caption { text-align:right; padding-left:46%; }
+  .hero-media--left .caption { text-align:left; padding-right:46%; }
 }
 
 /* ── ÚVODNÍ ANIMACE (js/intro.js) ── */

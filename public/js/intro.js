@@ -67,11 +67,10 @@
     if (skipping) return;
 
     // 2) vrchní fotka přeletí do hero, Duna do malého rámečku, zbytek zmizí
-    const main = document.querySelector('.hero-main');
-    const side = document.querySelector('.hero-side');
     const flights = [];
     cards.forEach(c => {
-      const t = c.dataset.target === 'main' ? main : c.dataset.target === 'side' ? side : null;
+      const slot = c.dataset.target;
+      const t = slot && /^[a-z0-9]+$/.test(slot) ? document.querySelector('[data-slot="' + slot + '"]') : null;
       if (t && t.getBoundingClientRect().width > 0) flights.push(flyTo(c, t, 1100));
       else c.animate([{ opacity: 1 }, { opacity: 0, transform: 'scale(.92)' }], { duration: 450, easing: EASE, fill: 'forwards' });
     });

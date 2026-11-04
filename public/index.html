@@ -21,8 +21,8 @@
 <!-- ═══ ÚVODNÍ ANIMACE (js/intro.js) ═══ -->
 <div class="intro" id="intro" aria-hidden="true">
   <div class="intro-stack">
-    <div class="intro-card" data-rot="-4"><img src="/img/produkty/more/1.jpg" alt="" width="750" height="1000"></div>
-    <div class="intro-card" data-rot="3"><img src="/img/produkty/euforie-gold-set/1.jpg" alt="" width="1000" height="1000"></div>
+    <div class="intro-card" data-rot="-4" data-target="main2"><img src="/img/produkty/more/1.jpg" alt="" width="750" height="1000"></div>
+    <div class="intro-card" data-rot="3" data-target="side2"><img src="/img/produkty/euforie-gold-set/1.jpg" alt="" width="1000" height="1000"></div>
     <div class="intro-card" data-rot="-2" data-target="side"><img src="/img/produkty/duna-set/1.jpg" alt="" width="1000" height="1000"></div>
     <div class="intro-card" data-rot="2.5"><img src="/img/produkty/euforie-gold-nahrdelnik/1.jpg" alt="" width="1000" height="1000"></div>
     <div class="intro-card" data-rot="0" data-target="main"><img src="/img/hero-charlotte.jpg" alt="" width="746" height="1000" fetchpriority="high"></div>
@@ -113,9 +113,14 @@
       <a href="#kolekce" class="btn-link">Kolekce</a>
     </div>
   </div>
-  <figure class="hero-media">
-    <div class="hero-main"><img src="/img/hero-charlotte.jpg" alt="Set Charlotte s amazonitem a říčními perlami na krku a zápěstí" width="746" height="1000" fetchpriority="high"></div>
-    <div class="hero-side"><img src="/img/produkty/duna-set/1.jpg" alt="Set Duna položený na písku" width="1000" height="1000" loading="lazy"></div>
+  <figure class="hero-media hero-media--left" aria-hidden="true">
+    <div class="hero-main" data-slot="main2"><img src="/img/produkty/more/1.jpg" alt="" width="750" height="1000" loading="lazy"></div>
+    <div class="hero-side" data-slot="side2"><img src="/img/produkty/euforie-gold-set/1.jpg" alt="" width="1000" height="1000" loading="lazy"></div>
+    <figcaption class="caption">Moře · akvamarín a říční perly</figcaption>
+  </figure>
+  <figure class="hero-media hero-media--right">
+    <div class="hero-main" data-slot="main"><img src="/img/hero-charlotte.jpg" alt="Set Charlotte s amazonitem a říčními perlami na krku a zápěstí" width="746" height="1000" fetchpriority="high"></div>
+    <div class="hero-side" data-slot="side"><img src="/img/produkty/duna-set/1.jpg" alt="Set Duna položený na písku" width="1000" height="1000" loading="lazy"></div>
     <figcaption class="caption">Charlotte SET · amazonit a říční perly</figcaption>
   </figure>
 </section>
