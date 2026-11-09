@@ -69,7 +69,63 @@
         cancelledAt: status === 'cancelled' ? iso(created + DAY) : null,
       });
     }
+    // ukázka dárkového balení a poukazu
+    const g = out.find(o => o.status === 'paid');
+    if (g) { g.giftWrap = true; g.giftWrapPrice = 59; g.giftMessage = 'Všechno nejlepší, mami!'; g.total += 59; }
+    const v = out.find(o => o.status === 'shipped' && o !== g);
+    if (v) { v.discount = 500; v.voucherLast4 = 'K7QM'; v.total -= 500; }
     return out.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
+  // Faktury v ukázce drží localStorage, aby je viděla i tisková stránka v novém okně
+  const INV_KEY = 'sa_demo_invoices';
+  const loadInv = () => { try { return JSON.parse(localStorage.getItem(INV_KEY)) || null; } catch { return null; } };
+  const saveInv = () => { try { localStorage.setItem(INV_KEY, JSON.stringify(invoices)); } catch {} };
+  let invoices = [];
+  const SELLER = { name: 'Petra Miklušáková', brand: 'Sága Art', street: 'Městečko 212', zip: '270 23', city: 'Křivoklát', country: 'Česká republika', ico: '47055723', vatPayer: false, register: 'Fyzická osoba podnikající podle živnostenského zákona', email: '', web: location.host };
+  const PAY = { prevod: 'Bankovním převodem', karta: 'Platební kartou', hotove: 'V hotovosti', dobirka: 'Na dobírku', poukaz: 'Dárkovým poukazem' };
+  function sampleInvoices() {
+    const y = new Date().getFullYear(), d = n => new Date(Date.now() - n * 864e5).toLocaleDateString('sv-SE');
+    const mk = (n, days, cust, items, extra) => {
+      const it = items.map(([name, qty, price]) => ({ name, qty, unit: 'ks', price, sum: qty * price }));
+      return { number: y + n, issueDate: d(days), taxDate: d(days), dueDate: d(days - 14), payment: 'prevod', paymentLabel: PAY.prevod, vs: String(y) + n,
+        customer: { country: 'Česká republika', ...cust }, items: it, total: it.reduce((s, i) => s + i.sum, 0), note: '', orderNumber: '',
+        paid: false, storno: false, createdAt: new Date(Date.now() - days * 864e5).toISOString(), seller: SELLER, bank: { account: '123456789/0800', iban: '' }, ...extra };
+    };
+    return [
+      mk('003', 3, { name: 'Kavárna U Lípy s.r.o.', street: 'Náměstí 4', zip: '270 23', city: 'Křivoklát', ico: '12345678' }, [['Náušnice z říčních perel, zakázka', 4, 690], ['Dárková krabička', 4, 40]], {}),
+      mk('002', 20, { name: 'Jana Nováková', street: 'Lipová 12', zip: '130 00', city: 'Praha 3' }, [['Náhrdelník Charlotte, na míru', 1, 1490]], { dueDate: d(6) }),
+      mk('001', 41, { name: 'Eva Veselá', street: 'Polní 7', zip: '602 00', city: 'Brno' }, [['Náramek z ametystu (trh Křivoklát)', 2, 450]], { payment: 'hotove', paymentLabel: PAY.hotove, paid: true, paidAt: d(41) }),
+    ];
+  }
+
+  function invoicesApi(method, body) {
+    if (method === 'GET') return clone(invoices);
+    if (method === 'POST') {
+      if (invoices.some(i => i.number === body.number)) throw new Error(`Faktura číslo ${body.number} už existuje`);
+      const items = body.items.map(i => ({ ...i, sum: Math.round(i.qty * i.price * 100) / 100 }));
+      const now = new Date().toISOString();
+      const created = { ...body, items, total: Math.round(items.reduce((s, i) => s + i.sum, 0) * 100) / 100, paymentLabel: PAY[body.payment],
+        vs: body.number.replace(/\D/g, '').slice(-10), storno: false, paidAt: body.paid ? now : null, createdAt: now, seller: SELLER, bank: { account: '123456789/0800', iban: '' } };
+      if (body.orderNumber) {
+        const o = orders.find(x => x.number === body.orderNumber);
+        if (!o) throw new Error('Objednávka neexistuje');
+        if (o.invoiceNumber) throw new Error(`K objednávce už je faktura ${o.invoiceNumber}`);
+        o.invoiceNumber = body.number;
+      }
+      invoices.unshift(created); saveInv();
+      return clone(created);
+    }
+    const i = invoices.find(x => x.number === body.number);
+    if (!i) throw new Error('Faktura neexistuje');
+    if (i.storno) throw new Error('Stornovanou fakturu nejde měnit');
+    if (body.storno) {
+      i.storno = true; i.stornoAt = new Date().toISOString();
+      const o = orders.find(x => x.invoiceNumber === i.number);
+      if (o) o.invoiceNumber = '';
+    } else { i.paid = !!body.paid; i.paidAt = i.paid ? new Date().toISOString() : null; }
+    saveInv();
+    return clone(i);
   }
 
   const ready = fetch('/data/products.json').then(r => r.json()).then(list => {
@@ -77,6 +133,8 @@
     products[4].inStock = false;
     products[11].inStock = false;
     orders = makeOrders();
+    invoices = loadInv() || sampleInvoices();
+    saveInv();
   });
 
   async function api(path, method, body) {
@@ -124,6 +182,7 @@
       if (body.adminNote !== undefined) o.adminNote = String(body.adminNote).slice(0, 1000);
       return clone(o);
     }
+    if (path === '/api/invoices') return invoicesApi(method, body);
     throw new Error('Neznámá adresa');
   }
 

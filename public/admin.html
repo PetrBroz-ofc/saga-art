@@ -43,6 +43,8 @@
   <symbol id="i-laptop" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M2 19h20"/></symbol>
   <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M11 18.5h2"/></symbol>
   <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></symbol>
+  <symbol id="i-print" viewBox="0 0 24 24"><path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="1.5"/><path d="M7 14h10v7H7z"/></symbol>
 </svg>
 
 <!-- ═══ PŘIHLÁŠENÍ ═══ -->
@@ -102,6 +104,7 @@
       <button class="side-link" data-action="view" data-arg="prehled"><svg class="i"><use href="#i-home"/></svg>Přehled</button>
       <button class="side-link" data-action="view" data-arg="objednavky"><svg class="i"><use href="#i-box"/></svg>Objednávky <b class="side-count" id="navOrderCount" hidden></b></button>
       <button class="side-link" data-action="view" data-arg="sperky"><svg class="i"><use href="#i-gem"/></svg>Šperky</button>
+      <button class="side-link" data-action="view" data-arg="faktury"><svg class="i"><use href="#i-doc"/></svg>Faktury</button>
     </nav>
     <button class="btn btn-accent side-add" data-action="newProduct"><svg class="i"><use href="#i-plus"/></svg>Nový šperk</button>
     <div class="side-foot">
@@ -192,6 +195,22 @@
       </div>
       <div class="pgrid" id="productsGrid"></div>
     </section>
+
+    <!-- FAKTURY -->
+    <section class="view" data-view="faktury" aria-labelledby="hFakt" hidden>
+      <header class="view-head">
+        <div><p class="eyebrow">Účetnictví</p><h1 id="hFakt">Faktury</h1></div>
+        <div class="view-tools">
+          <label class="search">
+            <svg class="i"><use href="#i-search"/></svg>
+            <input type="search" id="invoiceSearch" placeholder="Číslo nebo odběratel" aria-label="Hledat fakturu" maxlength="80">
+          </label>
+          <button class="btn btn-accent" data-action="newInvoice"><svg class="i"><use href="#i-plus"/></svg>Nová faktura</button>
+        </div>
+      </header>
+      <div class="kpis kpis-3" id="invoiceKpis"></div>
+      <div class="orders" id="invoicesList"></div>
+    </section>
   </main>
 
   <!-- spodní lišta na mobilu -->
@@ -200,6 +219,7 @@
     <button class="tab" data-action="view" data-arg="objednavky"><svg class="i"><use href="#i-box"/></svg>Objednávky<b class="tab-dot" id="tabOrderDot" hidden></b></button>
     <button class="tab tab-add" data-action="newProduct" aria-label="Nový šperk"><svg class="i"><use href="#i-plus"/></svg></button>
     <button class="tab" data-action="view" data-arg="sperky"><svg class="i"><use href="#i-gem"/></svg>Šperky</button>
+    <button class="tab" data-action="view" data-arg="faktury"><svg class="i"><use href="#i-doc"/></svg>Faktury</button>
     <button class="tab" data-action="openSecurity"><svg class="i"><use href="#i-lock"/></svg>Účet</button>
   </nav>
 </div>
@@ -288,6 +308,84 @@
       <span class="foot-hint">Ctrl + S uloží</span>
       <button type="button" class="btn btn-ghost" data-action="closeSheet">Zrušit</button>
       <button type="submit" class="btn btn-dark" id="saveBtn"><svg class="i"><use href="#i-check"/></svg>Uložit</button>
+    </footer>
+  </form>
+</div>
+
+<!-- ═══ NOVÁ FAKTURA ═══ -->
+<div class="sheet sheet-wide" id="invoiceSheet" aria-hidden="true">
+  <div class="sheet-scrim" data-action="closeSheet"></div>
+  <form class="sheet-panel" id="invoiceForm" role="dialog" aria-modal="true" aria-labelledby="invTitle" novalidate>
+    <header class="sheet-head">
+      <div>
+        <p class="eyebrow" id="invEyebrow">Ruční faktura</p>
+        <h2 id="invTitle">Nová faktura</h2>
+      </div>
+      <button type="button" class="icon-btn" data-action="closeSheet" aria-label="Zavřít"><svg class="i"><use href="#i-x"/></svg></button>
+    </header>
+
+    <div class="sheet-body inv-form">
+      <section class="ed-block">
+        <h3>Faktura</h3>
+        <div class="row3">
+          <label class="field"><span>Číslo faktury</span><input type="text" id="iNumber" maxlength="20" autocomplete="off" spellcheck="false" required></label>
+          <label class="field"><span>Datum vystavení</span><input type="date" id="iIssue" required></label>
+          <label class="field"><span>Splatnost</span><input type="date" id="iDue" required></label>
+        </div>
+        <div class="row2">
+          <label class="field"><span>Způsob platby</span>
+            <select id="iPayment" class="select select-field">
+              <option value="prevod">Bankovním převodem</option>
+              <option value="karta">Platební kartou</option>
+              <option value="hotove">V hotovosti</option>
+              <option value="dobirka">Na dobírku</option>
+              <option value="poukaz">Dárkovým poukazem</option>
+            </select>
+          </label>
+          <label class="switch-row inv-paid">
+            <span><b>Už zaplaceno</b><small>Na faktuře bude „Neplaťte, uhrazeno“.</small></span>
+            <input type="checkbox" id="iPaid" class="switch">
+          </label>
+        </div>
+        <p class="hint" id="iOrderHint" hidden></p>
+      </section>
+
+      <section class="ed-block">
+        <h3>Odběratel</h3>
+        <label class="field"><span>Jméno nebo firma</span><input type="text" id="cName" maxlength="120" autocomplete="off" required></label>
+        <div class="row2">
+          <label class="field"><span>Ulice a číslo</span><input type="text" id="cStreet" maxlength="120" autocomplete="off"></label>
+          <label class="field"><span>E-mail <i class="counter">nepovinné</i></span><input type="email" id="cEmail" maxlength="254" autocomplete="off"></label>
+        </div>
+        <div class="row3">
+          <label class="field"><span>PSČ</span><input type="text" id="cZip" maxlength="10" autocomplete="off"></label>
+          <label class="field"><span>Město</span><input type="text" id="cCity" maxlength="80" autocomplete="off"></label>
+          <label class="field"><span>Stát</span><input type="text" id="cCountry" maxlength="60" autocomplete="off"></label>
+        </div>
+        <div class="row2">
+          <label class="field"><span>IČO <i class="counter">nepovinné</i></span><input type="text" id="cIco" maxlength="8" inputmode="numeric" autocomplete="off"></label>
+          <label class="field"><span>DIČ <i class="counter">nepovinné</i></span><input type="text" id="cDic" maxlength="14" autocomplete="off"></label>
+        </div>
+      </section>
+
+      <section class="ed-block">
+        <h3>Položky</h3>
+        <p class="hint">Slevu zadejte jako položku se zápornou cenou.</p>
+        <div class="inv-items" id="invItems"></div>
+        <button type="button" class="btn btn-ghost btn-sm" data-action="invAddItem"><svg class="i"><use href="#i-plus"/></svg>Přidat položku</button>
+        <dl class="sums inv-sum"><dt class="total">Celkem k úhradě</dt><dd class="total" id="invTotal">0 Kč</dd></dl>
+      </section>
+
+      <section class="ed-block">
+        <h3>Poznámka na faktuře</h3>
+        <label class="field"><span>Nepovinné <i class="counter" id="iNoteCount">0 / 500</i></span><textarea id="iNote" maxlength="500" rows="3" placeholder="Třeba: Děkuji za nákup."></textarea></label>
+      </section>
+    </div>
+
+    <footer class="sheet-foot">
+      <span class="foot-hint">Vystavenou fakturu už nejde upravit, jen stornovat.</span>
+      <button type="button" class="btn btn-ghost" data-action="closeSheet">Zrušit</button>
+      <button type="submit" class="btn btn-dark" id="invSaveBtn"><svg class="i"><use href="#i-check"/></svg>Vystavit fakturu</button>
     </footer>
   </form>
 </div>

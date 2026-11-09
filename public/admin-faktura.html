@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Faktura · Sága Art</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/faktura.css">
+</head>
+<body>
+  <div class="bar" id="bar">
+    <span id="barMsg">Načítám fakturu…</span>
+    <button type="button" class="btn" id="printBtn" disabled>Vytisknout / uložit jako PDF</button>
+  </div>
+  <main class="sheet" id="invoice" aria-live="polite"></main>
+  <script src="/js/admin-faktura.js" defer></script>
+</body>
+</html>

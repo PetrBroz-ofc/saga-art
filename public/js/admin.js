@@ -14,7 +14,10 @@ const kc = n => (Number(n) || 0).toLocaleString('cs-CZ') + ' Kč';
 const DAY = 864e5;
 
 const CAT_LABELS = { nahrdelniky:'Náhrdelníky', nausnice:'Náušnice', naramky:'Náramky', soupravy:'Sety' };
-const SHIPPING = { zasilkovna:'Zásilkovna', balikovna:'Balíkovna', posta:'Česká pošta', packeta_sk:'Packeta SK' };
+const SHIPPING = { zasilkovna:'Zásilkovna', balikovna:'Balíkovna', posta:'Česká pošta', packeta_sk:'Packeta SK', email:'E-mailem (poukaz)' };
+const PAY_LABELS = { card:'Kartou online', transfer:'Převodem předem', voucher:'Celé dárkovým poukazem' };
+const INV_PAY = { card:'karta', transfer:'prevod', voucher:'poukaz' };
+const INV_NUM_RE = /^[A-Za-z0-9][A-Za-z0-9/._-]{0,19}$/;
 const COUNTRIES = { CZ:'Česká republika', SK:'Slovensko' };
 const STATUS = {
   awaiting_transfer: { label:'Čeká na převod', tone:'warn' },
@@ -35,7 +38,7 @@ const DEMO = /^(localhost|127\.0\.0\.1)$|\.vercel\.app$/.test(location.hostname)
   && new URLSearchParams(location.search).has('demo');
 
 const state = {
-  products: [], orders: [], ordersError: false,
+  products: [], orders: [], ordersError: false, invoices: [], invoicesError: false, invoiceQuery: '',
   view: 'prehled', orderFilter: 'all', orderQuery: '',
   cat: '', collection: '', stock: '', productQuery: '',
   chartDays: 30,
@@ -176,11 +179,13 @@ async function revokeDevice(id) {
 // ═══ DATA ═══
 async function loadAll() {
   renderSkeletons();
-  const [p, o] = await Promise.allSettled([api('/api/products'), api('/api/orders')]);
+  const [p, o, f] = await Promise.allSettled([api('/api/products'), api('/api/orders'), api('/api/invoices')]);
   if (p.status === 'rejected' && p.reason.message === 'unauthorized') return;
   state.products = p.status === 'fulfilled' && Array.isArray(p.value) ? p.value : [];
   state.orders = o.status === 'fulfilled' && Array.isArray(o.value) ? o.value : [];
   state.ordersError = o.status === 'rejected';
+  state.invoices = f.status === 'fulfilled' && Array.isArray(f.value) ? f.value : [];
+  state.invoicesError = f.status === 'rejected';
   if (p.status === 'rejected') toast('Šperky se nepodařilo načíst.', { err: true });
   renderAll();
 }
@@ -220,6 +225,7 @@ function renderAll() {
   renderDashboard();
   renderOrders();
   renderProducts();
+  renderInvoices();
 }
 
 function renderSkeletons() {
@@ -229,7 +235,7 @@ function renderSkeletons() {
 }
 
 // ═══ NAVIGACE ═══
-const VIEWS = ['prehled', 'objednavky', 'sperky'];
+const VIEWS = ['prehled', 'objednavky', 'sperky', 'faktury'];
 function setView(v, { push = true } = {}) {
   if (!VIEWS.includes(v)) v = 'prehled';
   state.view = v;
@@ -447,7 +453,7 @@ function renderOrders() {
       <span class="items">${imgs}<span>${pieces} ks</span></span>
       <span class="when"><small>${esc(dateShort(x.createdAt))}</small></span>
       <span class="status">${pill(x.status)}</span>
-      <span class="total">${kc(x.total)}<small>${icon(x.payment === 'card' ? 'card' : 'bank')}${x.payment === 'card' ? 'kartou' : 'převodem'}</small></span>
+      <span class="total">${kc(x.total)}<small>${icon(x.payment === 'card' ? 'card' : 'bank')}${{ card: 'kartou', transfer: 'převodem', voucher: 'poukazem' }[x.payment] || ''}</small></span>
       ${icon('right')}
     </button>`;
   }).join('');
@@ -511,16 +517,23 @@ function openOrder(number) {
         }).join('')}
       </div>
       <dl class="sums">
-        <dt>Šperky</dt><dd>${kc(o.subtotal)}</dd>
+        <dt>Zboží</dt><dd>${kc(o.subtotal)}</dd>
         <dt>Doprava · ${esc(SHIPPING[o.shipping] || o.shipping)}</dt><dd>${kc(o.shippingPrice)}</dd>
+        ${o.giftWrap ? `<dt>Dárkové zabalení</dt><dd>${kc(o.giftWrapPrice)}</dd>` : ''}
+        ${o.discount ? `<dt>Dárkový poukaz${o.voucherLast4 ? ' ···' + esc(o.voucherLast4) : ''}</dt><dd>−${kc(o.discount)}</dd>` : ''}
         <dt class="total">Celkem</dt><dd class="total">${kc(o.total)}</dd>
       </dl>
+      ${o.giftWrap ? `<div class="note-box"><b>Zabalit jako dárek.</b>${o.giftMessage ? ' Vzkaz na kartičku: ' + esc(o.giftMessage) : ''}</div>` : ''}
+      ${Array.isArray(o.vouchers) && o.vouchers.length ? `<div class="note-box"><b>Vydané poukazy:</b> ${o.vouchers.map(v => `${kc(v.value)} (kód končí ${esc(v.last4)})`).join(', ')}. Kódy odešly zákazníkovi e-mailem.</div>` : ''}
     </section>
 
     <section class="od-sec">
       <h3>Platba a doprava</h3>
       <dl class="kv">
-        <dt>Platba</dt><dd>${o.payment === 'card' ? 'Kartou online' : 'Převodem předem'}</dd>
+        <dt>Platba</dt><dd>${esc(PAY_LABELS[o.payment] || o.payment)}</dd>
+        <dt>Faktura</dt><dd>${o.invoiceNumber
+          ? `<a class="link-btn" href="${esc(invoiceUrl(o.invoiceNumber))}" target="_blank" rel="noopener">č. ${esc(o.invoiceNumber)} ${icon('ext')}</a>`
+          : ['paid', 'shipped'].includes(st) ? `<button class="link-btn" data-action="invoiceFromOrder" data-arg="${esc(o.number)}">${icon('doc')}Vystavit fakturu</button>` : '<span class="muted">až po zaplacení</span>'}</dd>
         ${o.payment === 'transfer' ? `<dt>Var. symbol</dt><dd><b class="num">${esc(o.number)}</b><button class="copy" data-action="copy" data-arg="${esc(o.number)}">${icon('copy')}Kopírovat</button></dd>` : ''}
         <dt>Doprava</dt><dd>${esc(SHIPPING[o.shipping] || o.shipping)}</dd>
         <dt>E-maily</dt><dd>${o.emailsSent ? 'potvrzení odešlo' : (st === 'awaiting_payment' ? 'pošlou se po zaplacení' : '<span class="pill warn">neodešly</span>')}</dd>
@@ -860,6 +873,223 @@ $('productForm').addEventListener('submit', async e => {
   }
 });
 
+// ═══ FAKTURY ═══
+// Faktura se po vystavení needituje (účetnictví). Oprava = storno a nová faktura.
+const invoiceUrl = n => '/admin-faktura?c=' + encodeURIComponent(n) + (DEMO ? '&demo' : '');
+const isoDay = (d = new Date()) => d.toLocaleDateString('sv-SE'); // YYYY-MM-DD v místním čase
+const addDays = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return isoDay(d); };
+const czDate = iso => iso ? new Date(iso + 'T12:00:00').toLocaleDateString('cs-CZ') : '—';
+const kc2 = n => (Number(n) || 0).toLocaleString('cs-CZ', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' Kč';
+const r2 = n => Math.round(n * 100) / 100;
+
+function invoiceState(i) {
+  if (i.storno) return { label: 'Stornováno', tone: 'mute' };
+  if (i.paid) return { label: 'Zaplaceno', tone: 'ok' };
+  if (i.dueDate && i.dueDate < isoDay()) return { label: 'Po splatnosti', tone: 'bad' };
+  return { label: 'Čeká na platbu', tone: 'warn' };
+}
+
+// Další číslo podle poslední faktury: zvýší poslední skupinu číslic a nechá formát (2026001 → 2026002, FV-07 → FV-08)
+function nextInvoiceNumber() {
+  const taken = new Set(state.invoices.map(i => i.number));
+  const last = state.invoices[0]?.number;
+  const year = String(new Date().getFullYear());
+  let candidate;
+  const m = last && /^(.*?)(\d+)(\D*)$/.exec(last);
+  if (m && !(/^\d{7,}$/.test(last) && !last.startsWith(year))) {
+    let n = Number(m[2]);
+    do { n++; candidate = m[1] + String(n).padStart(m[2].length, '0') + m[3]; } while (taken.has(candidate));
+  } else {
+    let n = 0;
+    do { n++; candidate = year + String(n).padStart(3, '0'); } while (taken.has(candidate));
+  }
+  return candidate.slice(0, 20);
+}
+
+function renderInvoices() {
+  const all = state.invoices;
+  const year = String(new Date().getFullYear());
+  const live = all.filter(i => !i.storno);
+  const thisYear = live.filter(i => (i.issueDate || '').startsWith(year));
+  const unpaid = live.filter(i => !i.paid);
+  const overdue = unpaid.filter(i => i.dueDate < isoDay());
+  $('invoiceKpis').innerHTML = `
+    <div class="kpi"><span class="kpi-label">${icon('doc')}Vystaveno ${year}</span><span class="kpi-value num">${thisYear.reduce((s, i) => s + i.total, 0).toLocaleString('cs-CZ')}<small>Kč</small></span><span class="kpi-sub">${thisYear.length} ${plural(thisYear.length, 'faktura', 'faktury', 'faktur')}</span></div>
+    <div class="kpi"><span class="kpi-label">${icon('bank')}Čeká na zaplacení</span><span class="kpi-value num">${unpaid.reduce((s, i) => s + i.total, 0).toLocaleString('cs-CZ')}<small>Kč</small></span><span class="kpi-sub">${unpaid.length ? unpaid.length + ' ' + plural(unpaid.length, 'faktura', 'faktury', 'faktur') : 'vše zaplacené'}</span></div>
+    <div class="kpi ${overdue.length ? 'hot' : ''}"><span class="kpi-label">${icon('alert')}Po splatnosti</span><span class="kpi-value">${overdue.length}</span><span class="kpi-sub">${overdue.length ? 'připomeňte se odběrateli' : 'nic nehoří'}</span></div>`;
+
+  if (state.invoicesError) {
+    $('invoicesList').innerHTML = '<div class="list-empty"><p class="big">Faktury se nenačetly</p><p>Zkuste stránku obnovit.</p></div>';
+    return;
+  }
+  const q = state.invoiceQuery.toLowerCase();
+  const list = all.filter(i => !q || i.number.toLowerCase().includes(q) || (i.customer?.name || '').toLowerCase().includes(q) || (i.orderNumber || '').includes(q));
+  if (!list.length) {
+    $('invoicesList').innerHTML = `<div class="list-empty"><p class="big">${all.length ? 'Nic jsme nenašli' : 'Zatím žádná faktura'}</p><p>${all.length ? 'Zkuste jiné hledání.' : 'Novou vystavíte tlačítkem „Nová faktura“, k objednávce přímo v jejím detailu.'}</p></div>`;
+    return;
+  }
+  $('invoicesList').innerHTML = list.slice(0, 300).map((i, k) => {
+    const s = invoiceState(i);
+    const n = esc(i.number);
+    return `
+    <div class="order-row inv-list-row ${i.storno ? 'storno' : ''}" style="animation-delay:${Math.min(k, 12) * 25}ms">
+      <span class="who"><b>č. ${n}</b><small>${i.orderNumber ? 'obj. ' + esc(i.orderNumber) : 'ruční'}</small></span>
+      <span class="who"><b>${esc(i.customer?.name || '—')}</b><small>${esc(i.paymentLabel || '')}</small></span>
+      <span class="when"><small>vystaveno</small>${esc(czDate(i.issueDate))}</span>
+      <span class="status"><span class="pill ${s.tone}">${esc(s.label)}</span></span>
+      <span class="total">${kc2(i.total)}<small>splatnost ${esc(czDate(i.dueDate))}</small></span>
+      <span class="row-tools">
+        <a class="btn btn-ghost btn-sm" href="${esc(invoiceUrl(i.number))}" target="_blank" rel="noopener">${icon('print')}PDF</a>
+        ${!i.storno && !i.paid ? `<button class="btn btn-ghost btn-sm" data-action="invoicePaid" data-arg="${n}">${icon('check')}Zaplaceno</button>` : ''}
+        ${!i.storno ? `<button class="btn btn-ghost btn-sm danger" data-action="invoiceStorno" data-arg="${n}">Storno</button>` : ''}
+      </span>
+    </div>`;
+  }).join('');
+}
+
+const inv = { items: [], orderNumber: '', snapshot: '' };
+
+function openInvoiceEditor(prefill = {}) {
+  const today = isoDay();
+  const c = prefill.customer || {};
+  inv.orderNumber = prefill.orderNumber || '';
+  inv.items = (prefill.items || [{ name: '', qty: 1, unit: 'ks', price: '' }]).map(x => ({ ...x }));
+  $('iNumber').value = nextInvoiceNumber();
+  $('iIssue').value = today;
+  $('iDue').value = prefill.dueDate || addDays(today, 14);
+  $('iPayment').value = prefill.payment || 'prevod';
+  $('iPaid').checked = !!prefill.paid;
+  $('cName').value = c.name || ''; $('cStreet').value = c.street || ''; $('cEmail').value = c.email || '';
+  $('cZip').value = c.zip || ''; $('cCity').value = c.city || ''; $('cCountry').value = c.country || 'Česká republika';
+  $('cIco').value = ''; $('cDic').value = '';
+  $('iNote').value = prefill.note || '';
+  $('invEyebrow').textContent = inv.orderNumber ? 'Faktura k objednávce' : 'Ruční faktura';
+  $('iOrderHint').hidden = !inv.orderNumber;
+  $('iOrderHint').textContent = inv.orderNumber ? `Položky jsou převzaté z objednávky č. ${inv.orderNumber}. Faktura se k ní připojí.` : '';
+  renderInvItems();
+  inv.snapshot = invoiceJson();
+  openSheet('invoiceSheet');
+  setTimeout(() => $(inv.orderNumber ? 'iNumber' : 'cName').focus({ preventScroll: true }), 90);
+}
+
+function invoiceFromOrder(number) {
+  const o = state.orders.find(x => x.number === number);
+  if (!o) return;
+  const c = o.customer || {};
+  const items = o.lines.map(l => ({ name: l.name, qty: l.qty, unit: 'ks', price: l.price }));
+  if (o.shippingPrice) items.push({ name: 'Doprava · ' + (SHIPPING[o.shipping] || o.shipping), qty: 1, unit: 'ks', price: o.shippingPrice });
+  if (o.giftWrap && o.giftWrapPrice) items.push({ name: 'Dárkové zabalení', qty: 1, unit: 'ks', price: o.giftWrapPrice });
+  if (o.discount) items.push({ name: 'Sleva dárkovým poukazem', qty: 1, unit: 'ks', price: -o.discount });
+  closeAllSheets();
+  openInvoiceEditor({
+    orderNumber: o.number,
+    items,
+    customer: { name: fullName(c), street: c.ulice, city: c.mesto, zip: c.psc, country: COUNTRIES[c.zeme] || c.zeme, email: c.email },
+    payment: INV_PAY[o.payment] || 'prevod',
+    paid: ['paid', 'shipped'].includes(o.status),
+    dueDate: isoDay(),
+    note: `Objednávka z e-shopu č. ${o.number}.`,
+  });
+}
+
+function renderInvItems() {
+  $('invItems').innerHTML = `<div class="inv-row inv-head"><span>Položka</span><span>Množství</span><span>Jedn.</span><span>Cena za jedn.</span><span>Celkem</span><span></span></div>`
+    + inv.items.map((it, i) => `
+    <div class="inv-row" data-i="${i}">
+      <input type="text" data-k="name" maxlength="200" value="${esc(it.name)}" placeholder="Název položky" aria-label="Název položky">
+      <input type="number" data-k="qty" class="num" min="0.001" max="10000" step="any" value="${esc(it.qty)}" aria-label="Množství">
+      <input type="text" data-k="unit" maxlength="10" value="${esc(it.unit || 'ks')}" aria-label="Jednotka">
+      <input type="number" data-k="price" class="num" step="0.01" min="-1000000" max="1000000" value="${esc(it.price)}" placeholder="0" aria-label="Cena za jednotku v Kč">
+      <span class="num inv-line-sum">${kc2(r2((Number(it.qty) || 0) * (Number(it.price) || 0)))}</span>
+      <button type="button" class="icon-btn" data-action="invRemoveItem" data-arg="${i}" aria-label="Odebrat položku" ${inv.items.length < 2 ? 'disabled' : ''}>${icon('x')}</button>
+    </div>`).join('');
+  renderInvTotal();
+}
+function renderInvTotal() {
+  const total = r2(inv.items.reduce((s, it) => s + r2((Number(it.qty) || 0) * (Number(it.price) || 0)), 0));
+  $('invTotal').textContent = kc2(total);
+  return total;
+}
+$('invItems').addEventListener('input', e => {
+  const row = e.target.closest('.inv-row[data-i]');
+  const k = e.target.dataset.k;
+  if (!row || !k) return;
+  const it = inv.items[Number(row.dataset.i)];
+  it[k] = e.target.value;
+  row.querySelector('.inv-line-sum').textContent = kc2(r2((Number(it.qty) || 0) * (Number(it.price) || 0)));
+  renderInvTotal();
+});
+$('iNote').addEventListener('input', () => { $('iNoteCount').textContent = `${$('iNote').value.length} / 500`; });
+
+const invoiceData = () => ({
+  number: $('iNumber').value.trim(),
+  issueDate: $('iIssue').value, taxDate: $('iIssue').value, dueDate: $('iDue').value,
+  payment: $('iPayment').value, paid: $('iPaid').checked,
+  customer: {
+    name: $('cName').value.trim(), street: $('cStreet').value.trim(), email: $('cEmail').value.trim(),
+    zip: $('cZip').value.trim(), city: $('cCity').value.trim(), country: $('cCountry').value.trim(),
+    ico: $('cIco').value.replace(/\s/g, ''), dic: $('cDic').value.replace(/\s/g, '').toUpperCase(),
+  },
+  items: inv.items.map(it => ({ name: String(it.name).trim(), qty: Number(it.qty), unit: String(it.unit || 'ks').trim() || 'ks', price: Number(it.price) })),
+  note: $('iNote').value.trim(),
+  orderNumber: inv.orderNumber,
+});
+const invoiceJson = () => JSON.stringify(invoiceData());
+const invoiceDirty = () => $('invoiceSheet').classList.contains('open') && invoiceJson() !== inv.snapshot;
+
+$('invoiceForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const d = invoiceData();
+  const bad = (msg, id) => { toast(msg, { err: true }); if (id) $(id).focus(); };
+  if (!INV_NUM_RE.test(d.number)) return bad('Číslo faktury: jen písmena, číslice a / . _ -, nejvýš 20 znaků.', 'iNumber');
+  if (state.invoices.some(i => i.number === d.number)) return bad(`Faktura č. ${d.number} už existuje.`, 'iNumber');
+  if (!d.issueDate || !d.dueDate) return bad('Doplňte prosím data.', 'iIssue');
+  if (d.customer.name.length < 2) return bad('Doplňte odběratele.', 'cName');
+  if (d.customer.ico && !/^\d{8}$/.test(d.customer.ico)) return bad('IČO má 8 číslic.', 'cIco');
+  if (d.items.some(it => !it.name)) return bad('Každá položka potřebuje název.');
+  if (d.items.some(it => !(it.qty > 0) || !Number.isFinite(it.price))) return bad('Zkontrolujte množství a ceny.');
+  if (renderInvTotal() < 0) return bad('Celkem nemůže vyjít záporně.');
+  const btn = $('invSaveBtn');
+  btn.disabled = true;
+  try {
+    const created = await api('/api/invoices', 'POST', d);
+    state.invoices.unshift(created);
+    if (created.orderNumber) {
+      const o = state.orders.find(x => x.number === created.orderNumber);
+      if (o) o.invoiceNumber = created.number;
+    }
+    inv.snapshot = invoiceJson();
+    closeSheet(true);
+    renderAll();
+    setView('faktury');
+    toast(`Faktura č. ${created.number} je vystavená.`);
+  } catch (err) {
+    if (err.message !== 'unauthorized') toast(err.message, { err: true });
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+async function patchInvoice(number, body, msg) {
+  try {
+    const updated = await api('/api/invoices', 'PATCH', { number, ...body });
+    const i = state.invoices.findIndex(x => x.number === number);
+    if (i >= 0) state.invoices[i] = updated;
+    if (body.storno && updated.orderNumber) {
+      const o = state.orders.find(x => x.number === updated.orderNumber && x.invoiceNumber === number);
+      if (o) o.invoiceNumber = '';
+    }
+    renderAll();
+    toast(msg);
+  } catch (err) {
+    if (err.message !== 'unauthorized') toast(err.message, { err: true });
+  }
+}
+async function invoiceStorno(number) {
+  if (!(await ask({ title: `Stornovat fakturu č. ${number}?`, text: 'Faktura zůstane v přehledu přeškrtnutá a s jejím číslem se už nepočítá. Storno nejde vrátit.', yes: 'Stornovat', danger: true }))) return;
+  patchInvoice(number, { storno: true }, 'Faktura je stornovaná.');
+}
+
 // ═══ PANELY, POTVRZENÍ, TOAST ═══
 let lastFocus = null;
 function openSheet(id) {
@@ -875,6 +1105,8 @@ async function closeSheet(force) {
   if (!s) return;
   if (force !== true && s.id === 'productSheet' && editorDirty()
     && !(await ask({ title: 'Zahodit změny?', text: 'Úpravy šperku ještě nejsou uložené.', yes: 'Zahodit', danger: true }))) return;
+  if (force !== true && s.id === 'invoiceSheet' && invoiceDirty()
+    && !(await ask({ title: 'Zahodit fakturu?', text: 'Faktura ještě není vystavená.', yes: 'Zahodit', danger: true }))) return;
   s.classList.remove('open');
   s.setAttribute('aria-hidden', 'true');
   document.body.style.overflow = '';
@@ -966,6 +1198,17 @@ const ACTIONS = {
   pickFiles: () => $('fImgFile').click(),
   photoRemove: a => { ed.imgs.splice(Number(a), 1); renderPhotos(); renderPreview(); },
   photoLeft: a => { const i = Number(a); [ed.imgs[i - 1], ed.imgs[i]] = [ed.imgs[i], ed.imgs[i - 1]]; renderPhotos(); renderPreview(); },
+  newInvoice: () => openInvoiceEditor(),
+  invoiceFromOrder: a => invoiceFromOrder(a),
+  invAddItem: () => {
+    if (inv.items.length >= 30) return toast('Nejvýš 30 položek.', { err: true });
+    inv.items.push({ name: '', qty: 1, unit: 'ks', price: '' });
+    renderInvItems();
+    $('invItems').querySelector('.inv-row:last-child input')?.focus();
+  },
+  invRemoveItem: a => { if (inv.items.length > 1) { inv.items.splice(Number(a), 1); renderInvItems(); } },
+  invoicePaid: a => patchInvoice(a, { paid: true }, 'Označeno jako zaplacené.'),
+  invoiceStorno: a => invoiceStorno(a),
   closeSheet: () => closeSheet(),
   confirmYes: () => answer(true),
   confirmNo: () => answer(false),
@@ -985,6 +1228,7 @@ $('orderSearch').addEventListener('input', e => { state.orderQuery = e.target.va
 $('productSearch').addEventListener('input', e => { state.productQuery = e.target.value.trim(); renderProducts(); });
 $('collectionFilter').addEventListener('change', e => { state.collection = e.target.value; renderProducts(); });
 $('stockFilter').addEventListener('change', e => { state.stock = e.target.value; renderProducts(); });
+$('invoiceSearch').addEventListener('input', e => { state.invoiceQuery = e.target.value.trim(); renderInvoices(); });
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
@@ -1001,12 +1245,12 @@ document.addEventListener('keydown', e => {
   if (e.key === '/') {
     e.preventDefault();
     if (state.view === 'prehled') setView('sperky');
-    (state.view === 'objednavky' ? $('orderSearch') : $('productSearch')).focus();
+    $({ objednavky: 'orderSearch', faktury: 'invoiceSearch' }[state.view] || 'productSearch').focus();
   }
   if (e.key === 'n') { e.preventDefault(); openEditor(null); }
 });
 // Zavřít stránku s neuloženým šperkem? Prohlížeč se zeptá.
-addEventListener('beforeunload', e => { if (editorDirty()) e.preventDefault(); });
+addEventListener('beforeunload', e => { if (editorDirty() || invoiceDirty()) e.preventDefault(); });
 
 // ═══ START ═══
 (async () => {
