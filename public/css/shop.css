@@ -611,6 +611,30 @@ img { max-width:100%; display:block; }
   .gallery-sec .footer-strip { padding-top:64px; }
 }
 
+/* ── DÁRKOVÉ POUKAZY ── */
+.vouchers { background:var(--pink); }
+.vouchers-layout { display:grid; grid-template-columns:5fr 6fr; gap:64px; align-items:center; }
+.vouchers-lead { font-size:1.08rem; line-height:1.75; color:var(--ink); margin-top:22px; max-width:520px; }
+.vouchers-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:16px; }
+.voucher-card { position:relative; aspect-ratio:16/10; display:flex; flex-direction:column; justify-content:space-between; align-items:flex-start; padding:20px 22px; border:1px solid var(--line); border-radius:6px; background:var(--paper) url(/img/poukaz.svg) center / cover no-repeat; color:var(--ink); cursor:pointer; text-align:left; font:inherit; transition:transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .25s; }
+.voucher-card:hover, .voucher-card:focus-visible { transform:translateY(-4px); box-shadow:0 14px 30px rgba(106,80,137,.16); }
+.voucher-value { font-family:var(--serif); font-size:clamp(1.6rem,2.6vw,2.2rem); color:var(--accent-dk); align-self:flex-end; }
+.voucher-add { font-size:.92rem; color:var(--ink); border-bottom:1px solid currentColor; }
+.wrap-box { padding:0 0 14px; margin-bottom:12px; border-bottom:1px solid var(--line); }
+.wrap-check { display:flex; align-items:center; gap:10px; cursor:pointer; font-size:.95rem; }
+.wrap-check input { width:18px; height:18px; accent-color:var(--accent-dk); }
+.wrap-price { margin-left:auto; color:var(--ink-2); }
+.wrap-box textarea { width:100%; margin-top:10px; font:inherit; font-size:.92rem; padding:10px 12px; border:1px solid var(--line); border-radius:var(--radius); background:var(--paper); color:var(--ink); resize:vertical; }
+.voucher-row { display:flex; gap:10px; }
+.voucher-row input { flex:1; min-width:0; font:inherit; padding:10px 12px; border:1px solid var(--line); border-radius:var(--radius); text-transform:uppercase; letter-spacing:.06em; }
+.voucher-row .btn-back { padding:10px 18px; }
+.voucher-msg { font-size:.88rem; margin-top:8px; min-height:1.2em; }
+.voucher-msg.ok { color:#2f6b4f; } .voucher-msg.err { color:#9b2c3a; }
+.consent a { color:var(--accent-dk); }
+@media (max-width:860px) {
+  .vouchers-layout { grid-template-columns:1fr; gap:28px; }
+}
+
 /* ── NA MÍRU ── */
 .custom { background:var(--sea); }
 .custom-layout { display:grid; grid-template-columns:5fr 6fr; gap:72px; align-items:center; }

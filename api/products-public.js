@@ -1,5 +1,5 @@
 const { getDb, fail, guard } = require('./_utils');
-const { SHIPPING } = require('./_shop');
+const { SHIPPING, GIFT_WRAP } = require('./_shop');
 
 // GET /api/products-public — veřejný katalog + ceník dopravy (jen pro čtení).
 export default async function handler(req, res) {
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
       })
       .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
       .map(({ createdAt, ...p }) => p);
-    res.status(200).json({ products, shipping: SHIPPING });
+    res.status(200).json({ products, shipping: SHIPPING, giftWrap: GIFT_WRAP });
   } catch (err) {
     console.error('products-public error:', err.message);
     fail(res, 500, 'Interní chyba serveru');

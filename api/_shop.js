@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const { getDb } = require('./_utils');
+const V = require('./_vouchers');
 
 // Ceník dopravy — JEDINÝ zdroj pravdy. Frontend si ho jen zobrazuje (GET /api/config).
 const SHIPPING = {
@@ -7,9 +8,14 @@ const SHIPPING = {
   balikovna:  { name: 'Česká pošta, Balíkovna',            price: 109, country: 'CZ' },
   posta:      { name: 'Česká pošta na adresu',            price: 130, country: 'CZ' },
   packeta_sk: { name: 'Packeta na Slovensko',                price: 130, country: 'SK' },
+  email:      { name: 'E-mailem (jen dárkový poukaz)',       price: 0,   country: '*', voucherOnly: true },
 };
+
+// Dárkové zabalení na přání (navíc ke krabičce, kterou dostane každý šperk).
+// CENU UPŘESNÍ MAJITELKA, zatím provizorní.
+const GIFT_WRAP = { name: 'Dárkové zabalení', price: 59 };
 const COUNTRIES = { CZ: 'Česká republika', SK: 'Slovensko' };
-const PAYMENTS = { card: 'Platební karta online', transfer: 'Bankovní převod předem' };
+const PAYMENTS = { card: 'Platební karta online', transfer: 'Bankovní převod předem', voucher: 'Dárkový poukaz' };
 
 const ID_RE = /^[A-Za-z0-9_-]{1,128}$/;
 const MAX_LINES = 20;
@@ -44,7 +50,8 @@ function validateCustomer(c, shipping) {
   if (d.ulice.length < 3 || d.mesto.length < 2) return { error: 'Neplatná adresa' };
   if (!COUNTRIES[d.zeme]) return { error: 'Doručujeme jen do ČR a na Slovensko' };
   if (!/^\d{3} ?\d{2}$/.test(d.psc)) return { error: 'Neplatné PSČ' };
-  if (!SHIPPING[shipping] || SHIPPING[shipping].country !== d.zeme) return { error: 'Neplatná doprava' };
+  const s = SHIPPING[shipping];
+  if (!s || (!s.voucherOnly && s.country !== d.zeme)) return { error: 'Neplatná doprava' };
   return { data: d };
 }
 
@@ -64,9 +71,15 @@ async function priceCart(items) {
   }
 
   const db = getDb();
-  const ids = [...merged.keys()];
-  const snaps = await db.getAll(...ids.map(id => db.collection('products').doc(id)));
   const lines = [];
+  for (const [id, qty] of merged) {
+    if (!V.isVoucherId(id)) continue;
+    const value = V.voucherValue(id);
+    if (!value) return { error: 'Neplatný dárkový poukaz' };
+    lines.push({ id, name: V.voucherName(value), price: value, qty, voucher: true });
+  }
+  const ids = [...merged.keys()].filter(id => !V.isVoucherId(id));
+  const snaps = ids.length ? await db.getAll(...ids.map(id => db.collection('products').doc(id))) : [];
   for (const snap of snaps) {
     const p = snap.exists ? snap.data() : null;
     const price = Number(p?.price);
@@ -76,7 +89,8 @@ async function priceCart(items) {
     lines.push({ id: snap.id, name: String(p.name).slice(0, 200), price, qty: merged.get(snap.id) });
   }
   const subtotal = lines.reduce((s, l) => s + l.price * l.qty, 0);
-  return { lines, subtotal };
+  const goods = lines.filter(l => !l.voucher).reduce((s, l) => s + l.price * l.qty, 0);
+  return { lines, subtotal, goods, onlyVouchers: goods === 0 };
 }
 
 // Číslo objednávky = variabilní symbol: RRMMDD + 4 náhodné číslice (max. 10 číslic).
@@ -88,17 +102,30 @@ function newOrderNumber() {
   return ymd + String(crypto.randomInt(0, 10000)).padStart(4, '0');
 }
 
-// Vytvoří objednávku s unikátním číslem (create() selže, když číslo existuje).
-async function createOrder(data) {
+// Vytvoří objednávku s unikátním číslem. Když je zadaný poukaz, strhne ho ve STEJNÉ transakci
+// (buď proběhne obojí, nebo nic). discountBase = z čeho smí poukaz platit (ne z jiných poukazů).
+// Vrací { number, order } nebo { error }.
+async function createOrder(data, voucherCode, discountBase) {
   const db = getDb();
   for (let attempt = 0; attempt < 8; attempt++) {
     const number = newOrderNumber();
-    try {
-      await db.collection('orders').doc(number).create({ ...data, number, createdAt: new Date() });
-      return number;
-    } catch (e) {
-      if (e.code !== 6) throw e; // 6 = ALREADY_EXISTS
-    }
+    const ref = db.collection('orders').doc(number);
+    const res = await db.runTransaction(async tx => {
+      const exists = await tx.get(ref);
+      if (exists.exists) return { retry: true };
+      const order = { ...data, number, createdAt: new Date() };
+      if (voucherCode) {
+        const v = await V.reserveInTx(tx, voucherCode, discountBase, number);
+        if (v.error) return { error: v.error };
+        order.voucher = { docId: v.docId, last4: v.last4, amount: v.amount, released: false };
+        order.discount = v.amount;
+        order.total = Math.max(0, order.total - v.amount);
+        if (order.total === 0) { order.status = 'paid'; order.payment = 'voucher'; order.paidAt = new Date(); }
+      }
+      tx.create(ref, order);
+      return { number, order };
+    });
+    if (!res.retry) return res;
   }
   throw new Error('Nepodařilo se vygenerovat číslo objednávky');
 }
@@ -141,7 +168,11 @@ async function sendOrderEmails(order) {
     telefon: c.telefon,
     adresa: `${c.ulice}, ${c.psc} ${c.mesto}, ${COUNTRIES[c.zeme]}`,
     poznamka: c.poznamka || '—',
-    items: order.lines.map(l => `${l.name} × ${l.qty} = ${l.price * l.qty} Kč`).join('\n'),
+    items: [
+      ...order.lines.map(l => `${l.name} × ${l.qty} = ${l.price * l.qty} Kč`),
+      ...(order.giftWrap ? [`${GIFT_WRAP.name} = ${order.giftWrapPrice} Kč` + (order.giftMessage ? `\nVzkaz na přáníčko: ${order.giftMessage}` : '')] : []),
+      ...(order.discount ? [`Dárkový poukaz …${order.voucher?.last4 || ''} = −${order.discount} Kč`] : []),
+    ].join('\n'),
     doprava: `${SHIPPING[order.shipping].name} (${order.shippingPrice} Kč)`,
     platba: PAYMENTS[order.payment],
     total: order.total + ' Kč',
@@ -157,7 +188,25 @@ async function sendOrderEmails(order) {
   return failed.length === 0;
 }
 
+// Po zaplacení: vystaví a pošle dárkové poukazy z objednávky (bezpečné volat opakovaně).
+async function afterPaid(orderNumber) {
+  try {
+    const res = await V.issueForOrder(orderNumber);
+    if (!res || !res.email) return;
+    const exp = res.expiresAt.toLocaleDateString('cs-CZ', { timeZone: 'Europe/Prague' });
+    const list = res.issued.map(i => `${V.voucherName(i.value)}: ${i.code}`).join('\n');
+    await sendEmail(process.env.EMAILJS_TEMPLATE_NOTICE, {
+      to_email: res.email,
+      subject: 'Váš dárkový poukaz Sága Art',
+      message: `Dobrý den,\n\nděkuji za nákup. Tady je váš dárkový poukaz:\n\n${list}\n\nPlatí do ${exp}. Kód stačí zadat v pokladně na sagaart.cz a jeho hodnota se odečte od ceny. Zbytek můžete využít při dalším nákupu.\n\nPetra, Sága Art`,
+    });
+    await getDb().collection('orders').doc(orderNumber).update({ vouchersEmailedAt: new Date() });
+  } catch (err) {
+    console.error('Poukazy k objednávce', orderNumber, 'selhaly:', err.message);
+  }
+}
+
 module.exports = {
-  SHIPPING, COUNTRIES, PAYMENTS, ID_RE, clean, validateCustomer, priceCart,
-  createOrder, sendOrderEmails, sendEmail, bankInfo,
+  SHIPPING, COUNTRIES, PAYMENTS, GIFT_WRAP, ID_RE, clean, validateCustomer, priceCart,
+  createOrder, sendOrderEmails, sendEmail, bankInfo, afterPaid,
 };

@@ -1,6 +1,7 @@
 const Stripe = require('stripe');
 const { getDb } = require('./_utils');
-const { sendOrderEmails } = require('./_shop');
+const { sendOrderEmails, afterPaid } = require('./_shop');
+const { releaseForOrder } = require('./_vouchers');
 
 // Stripe podpis se ověřuje nad RAW tělem — vypnout automatický parser.
 export const config = { api: { bodyParser: false } };
@@ -55,6 +56,7 @@ async function markPaid(session) {
   }
   const sent = await sendOrderEmails(result.order);
   await ref.update({ emailsSent: sent });
+  await afterPaid(number);
 }
 
 export default async function handler(req, res) {
@@ -91,12 +93,16 @@ export default async function handler(req, res) {
         const number = session.metadata?.orderNumber;
         if (number && /^\d{10}$/.test(number)) {
           const ref = getDb().collection('orders').doc(number);
-          await getDb().runTransaction(async tx => {
+          const changed = await getDb().runTransaction(async tx => {
             const snap = await tx.get(ref);
             if (snap.exists && snap.data().status === 'awaiting_payment') {
               tx.update(ref, { status: event.type.endsWith('expired') ? 'expired' : 'payment_failed', updatedAt: new Date() });
+              return true;
             }
+            return false;
           });
+          // nezaplaceno → stržený poukaz se vrací zpět
+          if (changed) await releaseForOrder(number);
         }
         break;
       }

@@ -1,5 +1,6 @@
 const { getDb, fail, requireAdmin } = require('./_utils');
-const { clean } = require('./_shop');
+const { clean, afterPaid } = require('./_shop');
+const { releaseForOrder } = require('./_vouchers');
 
 // GET   /api/orders  — seznam objednávek pro admin (nejnovější první)
 // PATCH /api/orders  — změna stavu, čísla zásilky nebo interní poznámky
@@ -8,6 +9,8 @@ const { clean } = require('./_shop');
 const TRANSITIONS = {
   awaiting_transfer: ['paid', 'cancelled'],
   awaiting_payment:  ['cancelled'],
+  expired:           ['cancelled'],
+  payment_failed:    ['cancelled'],
   amount_mismatch:   ['paid', 'cancelled'],
   paid:              ['shipped', 'cancelled'],
   shipped:           ['paid'],          // omylem označeno jako odeslané
@@ -30,6 +33,13 @@ function publicOrder(id, o) {
     shippingPrice: Number(o.shippingPrice) || 0,
     subtotal: Number(o.subtotal) || 0,
     total: Number(o.total) || 0,
+    giftWrap: o.giftWrap === true,
+    giftWrapPrice: Number(o.giftWrapPrice) || 0,
+    giftMessage: String(o.giftMessage || ''),
+    discount: Number(o.discount) || 0,
+    voucherLast4: String(o.voucher?.last4 || ''),
+    vouchers: (Array.isArray(o.vouchers) ? o.vouchers : []).map(v => ({ value: Number(v.value) || 0, last4: String(v.last4 || '') })),
+    invoiceNumber: String(o.invoiceNumber || ''),
     lines: (Array.isArray(o.lines) ? o.lines : []).slice(0, 20).map(l => ({
       id: String(l.id || ''), name: String(l.name || ''), price: Number(l.price) || 0, qty: Number(l.qty) || 0,
     })),
@@ -85,6 +95,9 @@ export default async function handler(req, res) {
       return { order: publicOrder(number, { ...snap.data(), ...patch }) };
     });
     if (result.error) return fail(res, ...result.error);
+    // následky změny stavu: zaplaceno → vystavit poukazy, zrušeno → vrátit stržený poukaz
+    if (patch.status === 'paid') await afterPaid(number);
+    if (patch.status === 'cancelled') await releaseForOrder(number);
     return res.status(200).json(result.order);
   } catch (err) {
     console.error('orders error:', err.message);

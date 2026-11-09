@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <rect width="800" height="500" fill="#fefdff"/>
+  <path d="M0 360 C 160 300 300 420 470 360 S 720 300 800 340 L 800 500 L 0 500 Z" fill="#e6f2f1"/>
+  <path d="M0 410 C 200 370 320 470 520 420 S 720 380 800 400 L 800 500 L 0 500 Z" fill="#efe9f7"/>
+  <circle cx="660" cy="110" r="70" fill="#f8e9ef"/>
+  <g fill="none" stroke="#c4b6d6" stroke-width="2">
+    <path d="M70 80 C 160 160 260 170 360 120"/>
+  </g>
+  <g>
+    <circle cx="100" cy="102" r="11" fill="#f1ecf7" stroke="#c4b6d6"/>
+    <circle cx="140" cy="128" r="12" fill="#f1ecf7" stroke="#c4b6d6"/>
+    <circle cx="183" cy="145" r="13" fill="#fff" stroke="#c4b6d6"/>
+    <circle cx="228" cy="150" r="12" fill="#f1ecf7" stroke="#c4b6d6"/>
+    <circle cx="272" cy="146" r="11" fill="#fff" stroke="#c4b6d6"/>
+    <circle cx="314" cy="135" r="10" fill="#f1ecf7" stroke="#c4b6d6"/>
+  </g>
+  <text x="70" y="250" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="44" fill="#6a5089">Dárkový poukaz</text>
+  <text x="70" y="292" font-family="Georgia, 'Times New Roman', serif" font-size="24" fill="#5b566e">Sága Art</text>
+</svg>

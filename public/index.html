@@ -254,6 +254,22 @@
   </div>
 </section>
 
+<!-- ═══ DÁRKOVÉ POUKAZY ═══ -->
+<section class="section vouchers" id="poukazy">
+  <div class="wrap vouchers-layout">
+    <div>
+      <h2 class="section-title">Dárkový poukaz</h2>
+      <p class="vouchers-lead">Nevíte, co vybrat? Darujte poukaz a šperk si obdarovaný vybere sám. Poukaz vám přijde e-mailem hned po zaplacení, takže stihnete i Vánoce na poslední chvíli. Platí 12 měsíců a dá se využít i postupně.</p>
+    </div>
+    <div class="vouchers-grid">
+      <button type="button" class="voucher-card" data-action="addToCart" data-arg="voucher-500"><span class="voucher-value">500 Kč</span><span class="voucher-add">Do košíku</span></button>
+      <button type="button" class="voucher-card" data-action="addToCart" data-arg="voucher-1000"><span class="voucher-value">1 000 Kč</span><span class="voucher-add">Do košíku</span></button>
+      <button type="button" class="voucher-card" data-action="addToCart" data-arg="voucher-1500"><span class="voucher-value">1 500 Kč</span><span class="voucher-add">Do košíku</span></button>
+      <button type="button" class="voucher-card" data-action="addToCart" data-arg="voucher-2000"><span class="voucher-value">2 000 Kč</span><span class="voucher-add">Do košíku</span></button>
+    </div>
+  </div>
+</section>
+
 <!-- ═══ NA MÍRU ═══ -->
 <section class="section custom" id="na-miru">
   <div class="wrap custom-layout">
@@ -344,9 +360,16 @@
       <div class="cart-items" id="cartItems"></div>
       <div id="cartFooterBox" style="display:none">
         <div class="cart-footer-box">
+          <div class="wrap-box" id="wrapBox">
+            <label class="wrap-check"><input type="checkbox" id="f_wrap"> <span>Dárkově zabalit</span> <span class="wrap-price" id="wrapPriceLabel"></span></label>
+            <div id="wrapMsgWrap" hidden>
+              <label class="sr-only" for="f_wrapMsg">Vzkaz na přáníčko</label>
+              <textarea id="f_wrapMsg" maxlength="200" rows="2" placeholder="Vzkaz na přáníčko (nepovinné)"></textarea>
+            </div>
+          </div>
           <div class="cart-summary-row"><span>Mezisoučet</span><span id="cartSubtotal">0 Kč</span></div>
-          <div class="cart-summary-row"><span>Doprava</span><span>od 109 Kč</span></div>
-          <div class="cart-total-row"><span>Celkem bez dopravy</span><span id="cartTotal">0 Kč</span></div>
+          <div class="cart-summary-row" id="cartShipRow"><span>Doprava</span><span>od 109 Kč</span></div>
+          <div class="cart-total-row"><span id="cartTotalLabel">Celkem bez dopravy</span><span id="cartTotal">0 Kč</span></div>
           <button class="btn-next" data-action="startCheckout" style="width:100%">Přejít k objednávce →</button>
         </div>
       </div>
@@ -462,8 +485,16 @@
       <div class="review-section"><h4>Doručovací údaje <span class="review-edit" data-action="goToStep" data-arg="1">Upravit</span></h4><div class="review-block" id="reviewContact"></div></div>
       <div class="review-section"><h4>Doprava <span class="review-edit" data-action="goToStep" data-arg="2">Upravit</span></h4><div class="review-block" id="reviewShipping"></div></div>
       <div class="review-section"><h4>Platba <span class="review-edit" data-action="goToStep" data-arg="3">Upravit</span></h4><div class="review-block" id="reviewPayment"></div></div>
+      <div class="review-section"><h4>Dárkový poukaz</h4>
+        <div class="voucher-row">
+          <label class="sr-only" for="f_voucher">Kód dárkového poukazu</label>
+          <input id="f_voucher" maxlength="20" autocomplete="off" spellcheck="false" placeholder="např. ABCD-EFGH-JKMN">
+          <button type="button" class="btn-back" id="btnVoucher" data-action="applyVoucher">Uplatnit</button>
+        </div>
+        <p class="voucher-msg" id="voucherMsg" role="status" aria-live="polite"></p>
+      </div>
       <div class="review-section"><h4>Šperky</h4><div class="order-summary" id="orderSummaryFinal"></div></div>
-      <label class="consent" id="consentWrap"><input type="checkbox" id="f_souhlas"> Souhlasím s obchodními podmínkami a zpracováním osobních údajů pro vyřízení objednávky.</label>
+      <label class="consent" id="consentWrap"><input type="checkbox" id="f_souhlas"> Souhlasím s <a href="/obchodni-podminky" target="_blank" rel="noopener">obchodními podmínkami</a> a beru na vědomí <a href="/ochrana-osobnich-udaju" target="_blank" rel="noopener">zásady ochrany osobních údajů</a>.</label>
       <div class="modal-nav">
         <button class="btn-back" data-action="goToStep" data-arg="3">← Zpět</button>
         <button class="btn-next" id="btnConfirm" data-action="confirmOrder">✓ Objednat s povinností platby</button>
