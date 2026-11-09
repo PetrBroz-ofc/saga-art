@@ -498,9 +498,25 @@ $('filterTabs').addEventListener('click', e => {
 document.querySelectorAll('[data-filter]').forEach(a => a.addEventListener('click', () => {
   filter.collection = ''; setCategory(a.dataset.filter);
 }));
-$('newsletterForm').addEventListener('submit', e => {
-  e.preventDefault(); e.target.reset();
-  showNotification('Děkuji, jste přihlášená k odběru.');
+$('newsletterForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const form = e.target, btn = form.querySelector('button[type="submit"]');
+  btn.disabled = true;
+  try {
+    const r = await fetch('/api/newsletter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: $('nlEmail').value, website: form.elements.website?.value || '' }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || 'Přihlášení se nepovedlo, zkuste to prosím znovu.');
+    form.reset();
+    showNotification('Děkuji, přihlášení k odběru proběhlo.');
+  } catch (err) {
+    showNotification(err.message);
+  } finally {
+    btn.disabled = false;
+  }
 });
 document.addEventListener('keydown', e => {
   const detailOpen = $('pdetailOverlay').classList.contains('open');

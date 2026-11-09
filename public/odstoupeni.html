@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Odstoupení od smlouvy | Sága Art</title>
+<meta name="description" content="Formulář pro odstoupení od kupní smlouvy uzavřené v e-shopu Sága Art.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#f8f7fb">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/shop.css">
+</head>
+<body class="doc-page">
+<header class="doc-header">
+  <a href="/" class="nav-logo">Sága <em>Art</em></a>
+  <a href="/" class="doc-back">Zpět do obchodu</a>
+</header>
+<main class="doc">
+<h1>Odstoupení od smlouvy</h1>
+<p class="doc-lead">Od smlouvy můžete odstoupit do 14 dnů od převzetí šperku. Vyplňte formulář níže a přijetí vám hned potvrdím e-mailem. Šperky vyrobené nebo upravené na míru vrátit nelze, viz <a href="/obchodni-podminky#na-miru">obchodní podmínky</a>.</p>
+
+<form class="doc-form" id="withdrawForm" novalidate>
+  <label>Číslo objednávky<input name="order" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" required placeholder="např. 2611091234"></label>
+  <label>Jméno a příjmení<input name="name" maxlength="120" autocomplete="name" required></label>
+  <label>E-mail, který jste uvedli v objednávce<input name="email" type="email" maxlength="254" autocomplete="email" required></label>
+  <label>Které šperky vracíte<textarea name="items" maxlength="1000" rows="3" required placeholder="např. Charlotte náramek, 1 ks"></textarea></label>
+  <label>Datum převzetí zásilky<input name="received" type="date" required></label>
+  <label>Číslo účtu pro vrácení peněz (jen pokud jste platili převodem)<input name="account" maxlength="60" placeholder="123456789/0100"></label>
+  <input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+  <p class="doc-small">Odesláním oznamuji, že odstupuji od kupní smlouvy na uvedené zboží.</p>
+  <button type="submit" class="btn-primary">Odstoupit od smlouvy</button>
+  <p class="doc-msg" id="withdrawMsg" role="status" aria-live="polite"></p>
+</form>
+
+<h2>Co dál</h2>
+<p>Šperk mi pošlete do 14 dnů na adresu Petra Miklušáková, Městečko 212, 270 23 Křivoklát. Peníze vám vrátím do 14 dnů od odstoupení, nejdřív ale ve chvíli, kdy mi šperk dorazí.</p>
+</main>
+<footer class="doc-footer">
+  <p>Sága Art · Petra Miklušáková · IČO 47055723 · neplátce DPH · Městečko 212, 270 23 Křivoklát</p>
+  <p><a href="/obchodni-podminky">Obchodní podmínky</a> · <a href="/ochrana-osobnich-udaju">Ochrana osobních údajů</a> · <a href="/pece-o-sperky">Péče o šperky</a> · <a href="/odstoupeni">Odstoupení od smlouvy</a></p>
+</footer>
+<script src="/js/withdraw.js" defer></script>
+</body>
+</html>
