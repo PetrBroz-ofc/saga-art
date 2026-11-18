@@ -1,18 +1,10 @@
-// Jednorázově nahraje výchozí šperky (public/data/products.json) do Firestore.
-// Existující šperky NEPŘEPISUJE. Potřebuje .env.local s FIREBASE_* proměnnými.
+// Jednorázově nahraje výchozí šperky (public/data/products.json) do databáze.
+// Existující šperky NEPŘEPISUJE. Potřebuje .env.local s proměnnou DATABASE_URL.
 // Použití: npm run seed
 const path = require('path');
-const { initializeApp, cert } = require('firebase-admin/app');
-const { getFirestore } = require('firebase-admin/firestore');
+const { getDb } = require('../api/_db');
 
-initializeApp({
-  credential: cert({
-    projectId: process.env.FIREBASE_PROJECT_ID,
-    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\n/g, '\n'),
-  }),
-});
-const db = getFirestore();
+const db = getDb();
 const products = require(path.join(__dirname, '..', 'public', 'data', 'products.json'));
 
 (async () => {
@@ -27,4 +19,5 @@ const products = require(path.join(__dirname, '..', 'public', 'data', 'products.
     }
   }
   console.log(`Hotovo: přidáno ${created}, přeskočeno (už existují) ${skipped}.`);
+  process.exit(0);
 })().catch(e => { console.error(e.message); process.exit(1); });

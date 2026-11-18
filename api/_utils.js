@@ -1,6 +1,4 @@
 const crypto = require('crypto');
-const { initializeApp, cert, getApps } = require('firebase-admin/app');
-const { getFirestore } = require('firebase-admin/firestore');
 const jwt = require('jsonwebtoken');
 
 const SITE_URL = (process.env.SITE_URL || 'https://sagaart.cz').replace(/\/+$/, '');
@@ -18,19 +16,8 @@ if (!IS_PROD) {
 const SESSION_COOKIE = '__Host-sa_admin';
 const SESSION_TTL_S = 2 * 60 * 60; // 2 hodiny
 
-// ── Firestore ──
-function getDb() {
-  if (!getApps().length) {
-    initializeApp({
-      credential: cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-      }),
-    });
-  }
-  return getFirestore();
-}
+// ── Databáze (Postgres, viz _db.js) ──
+const { getDb } = require('./_db');
 
 // ── Obecné ──
 const sha256 = s => crypto.createHash('sha256').update(String(s)).digest('hex');
@@ -94,7 +81,7 @@ function guard(req, res, methods) {
   return true;
 }
 
-// ── Rate limit sdílený napříč instancemi (Firestore) ──
+// ── Rate limit sdílený napříč instancemi (databáze) ──
 // Fail-closed: když databáze neodpoví, request se odmítne.
 async function rateLimit(bucket, key, max, windowMs) {
   const db = getDb();
@@ -105,6 +92,7 @@ async function rateLimit(bucket, key, max, windowMs) {
     const d = snap.exists ? snap.data() : null;
     if (!d || d.resetAt <= now) {
       tx.set(ref, { count: 1, resetAt: now + windowMs, expireAt: new Date(now + windowMs) });
+      if (Math.random() < 0.02) db.cleanup().catch(() => {}); // občas uklidit prošlé záznamy
       return true;
     }
     if (d.count >= max) return false;

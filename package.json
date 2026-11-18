@@ -2,15 +2,17 @@
   "name": "saga-art",
   "version": "1.0.0",
   "private": true,
-  "engines": { "node": "22.x" },
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "hash-password": "node scripts/hash-password.js",
     "seed": "node --env-file=.env.local scripts/seed-products.js",
     "audit": "npm audit --omit=dev"
   },
   "dependencies": {
-    "firebase-admin": "14.5.0",
     "jsonwebtoken": "9.0.3",
+    "pg": "8.23.1",
     "stripe": "23.0.0"
   }
 }

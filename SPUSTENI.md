@@ -21,17 +21,12 @@ Tajné klíče nikomu neposílejte e-mailem ani do chatu. Vkládají se jen př�
 3. Ve Vercelu počkat, až domény svítí zeleně (minuty až hodiny).
 4. Proměnná `SITE_URL` = `https://sagaart.cz`
 
-## 2. Databáze (Firebase / Firestore)
+## 2. Databáze (Neon, přímo ve Vercelu)
 
-1. https://console.firebase.google.com → Add project `saga-art` → Build → Firestore Database → Create (region `eur3`, production mode).
-2. Firestore → Rules: vložit obsah souboru `firestore.rules` z repozitáře → Publish.
-3. Project settings → Service accounts → **Generate new private key** (stáhne se JSON).
-4. Z JSON souboru do Vercelu:
-   - `FIREBASE_PROJECT_ID` = `project_id`
-   - `FIREBASE_CLIENT_EMAIL` = `client_email`
-   - `FIREBASE_PRIVATE_KEY` = `private_key` (celé, včetně `-----BEGIN…` a `\n`)
-5. Stažený JSON potom smazat z počítače.
-6. Nahrát šperky do databáze: vytvořit soubor `.env.local` se třemi FIREBASE_ řádky a spustit `npm run seed`. Soubor je v `.gitignore`, po nahrání ho smažte.
+1. Vercel → projekt saga-art → záložka **Storage** → **Create Database** → **Neon** (Postgres) → plán **Free** → region **Frankfurt** (nebo nejbližší) → **Create**.
+2. Připojit k projektu saga-art pro prostředí **Production** (a Preview). Vercel sám přidá proměnnou `DATABASE_URL`.
+3. Tabulku si server vytvoří sám při prvním použití, nic nespouštíte ručně.
+4. Nahrát šperky do databáze: ve Vercelu u databáze **Show secret** → zkopírovat `DATABASE_URL`, vložit do souboru `.env.local` jako řádek `DATABASE_URL=...` a spustit `npm run seed`. Soubor je v `.gitignore`, po nahrání ho smažte.
 
 ## 3. Administrace
 

@@ -19,7 +19,7 @@ function allowedImg(url) {
   }
 }
 
-// Whitelist polí + validace — do Firestore se nikdy neuloží nic navíc.
+// Whitelist polí + validace — do databáze se nikdy neuloží nic navíc.
 function sanitizeProduct(body) {
   const name = clean(body.name, 200);
   if (!name) return { error: 'Neplatný název' };

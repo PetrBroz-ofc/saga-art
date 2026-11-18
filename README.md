@@ -16,7 +16,6 @@ api/               Vercel serverless funkce
   upload-sign.js   podepsané nahrání fotek (admin)
 scripts/           pomocné skripty (heslo, 2FA, seed) — nenasazují se
 vercel.json        bezpečnostní hlavičky (CSP, HSTS…)
-firestore.rules    zákaz přímého přístupu k databázi
 ```
 
 Nastavení a bezpečnost: viz [SECURITY.md](SECURITY.md).
