@@ -17,9 +17,19 @@ const MAX_PASSWORD = 200;
 const norm = s => String(s).trim().toLowerCase();
 
 // ── hlavní účet (Vercel) ──
+// Heslo hlavního účtu jde zadat dvěma způsoby (stačí jeden):
+//  - ADMIN_PASSWORD       = heslo napsané přímo ve Vercelu (jako Sensitive), mění se úpravou proměnné + Redeploy
+//  - ADMIN_PASSWORD_HASH  = scrypt otisk ("scrypt$…", vytvoří ho npm run hash-password)
+// Když jsou obě, platí ADMIN_PASSWORD.
+const MIN_OWNER_PASSWORD = 10;
 async function ownerPasswordOk(password) {
+  const plain = process.env.ADMIN_PASSWORD;
+  if (plain) {
+    if (plain.length < MIN_OWNER_PASSWORD) throw new Error(`ADMIN_PASSWORD je kratší než ${MIN_OWNER_PASSWORD} znaků`);
+    return safeEqual(String(password), plain); // porovnání přes SHA-256 obou stran, stejně dlouhé
+  }
   const [algo, saltHex, hashHex] = String(process.env.ADMIN_PASSWORD_HASH || '').split('$');
-  if (algo !== 'scrypt' || !saltHex || !hashHex) throw new Error('ADMIN_PASSWORD_HASH není nastaven');
+  if (algo !== 'scrypt' || !saltHex || !hashHex) throw new Error('Není nastaveno ADMIN_PASSWORD ani ADMIN_PASSWORD_HASH');
   const expected = Buffer.from(hashHex, 'hex');
   const actual = await scrypt(String(password), Buffer.from(saltHex, 'hex'), expected.length, SCRYPT);
   return crypto.timingSafeEqual(actual, expected);

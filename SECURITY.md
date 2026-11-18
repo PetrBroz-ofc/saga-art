@@ -42,7 +42,7 @@ Hlášení zranitelností: **info.pebmedia@gmail.com** (PEBMedia) (prosím neve�
 | Proměnná | Jak získat |
 | --- | --- |
 | `SITE_URL` | `https://sagaart.cz` (přesně, bez lomítka na konci) |
-| `ADMIN_PASSWORD_HASH` | `npm run hash-password` (heslo min. 14 znaků) |
+| `ADMIN_PASSWORD` nebo `ADMIN_PASSWORD_HASH` | heslo hlavního účtu: buď přímo `ADMIN_PASSWORD` (min. 10 znaků, lépe 14+, Sensitive), nebo scrypt otisk z `npm run hash-password` (heslo min. 14 znaků). Platí-li obě, vyhrává `ADMIN_PASSWORD` |
 | `ADMIN_USERNAME` | přihlašovací jméno do adminu (velikost písmen nehraje roli) |
 | `ADMIN_EMAIL` | kam chodí kódy pro ověření nového zařízení |
 | `EMAILJS_TEMPLATE_LOGIN` | šablona EmailJS s proměnnými `{{to_email}}`, `{{code}}`, `{{device}}`, `{{time}}`, `{{valid_minutes}}` |

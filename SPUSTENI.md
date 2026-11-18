@@ -32,10 +32,10 @@ Tajné klíče nikomu neposílejte e-mailem ani do chatu. Vkládají se jen př�
 
 **Hlavní účet (váš)** je ve Vercelu a funguje vždy. Heslo se mění jen tam:
 
-1. V terminálu ve složce SagaArt: `npm run hash-password` → zadat heslo (min. 14 znaků).
+1. Heslo napíšete přímo do Vercelu jako proměnnou `ADMIN_PASSWORD` (aspoň 10 znaků, lépe 14+; jako **Sensitive**). Změní se úpravou proměnné a **Redeploy**.
 2. Do Vercelu (Production, tajné jako **Sensitive**):
    - `ADMIN_USERNAME` = vaše přihlašovací jméno
-   - `ADMIN_PASSWORD_HASH` = vypsaný řádek `scrypt$…`
+   - `ADMIN_PASSWORD` = vaše heslo (alternativa: `ADMIN_PASSWORD_HASH` = scrypt otisk z `npm run hash-password`, platí-li obě, vyhrává `ADMIN_PASSWORD`)
    - `ADMIN_EMAIL` = váš e-mail, kam chodí ověřovací kódy
    - `ADMIN_JWT_SECRET` = náhodný řetězec, vytvoří ho `node scripts/gen-secret.js`
      (odvozuje se z něj i šifrování kódů poukazů, **po spuštění už neměnit**)
