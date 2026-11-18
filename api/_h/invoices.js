@@ -1,6 +1,6 @@
-const { getDb, sha256, fail, requireAdmin } = require('./_utils');
-const { clean } = require('./_shop');
-const { SELLER, seller, bank } = require('./_business');
+const { getDb, sha256, fail, requireAdmin } = require('../_utils');
+const { clean } = require('../_shop');
+const { SELLER, seller, bank } = require('../_business');
 
 // Faktury (jen admin).
 // GET   /api/invoices               — seznam (nejnovější první)
@@ -82,7 +82,7 @@ function validate(b) {
   };
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (!(await requireAdmin(req, res, ['GET', 'POST', 'PATCH']))) return;
   const db = getDb();
   const col = db.collection('invoices');

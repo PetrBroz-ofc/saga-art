@@ -1,5 +1,5 @@
-const { sleep, fail, noStore, clientIp, limitOrReject, requireAdmin, adminSession } = require('./_utils');
-const A = require('./_account');
+const { sleep, fail, noStore, clientIp, limitOrReject, requireAdmin, adminSession } = require('../_utils');
+const A = require('../_account');
 
 // Účet majitelky (jméno, e-mail pro kódy, heslo). Jen přihlášená administrace.
 //
@@ -9,7 +9,7 @@ const A = require('./_account');
 //   - hlavní účet ("owner") ho smí nastavit nebo obnovit bez znalosti starého hesla
 // Po změně se majitelce odhlásí ostatní zařízení (u obnovení hlavním účtem všechna).
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (!(await requireAdmin(req, res, ['GET', 'POST']))) return;
   try {
     const s = await adminSession(req);

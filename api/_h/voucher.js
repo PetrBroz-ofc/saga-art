@@ -1,9 +1,9 @@
-const { noStore, clientIp, fail, guard, limitOrReject } = require('./_utils');
-const { checkVoucher } = require('./_vouchers');
+const { noStore, clientIp, fail, guard, limitOrReject } = require('../_utils');
+const { checkVoucher } = require('../_vouchers');
 
 // POST /api/voucher { code } — kontrola kódu dárkového poukazu v pokladně (nic nestrhává).
 // Přísný limit pokusů, aby se kódy nedaly hádat.
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   noStore(res);
   if (!guard(req, res, ['POST'])) return;
   if (!(await limitOrReject(res, 'voucher_ip', clientIp(req), 10, 15 * 60 * 1000))) return;
