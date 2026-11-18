@@ -211,7 +211,7 @@ function getDb() {
   const url = process.env.DATABASE_URL || process.env.POSTGRES_URL;
   if (!url) throw new Error('DATABASE_URL není nastavená');
   const { Pool } = require('pg');
-  pool = new Pool({ connectionString: url, max: 3, idleTimeoutMillis: 10000, connectionTimeoutMillis: 8000 });
+  pool = new Pool({ connectionString: url, max: 3, idleTimeoutMillis: 10000, connectionTimeoutMillis: 12000 });
   pool.on('error', e => console.error('pg pool error:', e.message));
   db = makeDb(pool);
   return db;
