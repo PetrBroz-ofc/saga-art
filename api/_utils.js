@@ -190,15 +190,20 @@ async function trustedDevice(deviceId) {
 
 // Vrací id zařízení přihlášeného admina, nebo null. Každý požadavek ověří i zařízení v databázi,
 // takže odebrané zařízení se odhlásí okamžitě.
-async function adminDevice(req) {
+// Účet (who) je uložený u zařízení v databázi, ne v cookie: 'owner' = hlavní účet ze Vercelu, 'client' = účet majitelky.
+async function adminSession(req) {
   const p = readToken(req, SESSION_COOKIE, 'session');
   if (!p || p.role !== 'admin') return null;
   try {
-    return (await trustedDevice(p.did)) ? p.did : null;
+    const d = await trustedDevice(p.did);
+    return d ? { did: p.did, who: d.who === 'client' ? 'client' : 'owner' } : null;
   } catch (e) {
     console.error('device check error:', e.message);
     return null; // fail-closed
   }
+}
+async function adminDevice(req) {
+  return (await adminSession(req))?.did ?? null;
 }
 const isAdmin = async req => (await adminDevice(req)) !== null;
 
@@ -215,7 +220,7 @@ async function requireAdmin(req, res, methods) {
 
 module.exports = {
   SITE_URL, IS_PROD, getDb, sha256, safeEqual, noStore, clientIp, sleep, fail,
-  guard, rateLimit, limitOrReject, isAdmin, adminDevice, requireAdmin, readToken, trustedDevice,
+  guard, rateLimit, limitOrReject, isAdmin, adminDevice, adminSession, requireAdmin, readToken, trustedDevice,
   DEVICE_COOKIE, CHALLENGE_COOKIE, DEVICE_TTL_S, jwtSecret,
   setSessionCookie, clearSessionCookie, setDeviceCookie, clearDeviceCookie, setChallengeCookie, clearChallengeCookie,
 };

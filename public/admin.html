@@ -413,6 +413,19 @@
         <div class="devices" id="devicesList"></div>
         <p class="hint" style="margin:12px 0 0">Neznáte některé zařízení? Odeberte ho a změňte heslo.</p>
       </section>
+      <section class="od-sec" id="accountSec">
+        <h3 id="accountTitle">Jméno, e-mail a heslo</h3>
+        <p class="hint" id="accountHint" style="margin:0 0 14px"></p>
+        <form id="accountForm" autocomplete="off" novalidate>
+          <label class="field"><span>Přihlašovací jméno</span><input type="text" id="aUser" maxlength="40" autocomplete="username" autocapitalize="none" spellcheck="false"></label>
+          <label class="field"><span>E-mail, na který chodí kódy</span><input type="email" id="aEmail" maxlength="254" autocomplete="email"></label>
+          <label class="field" id="aCurWrap"><span>Současné heslo</span><input type="password" id="aCur" maxlength="200" autocomplete="current-password"></label>
+          <label class="field"><span>Nové heslo <i class="counter">aspoň 14 znaků</i></span><input type="password" id="aNew" maxlength="200" autocomplete="new-password"></label>
+          <label class="field"><span>Nové heslo znovu</span><input type="password" id="aNew2" maxlength="200" autocomplete="new-password"></label>
+          <p class="account-msg" id="accountMsg" role="status" aria-live="polite"></p>
+          <button class="btn btn-dark" type="submit" id="accountBtn">Uložit změny</button>
+        </form>
+      </section>
     </div>
     <div class="od-actions">
       <button class="btn btn-ghost" data-action="logout">Odhlásit se</button>

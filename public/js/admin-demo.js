@@ -183,6 +183,13 @@
       return clone(o);
     }
     if (path === '/api/invoices') return invoicesApi(method, body);
+    if (path === '/api/account') {
+      // v ukázce jde zkusit obě role: /admin?demo (majitelka) nebo /admin?demo=owner (hlavní účet)
+      const who = new URLSearchParams(location.search).get('demo') === 'owner' ? 'owner' : 'client';
+      if (method === 'GET') return { who, client: { set: true, username: 'petra', email: 'petra@example.cz' }, minPassword: 14 };
+      if (who === 'client' && !body.current) throw new Error('Současné heslo není správné.');
+      return { ok: true, client: { set: true, username: body.username, email: body.email } };
+    }
     throw new Error('Neznámá adresa');
   }
 

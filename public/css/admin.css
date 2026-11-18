@@ -420,6 +420,11 @@ button.kpi:hover { transform:translateY(-3px); box-shadow:0 14px 34px -14px rgba
 .skel { border-radius:var(--r); background:linear-gradient(90deg, var(--sand-2) 25%, var(--sand) 50%, var(--sand-2) 75%); background-size:200% 100%; animation:skel 1.3s infinite linear; }
 @keyframes skel { to { background-position:-200% 0; } }
 
+/* účet v zabezpečení */
+.account-msg { min-height:1.4em; margin:0 0 12px; font-size:.85rem; color:var(--bad); }
+.account-msg.ok { color:var(--ok); }
+#accountForm .btn { width:100%; }
+
 /* ═══ FAKTURY ═══ */
 .view-tools { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 .kpis-3 { grid-template-columns:repeat(3, 1fr); }

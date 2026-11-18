@@ -28,16 +28,25 @@ Tajné klíče nikomu neposílejte e-mailem ani do chatu. Vkládají se jen př�
 3. Tabulku si server vytvoří sám při prvním použití, nic nespouštíte ručně.
 4. Nahrát šperky do databáze: ve Vercelu u databáze **Show secret** → zkopírovat `DATABASE_URL`, vložit do souboru `.env.local` jako řádek `DATABASE_URL=...` a spustit `npm run seed`. Soubor je v `.gitignore`, po nahrání ho smažte.
 
-## 3. Administrace
+## 3. Administrace (dva účty)
+
+**Hlavní účet (váš)** je ve Vercelu a funguje vždy. Heslo se mění jen tam:
 
 1. V terminálu ve složce SagaArt: `npm run hash-password` → zadat heslo (min. 14 znaků).
-2. Do Vercelu:
-   - `ADMIN_USERNAME` = přihlašovací jméno
+2. Do Vercelu (Production, tajné jako **Sensitive**):
+   - `ADMIN_USERNAME` = vaše přihlašovací jméno
    - `ADMIN_PASSWORD_HASH` = vypsaný řádek `scrypt$…`
-   - `ADMIN_EMAIL` = e-mail, kam chodí ověřovací kódy pro nové zařízení
-   - `ADMIN_JWT_SECRET` = náhodný řetězec, vygenerujte ho příkazem
-     `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`
-     (z něj se odvozuje i šifrování kódů poukazů, **po spuštění už neměnit**)
+   - `ADMIN_EMAIL` = váš e-mail, kam chodí ověřovací kódy
+   - `ADMIN_JWT_SECRET` = náhodný řetězec, vytvoří ho `node scripts/gen-secret.js`
+     (odvozuje se z něj i šifrování kódů poukazů, **po spuštění už neměnit**)
+
+**Účet Petry (majitelky)** je v databázi, ne ve Vercelu:
+
+1. Přihlaste se hlavním účtem → **Zabezpečení** → **Přístup majitelky** → zadejte jméno, její e-mail (chodí na něj kódy) a první heslo → **Nastavit přístup**.
+2. Petra se přihlásí svým jménem a heslem, kód jí přijde na její e-mail.
+3. Heslo, jméno i e-mail si pak mění sama v **Zabezpečení → Moje jméno a heslo** (po zadání současného hesla). Po změně se odhlásí na ostatních zařízeních.
+4. Zapomene-li heslo, obnovíte jí přístup stejným formulářem (hlavním účtem), starý heslo nepotřebujete.
+5. Hlavní účet zůstává váš, Petra ho nemůže změnit ani odebrat.
 
 ## 4. Platby
 

@@ -146,9 +146,62 @@ async function logout(forget = false) {
 }
 
 // ═══ ZABEZPEČENÍ: ověřená zařízení ═══
+// Účet majitelky: majitelka si jméno, e-mail a heslo mění sama (po zadání současného hesla),
+// hlavní účet (vývojář) jí přístup nastaví nebo obnoví bez starého hesla.
+const acct = { who: '', min: 14 };
+async function loadAccount() {
+  ['aCur', 'aNew', 'aNew2'].forEach(id => { $(id).value = ''; });
+  $('accountMsg').textContent = ''; $('accountMsg').className = 'account-msg';
+  try {
+    const r = await api('/api/account');
+    acct.who = r.who; acct.min = r.minPassword || 14;
+    const owner = r.who === 'owner';
+    $('aCurWrap').hidden = owner;
+    $('aUser').value = r.client.username || '';
+    $('aEmail').value = r.client.email || '';
+    $('accountTitle').textContent = owner ? 'Přístup majitelky' : 'Moje jméno a heslo';
+    $('accountHint').textContent = owner
+      ? 'Jste přihlášen hlavním účtem. Tady nastavíte nebo obnovíte přístup majitelky, její staré heslo nepotřebujete. Hlavní heslo se mění jen ve Vercelu.'
+      : 'Tady si změníte přihlašovací jméno, e-mail pro kódy i heslo. Po změně vás odhlásíme na ostatních zařízeních.';
+    $('accountBtn').textContent = owner ? (r.client.set ? 'Obnovit přístup' : 'Nastavit přístup') : 'Uložit změny';
+  } catch (err) {
+    if (err.message !== 'unauthorized') $('accountMsg').textContent = 'Nastavení účtu se nepodařilo načíst.';
+  }
+}
+$('accountForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const msg = $('accountMsg');
+  const bad = t => { msg.className = 'account-msg'; msg.textContent = t; };
+  const body = { username: $('aUser').value.trim(), email: $('aEmail').value.trim(), newPassword: $('aNew').value };
+  if (acct.who === 'client') body.current = $('aCur').value;
+  if (!/^[A-Za-z0-9][A-Za-z0-9._@-]{2,39}$/.test(body.username)) return bad('Jméno: 3 až 40 znaků, písmena bez diakritiky, číslice nebo . _ - @');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(body.email)) return bad('Zkontrolujte prosím e-mail.');
+  if (acct.who === 'client' && !body.current) return bad('Zadejte současné heslo.');
+  if (body.newPassword.length < acct.min) return bad(`Nové heslo musí mít aspoň ${acct.min} znaků. Nejlepší je věta.`);
+  if (body.newPassword !== $('aNew2').value) return bad('Nová hesla se neshodují.');
+  const btn = $('accountBtn');
+  btn.disabled = true;
+  try {
+    await api('/api/account', 'POST', body);
+    ['aCur', 'aNew', 'aNew2'].forEach(id => { $(id).value = ''; });
+    msg.className = 'account-msg ok';
+    msg.textContent = acct.who === 'owner' ? 'Přístup majitelky je nastavený.' : 'Uloženo. Příště se přihlásíte novým jménem a heslem.';
+    toast('Přístup uložen.');
+    openSecurityDevices();
+  } catch (err) {
+    if (err.message !== 'unauthorized') bad(err.message);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 async function openSecurity() {
-  $('devicesList').innerHTML = '<div class="skel" style="height:68px"></div>';
   openSheet('securitySheet');
+  loadAccount();
+  openSecurityDevices();
+}
+async function openSecurityDevices() {
+  $('devicesList').innerHTML = '<div class="skel" style="height:68px"></div>';
   try {
     const { devices } = await api('/api/auth?devices=1');
     $('devicesList').innerHTML = devices.length ? devices.map(d => `
@@ -170,7 +223,7 @@ async function revokeDevice(id) {
     const r = await api('/api/auth', 'DELETE', { revoke: id });
     if (r.loggedOut) { showLogin(); toast('Toto zařízení je odebrané.'); return; }
     toast('Zařízení odebrané.');
-    openSecurity();
+    openSecurityDevices();
   } catch (err) {
     if (err.message !== 'unauthorized') toast(err.message, { err: true });
   }

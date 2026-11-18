@@ -1,11 +1,11 @@
 const crypto = require('crypto');
-const { promisify } = require('util');
 const {
-  getDb, sha256, safeEqual, noStore, clientIp, sleep, fail, guard, limitOrReject,
-  adminDevice, readToken, trustedDevice, jwtSecret, DEVICE_COOKIE, CHALLENGE_COOKIE,
+  getDb, sha256, noStore, clientIp, sleep, fail, guard, limitOrReject,
+  adminSession, readToken, trustedDevice, jwtSecret, DEVICE_COOKIE, CHALLENGE_COOKIE,
   setSessionCookie, clearSessionCookie, setDeviceCookie, clearDeviceCookie, setChallengeCookie, clearChallengeCookie,
 } = require('./_utils');
 const { sendEmail } = require('./_shop');
+const { ownerPasswordOk, ownerUsernameOk, ownerEmail, clientLogin } = require('./_account');
 
 // Přihlášení do adminu:
 //  1) jméno + heslo
@@ -17,34 +17,14 @@ const { sendEmail } = require('./_shop');
 // POST   /api/auth             – {username, password} nebo {code}
 // DELETE /api/auth             – odhlásit; {forget:true} zapomene i toto zařízení; {revoke:id} odebere zařízení
 
-const scrypt = promisify(crypto.scrypt);
 const CODE_TTL_MS = 10 * 60 * 1000;
 const MAX_CODE_ATTEMPTS = 5;
 const DEVICE_RE = /^[a-f0-9]{32}$/;
 
-// ── Heslo: ADMIN_PASSWORD_HASH = "scrypt$<salt hex>$<hash hex>" (vygeneruje scripts/hash-password.js) ──
-async function checkPassword(password) {
-  const [algo, saltHex, hashHex] = String(process.env.ADMIN_PASSWORD_HASH || '').split('$');
-  if (algo !== 'scrypt' || !saltHex || !hashHex) throw new Error('ADMIN_PASSWORD_HASH není nastaven');
-  const expected = Buffer.from(hashHex, 'hex');
-  const actual = await scrypt(String(password), Buffer.from(saltHex, 'hex'), expected.length,
-    { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 });
-  return crypto.timingSafeEqual(actual, expected);
-}
-function checkUsername(username) {
-  const expected = String(process.env.ADMIN_USERNAME || '').trim().toLowerCase();
-  if (!expected) throw new Error('ADMIN_USERNAME není nastaven');
-  return safeEqual(String(username).trim().toLowerCase(), expected);
-}
-
+// Dva účty (viz _account.js): hlavní ze Vercelu ("owner") a majitelky z databáze ("client").
 // Kód se v databázi drží jen jako HMAC (kdo by četl databázi, kód nezjistí)
 const codeHash = (cid, code) => crypto.createHmac('sha256', jwtSecret()).update(cid + ':' + code).digest('hex');
 
-function adminEmail() {
-  const e = process.env.ADMIN_EMAIL || process.env.OWNER_EMAIL;
-  if (!e) throw new Error('ADMIN_EMAIL není nastaven');
-  return e;
-}
 const maskEmail = e => {
   const [user, domain] = String(e).split('@');
   return (user[0] || '') + '•••' + (user.length > 1 ? user.slice(-1) : '') + '@' + domain;
@@ -77,17 +57,19 @@ async function loginStep(req, res) {
   if (typeof username !== 'string' || typeof password !== 'string' || username.length > 100 || password.length > 200) {
     return failSlow(res, 401, 'Špatné jméno nebo heslo');
   }
-  // heslo se ověřuje vždy (i při špatném jménu), aby odpověď netrvala jinak dlouho
-  const passOk = await checkPassword(password);
-  const userOk = checkUsername(username);
-  if (!passOk || !userOk) {
+  // obě hesla se ověřují vždy (i při špatném jménu), aby odpověď netrvala jinak dlouho
+  const ownerOk = (await ownerPasswordOk(password)) & ownerUsernameOk(username);
+  const clientAcc = await clientLogin(username, password);
+  const who = ownerOk ? 'owner' : clientAcc ? 'client' : null;
+  if (!who) {
     console.warn('Neúspěšné přihlášení do adminu', { ipHash: sha256(ip).slice(0, 12) });
     return failSlow(res, 401, 'Špatné jméno nebo heslo');
   }
 
-  // Ověřené zařízení (do 30 dní) rovnou pustí dál
+  // Ověřené zařízení (do 30 dní) rovnou pustí dál, ale jen pro stejný účet, pro který bylo ověřeno
   const dev = readToken(req, DEVICE_COOKIE, 'device');
-  if (dev && (await trustedDevice(dev.did))) {
+  const devDoc = dev ? await trustedDevice(dev.did) : null;
+  if (devDoc && (devDoc.who === 'client' ? 'client' : 'owner') === who) {
     await getDb().collection('admin_devices').doc(dev.did).update({ lastUsedAt: new Date() });
     clearChallengeCookie(res);
     setSessionCookie(res, dev.did);
@@ -101,11 +83,11 @@ async function loginStep(req, res) {
   const label = deviceLabel(req.headers['user-agent']);
   const now = Date.now();
   await getDb().collection('admin_challenges').doc(cid).set({
-    codeHash: codeHash(cid, code), attempts: 0, label,
+    codeHash: codeHash(cid, code), attempts: 0, label, who,
     ipHash: sha256(ip).slice(0, 16),
     createdAt: new Date(now), expiresAt: new Date(now + CODE_TTL_MS), expireAt: new Date(now + CODE_TTL_MS),
   });
-  const email = adminEmail();
+  const email = who === 'client' ? clientAcc.email : ownerEmail();
   try {
     await sendEmail(process.env.EMAILJS_TEMPLATE_LOGIN, {
       to_email: email,
@@ -151,7 +133,7 @@ async function codeStep(req, res) {
       return left <= 0 ? { restart: true } : { left };
     }
     tx.delete(ref); // kód jde použít jen jednou
-    return { ok: true, label: d.label };
+    return { ok: true, label: d.label, who: d.who === 'client' ? 'client' : 'owner' };
   });
 
   if (result.restart) {
@@ -166,7 +148,7 @@ async function codeStep(req, res) {
   const did = crypto.randomBytes(16).toString('hex');
   const now = new Date();
   await db.collection('admin_devices').doc(did).set({
-    label: result.label, createdAt: now, verifiedAt: now, lastUsedAt: now, ipHash: sha256(ip).slice(0, 16),
+    label: result.label, who: result.who, createdAt: now, verifiedAt: now, lastUsedAt: now, ipHash: sha256(ip).slice(0, 16),
   });
   clearChallengeCookie(res);
   setDeviceCookie(res, did);
@@ -175,7 +157,7 @@ async function codeStep(req, res) {
 }
 
 // ── Seznam zařízení ──
-async function listDevices(req, res, current) {
+async function listDevices(req, res, current, who) {
   const col = getDb().collection('admin_devices');
   const snap = await col.get();
   const limit = Date.now() - 30 * 864e5;
@@ -184,6 +166,7 @@ async function listDevices(req, res, current) {
     const d = doc.data();
     const verified = d.verifiedAt?.toDate?.().getTime() || 0;
     if (d.revoked || verified < limit) { await doc.ref.delete(); continue; } // propadlá zařízení uklidit
+    if ((d.who === 'client' ? 'client' : 'owner') !== who) continue; // každý účet vidí jen svá zařízení
     devices.push({
       id: doc.id, label: d.label || 'Zařízení', current: doc.id === current,
       createdAt: iso(d.createdAt), lastUsedAt: iso(d.lastUsedAt),
@@ -200,20 +183,25 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const current = await adminDevice(req);
+      const s = await adminSession(req);
+      const current = s?.did || null;
       if (req.query?.devices) {
         if (!current) return fail(res, 401, 'Neautorizováno');
-        return await listDevices(req, res, current);
+        return await listDevices(req, res, current, s.who);
       }
-      return res.status(200).json({ authenticated: !!current });
+      return res.status(200).json({ authenticated: !!current, who: s?.who || null });
     }
 
     if (req.method === 'DELETE') {
-      const current = await adminDevice(req);
+      const s = await adminSession(req);
+      const current = s?.did || null;
       const { revoke, forget } = req.body;
       if (revoke !== undefined) {
         if (!current) return fail(res, 401, 'Neautorizováno');
         if (typeof revoke !== 'string' || !DEVICE_RE.test(revoke)) return fail(res, 400, 'Neplatné zařízení');
+        const target = await getDb().collection('admin_devices').doc(revoke).get();
+        // odebrat jde jen zařízení vlastního účtu
+        if (target.exists && (target.data().who === 'client' ? 'client' : 'owner') !== s.who) return fail(res, 403, 'Tohle zařízení nepatří vašemu účtu');
         await getDb().collection('admin_devices').doc(revoke).delete();
         if (revoke !== current) return res.status(200).json({ ok: true });
       } else if (forget === true && current) {

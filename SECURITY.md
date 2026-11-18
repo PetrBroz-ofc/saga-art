@@ -18,6 +18,7 @@ Hlášení zranitelností: **info.pebmedia@gmail.com** (PEBMedia) (prosím neve�
 - Ověřené zařízení platí **30 dní**, pak se musí ověřit znovu. Zařízení je uložené v databázi (`admin_devices`) a každý požadavek adminu ho kontroluje, takže odebrání zařízení v sekci Zabezpečení ho **okamžitě odhlásí**.
 - Kód se v databázi drží jen jako HMAC, ne v čitelné podobě. E-mailů s kódem odejde nejvýš 8 za hodinu.
 - Heslo je uložené jen jako **scrypt hash** (`ADMIN_PASSWORD_HASH`), nikdy v čitelné podobě.
+- **Dva účty:** hlavní (Vercel, patří vývojáři, funguje vždy) a majitelky (databáze, jen scrypt otisk hesla se solí). Majitelka si jméno, e-mail pro kódy i heslo mění sama po zadání současného hesla (omezení 5 pokusů / 15 min), hlavní účet jí přístup smí obnovit. Po změně se ostatní zařízení majitelky odhlásí. Ověřená zařízení patří vždy jednomu účtu: zařízení hlavního účtu nepřeskočí kód u účtu majitelky. Každý účet vidí a odebírá jen svá zařízení.
 - Limit pokusů: 5 / 15 min na IP a 20 / hod celkově — sdílený přes databázi, platí napříč servery. Když databáze neodpoví, přihlášení se odmítne (fail-closed).
 - Session = podepsaný JWT (HS256, issuer/audience, 2 h) v **HttpOnly; Secure; SameSite=Strict** cookie s prefixem `__Host-`. JavaScript na stránce k ní nemá přístup.
 - Okamžité odhlášení všech zařízení: změň `ADMIN_SESSION_VERSION` (např. z `1` na `2`).
