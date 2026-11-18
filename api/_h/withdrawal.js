@@ -1,5 +1,6 @@
 const { getDb, noStore, clientIp, fail, guard, limitOrReject, safeEqual } = require('../_utils');
-const { clean, sendEmail } = require('../_shop');
+const { clean } = require('../_shop');
+const { sendMail, notice } = require('../_mail');
 
 const EMAIL_RE = /^[^\s@<>()[\]\\,;:"]{1,64}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,24}$/;
 
@@ -44,16 +45,8 @@ module.exports = async function handler(req, res) {
     const when = now.toLocaleString('cs-CZ', { timeZone: 'Europe/Prague' });
     const summary = `Objednávka: ${d.order}\nJméno: ${d.name}\nE-mail: ${d.email}\nVrácené zboží: ${d.items}\nDatum převzetí: ${d.received}\nÚčet pro vrácení: ${d.account || '—'}\nPřijato: ${when}`;
     const results = await Promise.allSettled([
-      sendEmail(process.env.EMAILJS_TEMPLATE_NOTICE, {
-        to_email: d.email,
-        subject: 'Potvrzení odstoupení od smlouvy, objednávka ' + d.order,
-        message: `Dobrý den,\n\npotvrzuji, že jsem ${when} přijala vaše odstoupení od kupní smlouvy.\n\n${summary}\n\nŠperk mi prosím pošlete do 14 dnů na adresu Petra Miklušáková, Městečko 212, 270 23 Křivoklát. Peníze vám vrátím do 14 dnů od odstoupení, nejdřív ale ve chvíli, kdy mi šperk dorazí.\n\nPetra, Sága Art`,
-      }),
-      sendEmail(process.env.EMAILJS_TEMPLATE_NOTICE, {
-        to_email: process.env.OWNER_EMAIL,
-        subject: 'Odstoupení od smlouvy: objednávka ' + d.order,
-        message: summary,
-      }),
+      sendMail({ to: d.email, ...notice('Potvrzení odstoupení od smlouvy, objednávka ' + d.order, `Dobrý den,\n\npotvrzuji, že jsem ${when} přijala vaše odstoupení od kupní smlouvy.\n\n${summary}\n\nŠperk mi prosím pošlete do 14 dnů na adresu Petra Miklušáková, Městečko 212, 270 23 Křivoklát. Peníze vám vrátím do 14 dnů od odstoupení, nejdřív ale ve chvíli, kdy mi šperk dorazí.\n\nPetra, Sága Art`) }),
+      sendMail({ to: process.env.OWNER_EMAIL, replyTo: d.email, ...notice('Odstoupení od smlouvy: objednávka ' + d.order, summary) }),
     ]);
     results.filter(r => r.status === 'rejected')
       .forEach(r => console.error('withdrawal e-mail selhal:', r.reason?.message));

@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const { getDb } = require('./_utils');
 const V = require('./_vouchers');
+const Mail = require('./_mail');
 
 // Ceník dopravy — JEDINÝ zdroj pravdy. Frontend si ho jen zobrazuje (GET /api/config).
 const SHIPPING = {
@@ -130,27 +131,6 @@ async function createOrder(data, voucherCode, discountBase) {
   throw new Error('Nepodařilo se vygenerovat číslo objednávky');
 }
 
-// ── E-maily přes EmailJS REST API — klíče jsou jen na serveru ──
-async function sendEmail(templateId, params) {
-  const { EMAILJS_SERVICE_ID, EMAILJS_PUBLIC_KEY, EMAILJS_PRIVATE_KEY } = process.env;
-  if (!EMAILJS_SERVICE_ID || !EMAILJS_PUBLIC_KEY || !EMAILJS_PRIVATE_KEY || !templateId) {
-    throw new Error('EmailJS není nakonfigurován');
-  }
-  const r = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      service_id: EMAILJS_SERVICE_ID,
-      template_id: templateId,
-      user_id: EMAILJS_PUBLIC_KEY,
-      accessToken: EMAILJS_PRIVATE_KEY,
-      template_params: params,
-    }),
-    signal: AbortSignal.timeout(8000),
-  });
-  if (!r.ok) throw new Error('EmailJS ' + r.status);
-}
-
 function bankInfo() {
   return { account: process.env.BANK_ACCOUNT || '', iban: process.env.BANK_IBAN || '' };
 }
@@ -159,29 +139,26 @@ function bankInfo() {
 async function sendOrderEmails(order) {
   const c = order.customer;
   const bank = bankInfo();
-  const params = {
-    order_num: order.number,
-    variabilni_symbol: order.number,
-    order_date: new Date().toLocaleDateString('cs-CZ', { timeZone: 'Europe/Prague' }),
-    customer_name: c.jmeno + ' ' + c.prijmeni,
-    customer_email: c.email,
-    telefon: c.telefon,
-    adresa: `${c.ulice}, ${c.psc} ${c.mesto}, ${COUNTRIES[c.zeme]}`,
-    poznamka: c.poznamka || '—',
-    items: [
-      ...order.lines.map(l => `${l.name} × ${l.qty} = ${l.price * l.qty} Kč`),
-      ...(order.giftWrap ? [`${GIFT_WRAP.name} = ${order.giftWrapPrice} Kč` + (order.giftMessage ? `\nVzkaz na přáníčko: ${order.giftMessage}` : '')] : []),
-      ...(order.discount ? [`Dárkový poukaz …${order.voucher?.last4 || ''} = −${order.discount} Kč`] : []),
-    ].join('\n'),
-    doprava: `${SHIPPING[order.shipping].name} (${order.shippingPrice} Kč)`,
-    platba: PAYMENTS[order.payment],
-    total: order.total + ' Kč',
-    bank_account: order.payment === 'transfer' ? bank.account : '',
-    bank_iban: order.payment === 'transfer' ? bank.iban : '',
+  const lines = [
+    ...order.lines.map(l => [`${l.name} × ${l.qty}`, Mail.kc(l.price * l.qty)]),
+    [`Doprava: ${SHIPPING[order.shipping].name}`, Mail.kc(order.shippingPrice)],
+    ...(order.giftWrap ? [[GIFT_WRAP.name, Mail.kc(order.giftWrapPrice)]] : []),
+    ...(order.discount ? [[`Dárkový poukaz …${order.voucher?.last4 || ''}`, '−' + Mail.kc(order.discount)]] : []),
+  ];
+  const view = {
+    number: order.number,
+    name: `${c.jmeno} ${c.prijmeni}`,
+    email: c.email, phone: c.telefon,
+    address: `${c.ulice}, ${c.psc} ${c.mesto}, ${COUNTRIES[c.zeme]}`,
+    note: c.poznamka || '',
+    lines, total: order.total,
+    shippingLabel: SHIPPING[order.shipping].name,
+    payment: order.payment, paymentLabel: PAYMENTS[order.payment],
+    bank, giftMessage: order.giftWrap ? order.giftMessage || '' : '',
   };
   const results = await Promise.allSettled([
-    sendEmail(process.env.EMAILJS_TEMPLATE_CUSTOMER, { ...params, to_email: c.email, to_name: c.jmeno }),
-    sendEmail(process.env.EMAILJS_TEMPLATE_OWNER, { ...params, to_email: process.env.OWNER_EMAIL }),
+    Mail.sendMail({ to: c.email, ...Mail.orderCustomer(view) }),
+    Mail.sendMail({ to: process.env.OWNER_EMAIL, replyTo: c.email, ...Mail.orderOwner(view) }),
   ]);
   const failed = results.filter(r => r.status === 'rejected');
   failed.forEach(r => console.error('E-mail k objednávce', order.number, 'selhal:', r.reason?.message));
@@ -195,11 +172,14 @@ async function afterPaid(orderNumber) {
     if (!res || !res.email) return;
     const exp = res.expiresAt.toLocaleDateString('cs-CZ', { timeZone: 'Europe/Prague' });
     const list = res.issued.map(i => `${V.voucherName(i.value)}: ${i.code}`).join('\n');
-    await sendEmail(process.env.EMAILJS_TEMPLATE_NOTICE, {
-      to_email: res.email,
-      subject: 'Váš dárkový poukaz Sága Art',
-      message: `Dobrý den,\n\nděkuji za nákup. Tady je váš dárkový poukaz:\n\n${list}\n\nPlatí do ${exp}. Kód stačí zadat v pokladně na sagaart.cz a jeho hodnota se odečte od ceny. Zbytek můžete využít při dalším nákupu.\n\nPetra, Sága Art`,
-    });
+    const msg = [
+      'Dobrý den,',
+      'děkuji za nákup. Tady je váš dárkový poukaz:',
+      list,
+      `Platí do ${exp}. Kód stačí zadat v pokladně na sagaart.cz a jeho hodnota se odečte od ceny. Zbytek můžete využít při dalším nákupu.`,
+      'Petra, Sága Art',
+    ].join('\n\n');
+    await Mail.sendMail({ to: res.email, ...Mail.notice('Váš dárkový poukaz Sága Art', msg) });
     await getDb().collection('orders').doc(orderNumber).update({ vouchersEmailedAt: new Date() });
   } catch (err) {
     console.error('Poukazy k objednávce', orderNumber, 'selhaly:', err.message);
@@ -208,5 +188,5 @@ async function afterPaid(orderNumber) {
 
 module.exports = {
   SHIPPING, COUNTRIES, PAYMENTS, GIFT_WRAP, ID_RE, clean, validateCustomer, priceCart,
-  createOrder, sendOrderEmails, sendEmail, bankInfo, afterPaid,
+  createOrder, sendOrderEmails, bankInfo, afterPaid,
 };

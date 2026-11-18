@@ -4,7 +4,7 @@ const {
   adminSession, readToken, trustedDevice, jwtSecret, DEVICE_COOKIE, CHALLENGE_COOKIE,
   setSessionCookie, clearSessionCookie, setDeviceCookie, clearDeviceCookie, setChallengeCookie, clearChallengeCookie,
 } = require('./_utils');
-const { sendEmail } = require('./_shop');
+const { sendMail, loginCode } = require('./_mail');
 const { ownerPasswordOk, ownerUsernameOk, ownerEmail, clientLogin } = require('./_account');
 
 // Přihlášení do adminu:
@@ -89,12 +89,9 @@ async function loginStep(req, res) {
   });
   const email = who === 'client' ? clientAcc.email : ownerEmail();
   try {
-    await sendEmail(process.env.EMAILJS_TEMPLATE_LOGIN, {
-      to_email: email,
-      code,
-      device: label,
-      time: new Date(now).toLocaleString('cs-CZ', { timeZone: 'Europe/Prague' }),
-      valid_minutes: '10',
+    await sendMail({
+      to: email, replyTo: email,
+      ...loginCode({ code, device: label, time: new Date(now).toLocaleString('cs-CZ', { timeZone: 'Europe/Prague' }), validMinutes: 10 }),
     });
   } catch (e) {
     console.error('Kód pro přihlášení se nepodařilo odeslat:', e.message);

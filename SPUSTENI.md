@@ -62,23 +62,23 @@ Tajné klíče nikomu neposílejte e-mailem ani do chatu. Vkládají se jen př�
    `checkout.session.async_payment_failed`, `checkout.session.expired`.
 4. Signing secret → `STRIPE_WEBHOOK_SECRET` = `whsec_…`
 
-## 5. E-maily (EmailJS)
+## 5. E-maily (Resend)
 
-1. https://www.emailjs.com → Email Services → připojit schránku (info@sagaart.cz).
-2. Account → API keys: `EMAILJS_PUBLIC_KEY`, `EMAILJS_PRIVATE_KEY`; Security → zapnout
-   „Allow EmailJS API for non-browser applications“.
-3. `EMAILJS_SERVICE_ID` = ID služby.
-4. Vytvořit 4 šablony. V každé nastavit **To Email** = `{{to_email}}`:
+Texty e-mailů (potvrzení objednávky, upozornění pro Petru, kód pro přihlášení, poukazy, odstoupení) jsou přímo v kódu (`api/_mail.js`), v Resend se žádné šablony nevytvářejí.
 
-| Proměnná | K čemu | Proměnné v šabloně |
-|---|---|---|
-| `EMAILJS_TEMPLATE_CUSTOMER` | potvrzení objednávky zákazníkovi | `to_name`, `order_num`, `order_date`, `items`, `doprava`, `platba`, `total`, `variabilni_symbol`, `bank_account`, `bank_iban`, `adresa`, `poznamka` |
-| `EMAILJS_TEMPLATE_OWNER` | nová objednávka pro Petru | totéž + `customer_name`, `customer_email`, `telefon` |
-| `EMAILJS_TEMPLATE_LOGIN` | kód pro přihlášení do adminu | `code`, `device`, `time`, `valid_minutes` |
-| `EMAILJS_TEMPLATE_NOTICE` | obecná zpráva (kódy poukazů, odstoupení) | předmět `{{subject}}`, text `{{message}}` |
+1. https://resend.com → registrace (nejlépe Petřiným e-mailem, ať je účet její).
+2. **Domains** → **Add Domain** → `sagaart.cz`, region **Europe (Ireland)**.
+3. DNS záznamy, které Resend ukáže (TXT a MX na subdoméně), vložit do Forpsi (Správa domény → DNS). Stávající záznamy a e-mailové MX nepřepisovat. V Resend kliknout na **Verify**, dokud není doména zelená, e-maily neodejdou.
+4. **API Keys** → **Create API Key** (právo *Sending access*), klíč se zobrazí jen jednou.
+5. Do Vercelu:
 
-5. `OWNER_EMAIL` = kam chodí upozornění na objednávky.
-6. Nepovinné: `INVOICE_EMAIL` = e-mail uvedený na fakturách.
+| Proměnná | Hodnota |
+|---|---|
+| `RESEND_API_KEY` | klíč z Resend (**Sensitive**) |
+| `MAIL_FROM` | `Sága Art <objednavky@sagaart.cz>` (adresa na ověřené doméně, schránka nemusí existovat) |
+| `OWNER_EMAIL` | `postmaster@sagaart.cz`, kam chodí upozornění na objednávky a odstoupení |
+| `ADMIN_EMAIL` | kam chodí přihlašovací kódy hlavního účtu |
+| `MAIL_REPLY_TO` | nepovinné, kam zákazníci odpovídají (jinak `OWNER_EMAIL`) |
 
 ## 6. Fotky (Cloudinary)
 

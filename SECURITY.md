@@ -11,7 +11,7 @@ Hlášení zranitelností: **info.pebmedia@gmail.com** (PEBMedia) (prosím neve�
 - Platba kartou se označí jako zaplacená **jen webhookem se Stripe podpisem**, a jen když sedí částka i měna. Webhook je idempotentní (opakované doručení nic nerozbije).
 - Údaje zákaznice prochází přísnou validací (whitelist polí, délky, formát e-mailu, telefonu, PSČ, země, odstranění řídicích znaků).
 - Ochrana proti spamu: rate limit 5 objednávek / 10 min na IP (sdílený přes databázi) + honeypot pole proti botům.
-- **E-maily posílá jen server** (EmailJS REST API s privátním klíčem). Z prohlížeče už e-mail poslat nejde.
+- **E-maily posílá jen server** (Resend API s klíčem jen na serveru, všechen text od zákazníků se do HTML escapuje a předměty žádné osobní údaje neobsahují). Z prohlížeče už e-mail poslat nejde.
 
 ### Admin
 - Přihlášení **jménem + heslem**, na každém novém zařízení navíc **jednorázovým kódem z e-mailu** (6 číslic, platí 10 min, jde použít jen jednou, po 5 špatných pokusech propadne).
@@ -45,13 +45,12 @@ Hlášení zranitelností: **info.pebmedia@gmail.com** (PEBMedia) (prosím neve�
 | `ADMIN_PASSWORD` nebo `ADMIN_PASSWORD_HASH` | heslo hlavního účtu: buď přímo `ADMIN_PASSWORD` (min. 10 znaků, lépe 14+, Sensitive), nebo scrypt otisk z `npm run hash-password` (heslo min. 14 znaků). Platí-li obě, vyhrává `ADMIN_PASSWORD` |
 | `ADMIN_USERNAME` | přihlašovací jméno do adminu (velikost písmen nehraje roli) |
 | `ADMIN_EMAIL` | kam chodí kódy pro ověření nového zařízení |
-| `EMAILJS_TEMPLATE_LOGIN` | šablona EmailJS s proměnnými `{{to_email}}`, `{{code}}`, `{{device}}`, `{{time}}`, `{{valid_minutes}}` |
 | `ADMIN_JWT_SECRET` | `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"` |
 | `ADMIN_SESSION_VERSION` | `1` (zvýšením odhlásíš a zapomeneš všechna zařízení) |
 | `STRIPE_SECRET_KEY` | Stripe → **Restricted key** jen s právy Checkout Sessions (write) |
 | `STRIPE_WEBHOOK_SECRET` | Stripe → Webhooks → endpoint `https://sagaart.cz/api/stripe-webhook`, události `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired` |
 | `DATABASE_URL` | vytvoří se sama, když ve Vercelu přidáš databázi Neon (Storage → Create Database → Neon) |
-| `EMAILJS_SERVICE_ID`, `EMAILJS_PUBLIC_KEY`, `EMAILJS_PRIVATE_KEY`, `EMAILJS_TEMPLATE_CUSTOMER`, `EMAILJS_TEMPLATE_OWNER` | EmailJS → Account → Security: zapnout *API access from non-browser*, **vypnout** přístup z prohlížeče |
+| `RESEND_API_KEY`, `MAIL_FROM`, `OWNER_EMAIL`, `MAIL_REPLY_TO` | Resend → API Keys (právo *Sending access*), doména `sagaart.cz` ověřená v Resend (SPF/DKIM). `OWNER_EMAIL` = kam chodí objednávky |
 | `OWNER_EMAIL` | kam chodí upozornění na objednávky |
 | `BANK_ACCOUNT`, `BANK_IBAN` | účet pro platby převodem |
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Cloudinary → Settings → API Keys. **Smaž všechny unsigned upload presety.** |
@@ -63,7 +62,7 @@ Secrety ukládej na Vercelu jako **Sensitive**, nikdy do repozitáře (je veřej
 2. Databáze: `npm run seed` (s `.env.local`, kde je `DATABASE_URL`) nahraje výchozí šperky.
 3. Neon: zapnout 2FA na účtu a nikde nesdílet `DATABASE_URL`.
 4. Stripe: webhook + restricted key, zapnout Radar.
-5. EmailJS: šablony nepoužívají `{{{trojité}}}` závorky (ty vypínají escapování).
+5. Resend: doména ověřená (SPF, DKIM), případně přidat DMARC záznam.
 6. Vercel: Settings → Deployment Protection pro Preview deploymenty; zapnout **Firewall / Bot protection**.
-7. Účty Vercel, GitHub, Stripe, Neon, Cloudinary, EmailJS: všude **2FA**.
+7. Účty Vercel, GitHub, Stripe, Neon, Cloudinary, Resend: všude **2FA**.
 8. Doména: po ověření HTTPS přidat na https://hstspreload.org.
