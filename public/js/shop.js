@@ -301,12 +301,18 @@ function renderCart() {
   $('f_wrap').checked = giftWrap;
   $('wrapMsgWrap').hidden = !(canWrap && giftWrap);
   $('wrapPriceLabel').textContent = '+ ' + kc(GIFT_WRAP.price);
+  // totéž ve shrnutí objednávky (krok 4)
+  $('wrapReview').hidden = !canWrap;
+  $('f_wrap2').checked = giftWrap;
+  $('wrapMsgWrap2').hidden = !(canWrap && giftWrap);
+  $('wrapPriceLabel2').textContent = '+ ' + kc(GIFT_WRAP.price);
   $('cartShipRow').hidden = !canWrap;
   $('cartTotalLabel').textContent = canWrap ? 'Celkem bez dopravy' : 'Celkem';
   $('cartTotal').textContent = kc(getCartSubtotal() + wrapPrice());
 }
 function setGiftWrap(on) {
   giftWrap = !!on; save('sa_wrap', giftWrap); renderCart();
+  if (selectedShipping) renderOrderSummary('orderSummaryFinal');
 }
 
 // ─── DÁRKOVÝ POUKAZ V POKLADNĚ ───
@@ -507,7 +513,7 @@ function showSuccess(data) {
   cart = []; cartChanged();
   selectedShipping = null; selectedPayment = null;
   appliedVoucher = null; $('f_voucher').value = ''; $('voucherMsg').textContent = '';
-  setGiftWrap(false); $('f_wrapMsg').value = '';
+  setGiftWrap(false); $('f_wrapMsg').value = ''; $('f_wrapMsg2').value = '';
   document.querySelectorAll('#step3 .opt').forEach(o => o.classList.remove('selected'));
   $('btnStep3Next').disabled = true;
   $('f_souhlas').checked = false;
@@ -549,6 +555,10 @@ const ACTIONS = {
   applyVoucher,
 };
 $('f_wrap').addEventListener('change', e => setGiftWrap(e.target.checked));
+$('f_wrap2').addEventListener('change', e => setGiftWrap(e.target.checked));
+// vzkaz je jeden, zadat ho jde v košíku i ve shrnutí
+$('f_wrapMsg').addEventListener('input', e => { $('f_wrapMsg2').value = e.target.value; });
+$('f_wrapMsg2').addEventListener('input', e => { $('f_wrapMsg').value = e.target.value; });
 document.addEventListener('click', e => {
   const el = e.target.closest('[data-action]');
   if (!el) return;
