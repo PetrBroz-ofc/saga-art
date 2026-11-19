@@ -133,6 +133,27 @@
     return clone(i);
   }
 
+  // Vzhled webu: v ukázkovém režimu se drží jen v paměti
+  const DEMO_FONTS = [
+    ['newsreader', 'Newsreader', 'serif', 'Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400'], ['cormorant', 'Cormorant Garamond', 'serif', 'Cormorant+Garamond:ital,wght@0,400;0,500;1,400'],
+    ['playfair', 'Playfair Display', 'serif', 'Playfair+Display:ital,wght@0,400;0,500;1,400'], ['lora', 'Lora', 'serif', 'Lora:ital,wght@0,400;0,500;1,400'],
+    ['instrument', 'Instrument Sans', 'sans', 'Instrument+Sans:wght@400;500'], ['inter', 'Inter', 'sans', 'Inter:wght@400;500;600'],
+    ['dmsans', 'DM Sans', 'sans', 'DM+Sans:wght@400;500;600'], ['montserrat', 'Montserrat', 'sans', 'Montserrat:wght@400;500;600'],
+  ].map(([key, label, kind, gf]) => ({ key, label, kind, css: `'${label}', ${kind === 'serif' ? 'Georgia, serif' : 'system-ui, sans-serif'}`, gf }));
+  const DEMO_DEFAULTS = { colors: { bg: '#f8f7fb', paper: '#fefdff', ink: '#3e3a52', ink2: '#5b566e', accent: '#83639f', accentDark: '#6a5089', pink: '#f8e9ef', sea: '#e6f2f1', lilac: '#efe9f7', line: '#e0dbe9' },
+    fonts: { heading: 'newsreader', body: 'instrument' }, radius: 3, scale: 100 };
+  let siteDoc = null, siteHistory = [];
+  function siteApi(method, body) {
+    const view = () => ({ settings: siteDoc ? clone(siteDoc) : null, updatedAt: null,
+      history: siteHistory.map((h, i) => ({ i, at: h.at })).reverse(), options: { fonts: DEMO_FONTS, defaults: DEMO_DEFAULTS } });
+    if (method === 'GET') return view();
+    const push = () => { if (siteDoc) siteHistory.push({ at: new Date().toISOString(), data: clone(siteDoc) }); };
+    if (method === 'PUT') { push(); siteDoc = { theme: body.theme, texts: body.texts || {}, links: body.links || {}, flags: body.flags || {} }; return view(); }
+    if (body.reset) { push(); siteDoc = null; return view(); }
+    if (Number.isInteger(body.restore)) { const h = siteHistory[body.restore]; if (!h) throw new Error('Tahle verze už není k dispozici'); siteDoc = clone(h.data); return view(); }
+    throw new Error('Není co udělat');
+  }
+
   const ready = fetch('/data/products.json').then(r => r.json()).then(list => {
     products = list.map(p => ({ inStock: true, ...p }));
     products[4].inStock = false;
@@ -193,6 +214,7 @@
       return clone(o);
     }
     if (path === '/api/invoices') return invoicesApi(method, body);
+    if (path === '/api/site-settings') return siteApi(method, body);
     if (path === '/api/account') {
       // v ukázce jde zkusit obě role: /admin?demo (majitelka) nebo /admin?demo=owner (hlavní účet)
       const who = new URLSearchParams(location.search).get('demo') === 'owner' ? 'owner' : 'client';

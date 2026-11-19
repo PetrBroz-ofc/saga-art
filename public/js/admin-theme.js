@@ -1,0 +1,295 @@
+'use strict';
+// Sága Art · administrace: Vzhled webu (barvy, písma, tvary, texty, odkazy) s živým náhledem.
+// Používá pomocné funkce z admin.js (api, esc, toast, ask, openSheet, closeSheet, ACTIONS).
+// Náhled je stránka e-shopu v rámu (/?preview=1). Nastavení se do ní posílá zprávou (postMessage, jen vlastní doména).
+
+(() => {
+  const COLOR_LABELS = [
+    ['bg', 'Pozadí stránky', 'Hlavní plocha webu'],
+    ['paper', 'Karty a panely', 'Košík, okna, karty šperků'],
+    ['ink', 'Text', 'Hlavní barva písma'],
+    ['ink2', 'Jemný text', 'Popisky a vedlejší texty'],
+    ['accent', 'Hlavní barva', 'Odkazy, zvýraznění, ikony'],
+    ['accentDark', 'Tlačítka', 'Pozadí tlačítek a čísla v košíku'],
+    ['pink', 'Pozadí sekce A', 'Poukazy, jemné plochy'],
+    ['sea', 'Pozadí sekce B', 'Materiály, doprava'],
+    ['lilac', 'Pozadí sekce C', 'Další jemné plochy'],
+    ['line', 'Linky a okraje', 'Čáry mezi sekcemi'],
+  ];
+  const PRESETS = [
+    ['Perlová', { bg: '#f8f7fb', paper: '#fefdff', ink: '#3e3a52', ink2: '#5b566e', accent: '#83639f', accentDark: '#6a5089', pink: '#f8e9ef', sea: '#e6f2f1', lilac: '#efe9f7', line: '#e0dbe9' }],
+    ['Mořská', { bg: '#f3f8f8', paper: '#fcfefe', ink: '#23393d', ink2: '#44595d', accent: '#3f8f8b', accentDark: '#2d6f6c', pink: '#e6f0f2', sea: '#dff0ee', lilac: '#e9f1f5', line: '#d3e3e3' }],
+    ['Růžový pudr', { bg: '#fbf6f6', paper: '#fffdfd', ink: '#4a3438', ink2: '#6b5256', accent: '#b5707f', accentDark: '#98546a', pink: '#f7e4e7', sea: '#f1e8e4', lilac: '#f4e9ee', line: '#ecdcdf' }],
+    ['Šalvěj', { bg: '#f5f7f2', paper: '#fcfdfa', ink: '#2f3a31', ink2: '#4f5b50', accent: '#6f8f6a', accentDark: '#557552', pink: '#efe8e2', sea: '#e4eee3', lilac: '#eaeee6', line: '#dbe2d6' }],
+    ['Zlatá', { bg: '#faf7f0', paper: '#fffdf8', ink: '#3b342a', ink2: '#5f564a', accent: '#b08d5b', accentDark: '#8a6b3d', pink: '#f3e9dc', sea: '#ece8dc', lilac: '#f1ece1', line: '#e5dccb' }],
+    ['Noc', { bg: '#1f1d29', paper: '#272535', ink: '#efeaf7', ink2: '#b9b3c9', accent: '#b79ad6', accentDark: '#8c6bb0', pink: '#2f2b40', sea: '#232a33', lilac: '#2b2840', line: '#3a3650' }],
+  ];
+  const LINK_FIELDS = [
+    ['instagram', 'Instagram', 'https://www.instagram.com/vase-stranka'],
+    ['facebook', 'Facebook', 'https://www.facebook.com/vase-stranka'],
+    ['fler', 'Fler', 'https://www.fler.cz/sagaart'],
+  ];
+
+  const $ = id => document.getElementById(id);
+  const clone = v => JSON.parse(JSON.stringify(v));
+  const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const lum = h => rgb(h).map(v => v / 255).map(v => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)).reduce((s, v, i) => s + v * [0.2126, 0.7152, 0.0722][i], 0);
+  const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  const HEX = /^#[0-9a-fA-F]{6}$/;
+
+  const T = {
+    loaded: false, tab: 'colors', fonts: [], defaults: null, history: [], fields: [],
+    saved: null,      // co je právě na webu
+    cur: null,        // co upravuji
+    frameReady: false, timer: 0,
+  };
+
+  const emptySettings = () => ({ theme: clone(T.defaults), texts: {}, links: {}, flags: { announce: false } });
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const dirty = () => T.cur && T.saved && !same(T.cur, T.saved);
+
+  // ── Nastavení → podoba pro náhled (jako veřejné /api/site) ──
+  function toPreview(s) {
+    const f = key => T.fonts.find(x => x.key === key) || T.fonts[0];
+    const h = f(s.theme.fonts.heading), b = f(s.theme.fonts.body);
+    const keys = [...new Set([h, b])];
+    return {
+      theme: { colors: s.theme.colors, radius: s.theme.radius, scale: s.theme.scale,
+        fonts: { heading: h.css, body: b.css },
+        fontsUrl: 'https://fonts.googleapis.com/css2?' + keys.map(k => 'family=' + k.gf).join('&') + '&display=swap' },
+      texts: s.texts, links: s.links, flags: s.flags,
+    };
+  }
+  function pushPreview() {
+    const fr = $('thFrame');
+    if (!T.cur || !T.frameReady || !fr?.contentWindow) return;
+    fr.contentWindow.postMessage({ type: 'sa-preview', settings: toPreview(T.cur) }, location.origin);
+  }
+  const schedule = () => { clearTimeout(T.timer); T.timer = setTimeout(() => { pushPreview(); renderDirty(); }, 120); };
+  function renderDirty() {
+    const d = dirty();
+    $('thDirty').hidden = !d;
+    $('thSave').disabled = !d;
+  }
+
+  // ── Texty webu: seznam se bere přímo z úvodní stránky (prvky s data-cms) ──
+  async function loadFields() {
+    const html = await (await fetch('/', { headers: { Accept: 'text/html' } })).text();
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    T.fields = [...doc.querySelectorAll('[data-cms]')].map(el => {
+      const multi = el.hasAttribute('data-cms-multiline');
+      const def = multi ? [...el.childNodes].map(n => (n.nodeName === 'BR' ? '\n' : n.textContent)).join('') : el.textContent;
+      return { key: el.getAttribute('data-cms'), label: el.getAttribute('data-cms-label') || el.getAttribute('data-cms'),
+        group: el.getAttribute('data-cms-group') || 'Ostatní', def: def.replace(/ /g, ' ').trim(), multi };
+    }).filter(f => f.key !== 'announce-text');
+  }
+
+  // ── Vykreslení panelů ──
+  function renderPane() {
+    const pane = $('thPane');
+    const s = T.cur;
+    if (!s) { pane.innerHTML = '<p class="muted">Načítám…</p>'; return; }
+
+    if (T.tab === 'colors') {
+      const c = s.theme.colors;
+      const warns = [];
+      if (ratio(c.ink, c.bg) < 4.5) warns.push('Text na pozadí je špatně čitelný.');
+      if (ratio(c.ink2, c.bg) < 3) warns.push('Jemný text na pozadí je špatně čitelný.');
+      pane.innerHTML = `
+        <p class="th-h">Hotové kombinace</p>
+        <div class="th-presets">${PRESETS.map(([name, col], i) => `
+          <button type="button" class="th-preset ${same(col, c) ? 'is-on' : ''}" data-action="thPreset" data-arg="${i}">
+            <span class="th-sw">${['bg', 'accentDark', 'pink', 'sea'].map(k => `<i style="background:${col[k]}"></i>`).join('')}</span>${esc(name)}
+          </button>`).join('')}</div>
+        <p class="th-h">Vlastní barvy</p>
+        ${COLOR_LABELS.map(([k, label, hint]) => `
+          <div class="th-color">
+            <label for="thc-${k}"><b>${esc(label)}</b><small>${esc(hint)}</small></label>
+            <span class="th-color-in"><input type="color" id="thc-${k}" data-th-color="${k}" value="${esc(c[k])}" aria-label="${esc(label)}">
+            <input type="text" data-th-hex="${k}" value="${esc(c[k])}" maxlength="7" spellcheck="false" autocomplete="off" aria-label="${esc(label)} (kód barvy)"></span>
+          </div>`).join('')}
+        ${warns.length ? `<p class="th-warn" role="alert">${warns.map(esc).join(' ')} Web takové barvy neuloží.</p>` : ''}`;
+    }
+
+    if (T.tab === 'fonts') {
+      const opt = (kind, sel) => T.fonts.filter(f => f.kind === kind).map(f => `<option value="${esc(f.key)}" ${f.key === sel ? 'selected' : ''}>${esc(f.label)}</option>`).join('');
+      const fam = key => (T.fonts.find(f => f.key === key) || T.fonts[0]).css;
+      pane.innerHTML = `
+        <label class="field"><span>Písmo nadpisů</span>
+          <select class="select" id="thFontH">${opt('serif', s.theme.fonts.heading)}<optgroup label="Bezpatková">${opt('sans', s.theme.fonts.heading)}</optgroup></select></label>
+        <div class="th-sample" style="font-family:${esc(fam(s.theme.fonts.heading))};font-size:1.7rem" id="thSampleH">Šperky s příběhem</div>
+        <label class="field"><span>Písmo textu</span>
+          <select class="select" id="thFontB">${opt('sans', s.theme.fonts.body)}<optgroup label="Patková">${opt('serif', s.theme.fonts.body)}</optgroup></select></label>
+        <div class="th-sample" style="font-family:${esc(fam(s.theme.fonts.body))}" id="thSampleB">Ručně tvořím šperky z pravých říčních perel a přírodních minerálů.</div>
+        <label class="field"><span>Velikost písma na webu <b id="thScaleV">${s.theme.scale} %</b></span>
+          <input type="range" id="thScale" min="90" max="115" step="1" value="${s.theme.scale}"></label>
+        <p class="muted">Písma jsou z Google Fonts a mají všechna česká písmena.</p>`;
+    }
+
+    if (T.tab === 'shape') {
+      pane.innerHTML = `
+        <label class="field"><span>Zaoblení rohů <b id="thRadiusV">${s.theme.radius} px</b></span>
+          <input type="range" id="thRadius" min="0" max="28" step="1" value="${s.theme.radius}"></label>
+        <p class="muted">0 jsou ostré rohy, vyšší číslo dělá tlačítka a karty měkčí. Zaoblení se projeví tam, kde web používá společné zaoblení.</p>`;
+    }
+
+    if (T.tab === 'texts') {
+      const groups = [];
+      T.fields.forEach(f => { let g = groups.find(x => x.name === f.group); if (!g) groups.push(g = { name: f.group, items: [] }); g.items.push(f); });
+      pane.innerHTML = `<p class="muted" style="margin-bottom:12px">Prázdné pole znamená původní text. Odkazy v textech a obrázky se tu nemění.</p>` + groups.map(g => `
+        <details class="th-group" ${g.name === groups[0].name ? 'open' : ''}><summary>${esc(g.name)}</summary>
+          ${g.items.map(f => {
+            const v = s.texts[f.key] ?? '';
+            const long = f.multi || f.def.length > 70;
+            return `<label class="field th-text"><span>${esc(f.label)}${v ? `<button type="button" class="th-undo" data-action="thTextReset" data-arg="${esc(f.key)}">původní</button>` : ''}</span>
+              ${long ? `<textarea data-th-text="${esc(f.key)}" rows="${f.multi ? 2 : 3}" maxlength="600" placeholder="${esc(f.def)}">${esc(v)}</textarea>`
+                     : `<input type="text" data-th-text="${esc(f.key)}" maxlength="600" value="${esc(v)}" placeholder="${esc(f.def)}">`}</label>`;
+          }).join('')}
+        </details>`).join('');
+    }
+
+    if (T.tab === 'links') {
+      const l = s.links;
+      pane.innerHTML = `
+        <p class="th-h">Oznámení nad hlavičkou</p>
+        <label class="th-switch"><input type="checkbox" id="thAnnounceOn" ${s.flags.announce ? 'checked' : ''}><span>Zobrazit oznámení</span></label>
+        <label class="field"><span>Text oznámení</span><input type="text" data-th-text="announce-text" maxlength="160" value="${esc(s.texts['announce-text'] || '')}" placeholder="Např. Doprava Zásilkovnou zdarma od 1 490 Kč"></label>
+        <label class="field"><span>Odkaz (nepovinný)</span><input type="url" data-th-link="announce" maxlength="300" value="${esc(l.announce || '')}" placeholder="https://… nebo #poukazy"></label>
+        <p class="th-h">Kontakt a sociální sítě</p>
+        <label class="field"><span>Kontaktní e-mail</span><input type="email" data-th-link="email" maxlength="254" value="${esc(l.email || '')}" placeholder="info@sagaart.cz"></label>
+        ${LINK_FIELDS.map(([k, label, ph]) => `<label class="field"><span>${esc(label)}</span><input type="url" data-th-link="${k}" maxlength="300" value="${esc(l[k] || '')}" placeholder="${esc(ph)}"></label>`).join('')}
+        <p class="muted">Sociální sítě bez odkazu se v patičce neukážou. Odkaz musí začínat https://.</p>`;
+    }
+    document.querySelectorAll('.theme-tab').forEach(b => {
+      const on = b.dataset.arg === T.tab;
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+  }
+
+  // ── Události v panelu ──
+  function onInput(e) {
+    const s = T.cur; if (!s) return;
+    const t = e.target;
+    if (t.dataset.thColor) {
+      s.theme.colors[t.dataset.thColor] = t.value.toLowerCase();
+      const hx = document.querySelector(`[data-th-hex="${t.dataset.thColor}"]`); if (hx) hx.value = t.value.toLowerCase();
+    } else if (t.dataset.thHex) {
+      let v = t.value.trim(); if (v && v[0] !== '#') v = '#' + v;
+      if (!HEX.test(v)) return;
+      s.theme.colors[t.dataset.thHex] = v.toLowerCase();
+      const pk = document.querySelector(`[data-th-color="${t.dataset.thHex}"]`); if (pk) pk.value = v.toLowerCase();
+    } else if (t.id === 'thFontH' || t.id === 'thFontB') {
+      s.theme.fonts[t.id === 'thFontH' ? 'heading' : 'body'] = t.value;
+      renderPane();
+    } else if (t.id === 'thScale') {
+      s.theme.scale = Number(t.value); $('thScaleV').textContent = t.value + ' %';
+    } else if (t.id === 'thRadius') {
+      s.theme.radius = Number(t.value); $('thRadiusV').textContent = t.value + ' px';
+    } else if (t.dataset.thText) {
+      const v = t.value; if (v.trim()) s.texts[t.dataset.thText] = v; else delete s.texts[t.dataset.thText];
+    } else if (t.dataset.thLink) {
+      const v = t.value.trim(); if (v) s.links[t.dataset.thLink] = v; else delete s.links[t.dataset.thLink];
+    } else if (t.id === 'thAnnounceOn') {
+      s.flags.announce = t.checked;
+    } else return;
+    schedule();
+    if (T.tab === 'colors' && (t.dataset.thColor || t.dataset.thHex)) updateColorWarn();
+  }
+  function updateColorWarn() {
+    const c = T.cur.theme.colors;
+    const bad = ratio(c.ink, c.bg) < 4.5 || ratio(c.ink2, c.bg) < 3;
+    let w = document.querySelector('#thPane .th-warn');
+    if (bad && !w) { w = document.createElement('p'); w.className = 'th-warn'; w.setAttribute('role', 'alert'); w.textContent = 'Text na pozadí je špatně čitelný. Web takové barvy neuloží.'; $('thPane').appendChild(w); }
+    if (!bad && w) w.remove();
+  }
+
+  // ── Načtení, uložení ──
+  async function load() {
+    try {
+      const [res] = await Promise.all([api('/api/site-settings'), loadFields().catch(() => { T.fields = []; })]);
+      T.fonts = res.options.fonts; T.defaults = res.options.defaults; T.history = res.history;
+      T.saved = res.settings ? clone(res.settings) : emptySettings();
+      T.saved.theme.colors = { ...T.defaults.colors, ...T.saved.theme.colors };
+      T.cur = clone(T.saved);
+      T.loaded = true;
+      renderPane(); renderDirty();
+      const fr = $('thFrame');
+      if (!fr.dataset.ready) { fr.dataset.ready = '1'; fr.src = '/?preview=1'; }
+    } catch (err) {
+      if (err.message !== 'unauthorized') toast(err.message || 'Vzhled se nepodařilo načíst', { err: true });
+    }
+  }
+
+  async function save() {
+    if (!dirty()) return;
+    const btn = $('thSave'); btn.disabled = true;
+    try {
+      const res = await api('/api/site-settings', 'PUT', T.cur);
+      T.history = res.history;
+      T.saved = res.settings ? clone(res.settings) : emptySettings();
+      T.cur = clone(T.saved);
+      renderPane(); renderDirty();
+      toast('Změny jsou na webu. Návštěvníci je uvidí při příštím načtení stránky.');
+    } catch (err) {
+      if (err.message !== 'unauthorized') toast(err.message, { err: true });
+    } finally { renderDirty(); }
+  }
+
+  async function reset() {
+    if (!(await ask({ title: 'Vrátit původní vzhled?', text: 'Barvy, písma, texty i odkazy se vrátí do původní podoby. Současnou verzi najdete v historii.', yes: 'Vrátit původní', danger: true }))) return;
+    try {
+      const res = await api('/api/site-settings', 'POST', { reset: true });
+      T.history = res.history; T.saved = emptySettings(); T.cur = clone(T.saved);
+      renderPane(); renderDirty(); pushPreview();
+      toast('Web má zase původní vzhled.');
+    } catch (err) { if (err.message !== 'unauthorized') toast(err.message, { err: true }); }
+  }
+
+  function discard() {
+    if (!dirty()) return;
+    T.cur = clone(T.saved); renderPane(); renderDirty(); pushPreview();
+    toast('Změny jsou zahozené.');
+  }
+
+  function showHistory() {
+    const list = $('thHistoryList');
+    list.innerHTML = T.history.length ? T.history.map(h => `
+      <button type="button" class="th-hist" data-action="thRestore" data-arg="${h.i}">
+        <b>${esc(h.at ? new Date(h.at).toLocaleString('cs-CZ', { dateStyle: 'long', timeStyle: 'short' }) : 'Starší verze')}</b>
+        <small>Vrátit tuto verzi</small></button>`).join('') : '<p class="muted">Zatím tu nic není. Verze se ukládají při každém zveřejnění.</p>';
+    openSheet('themeHistorySheet');
+  }
+  async function restore(i) {
+    try {
+      const res = await api('/api/site-settings', 'POST', { restore: Number(i) });
+      T.history = res.history; T.saved = res.settings ? clone(res.settings) : emptySettings(); T.cur = clone(T.saved);
+      closeSheet(true); renderPane(); renderDirty(); pushPreview();
+      toast('Verze je vrácená na web.');
+    } catch (err) { if (err.message !== 'unauthorized') toast(err.message, { err: true }); }
+  }
+
+  // ── Zapojení do administrace ──
+  Object.assign(ACTIONS, {
+    thTab: a => { T.tab = a; renderPane(); },
+    thPreset: a => { if (!T.cur) return; T.cur.theme.colors = { ...PRESETS[Number(a)][1] }; renderPane(); schedule(); },
+    thTextReset: a => { delete T.cur.texts[a]; renderPane(); schedule(); },
+    thSave: save, thDiscard: discard, thReset: reset, thHistory: showHistory, thRestore: restore,
+    thDevice: a => {
+      $('thFrameWrap').classList.toggle('is-phone', a === 'phone');
+      document.querySelectorAll('[data-action="thDevice"]').forEach(b => { const on = b.dataset.arg === a; b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    },
+  });
+  const pane = $('thPane');
+  pane.addEventListener('input', onInput);
+  pane.addEventListener('change', onInput);
+  addEventListener('message', e => {
+    if (e.origin !== location.origin || e.source !== $('thFrame')?.contentWindow) return;
+    if (e.data && e.data.type === 'sa-preview-ready') { T.frameReady = true; pushPreview(); }
+  });
+  addEventListener('beforeunload', e => { if (dirty()) { e.preventDefault(); e.returnValue = ''; } });
+
+  // admin.js zavolá, když se otevře sekce Vzhled
+  window.ThemeEditor = { show() { if (!T.loaded) load(); else { renderDirty(); pushPreview(); } } };
+  if (document.querySelector('.view[data-view="vzhled"]') && !document.querySelector('.view[data-view="vzhled"]').hidden) window.ThemeEditor.show();
+})();

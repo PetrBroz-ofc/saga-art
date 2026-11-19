@@ -15,6 +15,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap" rel="stylesheet">
 <link rel="preload" as="image" href="/img/hero-charlotte.jpg">
 <link rel="stylesheet" href="/css/shop.css">
+<script src="/js/theme.js"></script>
 </head>
 <body>
 
@@ -29,6 +30,9 @@
   </div>
   <div class="intro-word"><span>S</span><span>á</span><span>g</span><span>a</span><span class="gap"> </span><em><span>A</span><span>r</span><span>t</span></em></div>
 </div>
+
+<!-- ═══ OZNÁMENÍ (zapíná se v administraci, Vzhled) ═══ -->
+<div class="announce" id="announce" hidden><a data-cms-link="announce" href="#"><span data-cms="announce-text" data-cms-label="Text oznámení" data-cms-group="Oznámení"></span></a></div>
 
 <!-- ═══ NAV ═══ -->
 <header class="site-header" id="siteHeader">
@@ -55,8 +59,8 @@
     <div class="panel-inner">
       <div class="panel-intro">
         <p class="eyebrow">Kolekce</p>
-        <p>Šperky z jedné kolekce spolu ladí, takže je můžete nosit samostatně i jako set.</p>
-        <a href="#kolekce" class="btn-link">Všechny kolekce</a>
+        <p data-cms="collections-lead" data-cms-label="Podnadpis" data-cms-group="Kolekce">Šperky z jedné kolekce spolu ladí, takže je můžete nosit samostatně i jako set.</p>
+        <a href="#kolekce" class="btn-link" data-cms="hero-btn2" data-cms-label="Druhé tlačítko" data-cms-group="Úvod">Všechny kolekce</a>
       </div>
       <div class="panel-collections" id="navCollections"></div>
     </div>
@@ -96,8 +100,8 @@
     </ul>
     <div class="mobile-collections" id="mobileCollections" style="--i:6"></div>
     <div class="mobile-foot" style="--i:7">
-      <a href="mailto:info@sagaart.cz">info@sagaart.cz</a>
-      <a href="https://www.fler.cz/sagaart" target="_blank" rel="noopener">Fler</a>
+      <a href="mailto:info@sagaart.cz" data-cms-email data-cms-email-text>info@sagaart.cz</a>
+      <a href="https://www.fler.cz/sagaart" target="_blank" rel="noopener noreferrer" data-cms-link="fler">Fler</a>
     </div>
   </div>
 </div>
@@ -105,9 +109,9 @@
 <!-- ═══ HERO ═══ -->
 <section class="hero">
   <div class="hero-text">
-    <h1 class="hero-title hero-welcome"><span class="line"><span>Vítejte v&nbsp;Sága Art</span></span></h1>
+    <h1 class="hero-title hero-welcome"><span class="line"><span data-cms="hero-title" data-cms-label="Hlavní nadpis" data-cms-group="Úvod">Vítejte v&nbsp;Sága Art</span></span></h1>
     <div class="hero-btns">
-      <a href="#produkty" class="btn-primary">Prohlédnout šperky</a>
+      <a href="#produkty" class="btn-primary" data-cms="hero-btn1" data-cms-label="Hlavní tlačítko" data-cms-group="Úvod">Prohlédnout šperky</a>
       <a href="#kolekce" class="btn-link">Kolekce</a>
     </div>
   </div>
@@ -129,12 +133,12 @@
   <div class="wrap about">
     <div class="about-img"><img src="/img/produkty/euforie-gold-nahrdelnik/1.jpg" alt="Náhrdelník Euforie Gold na zádech" width="1000" height="1000" loading="lazy"></div>
     <div class="about-content">
-      <h2 class="section-title about-title">Šperky s&nbsp;příběhem</h2>
+      <h2 class="section-title about-title" data-cms="about-title" data-cms-label="Nadpis" data-cms-group="O mně">Šperky s&nbsp;příběhem</h2>
       <div class="about-text">
-        <p>Ručně tvořím šperky z pravých říčních perel, přírodních minerálů a nerezové oceli pro ženy, muže i děti. Hlídám si každý detail a chci, aby se daly nosit po svém.</p>
-        <p>Sága Art vychází z přesvědčení, že šperk nemá nikoho měnit ani nic skrývat. Má podtrhnout právě to, co chcete ukázat vy.</p>
-        <p class="about-quote">Každý šperk má svůj příběh. Ten další mu dáte vy, až si ho vyberete.</p>
-        <p class="about-sign">Sága Art. Žít naplno a zářit po svém.</p>
+        <p data-cms="about-p1" data-cms-label="První odstavec" data-cms-group="O mně">Ručně tvořím šperky z pravých říčních perel, přírodních minerálů a nerezové oceli pro ženy, muže i děti. Hlídám si každý detail a chci, aby se daly nosit po svém.</p>
+        <p data-cms="about-p2" data-cms-label="Druhý odstavec" data-cms-group="O mně">Sága Art vychází z přesvědčení, že šperk nemá nikoho měnit ani nic skrývat. Má podtrhnout právě to, co chcete ukázat vy.</p>
+        <p class="about-quote" data-cms="about-quote" data-cms-label="Citát" data-cms-group="O mně">Každý šperk má svůj příběh. Ten další mu dáte vy, až si ho vyberete.</p>
+        <p class="about-sign" data-cms="about-sign" data-cms-label="Podpis" data-cms-group="O mně">Sága Art. Žít naplno a zářit po svém.</p>
       </div>
     </div>
   </div>
@@ -144,34 +148,34 @@
 <section class="section materials">
   <div class="wrap">
     <div class="section-head">
-      <h2 class="section-title">Z čeho tvořím</h2>
+      <h2 class="section-title" data-cms="materials-title" data-cms-label="Nadpis" data-cms-group="Materiály">Z čeho tvořím</h2>
     </div>
     <div class="mat-grid">
       <div class="mat-card">
         <div class="mat-photo"><img src="/img/produkty/pure-nausnice/1.jpg" alt="Náušnice Pure z nepravidelných říčních perel" width="750" height="1000" loading="lazy"></div>
-        <h3>Nepravidelné perly</h3>
-        <p>Každá perla má jiný tvar, takže dva stejné páry nenajdete.</p>
+        <h3 data-cms="mat1-title" data-cms-label="Karta 1: nadpis" data-cms-group="Materiály">Nepravidelné perly</h3>
+        <p data-cms="mat1-text" data-cms-label="Karta 1: text" data-cms-group="Materiály">Každá perla má jiný tvar, takže dva stejné páry nenajdete.</p>
       </div>
       <div class="mat-card">
         <div class="mat-photo"><img src="/img/produkty/more/1.jpg" alt="Náhrdelník Moře s akvamarínem na kameni" width="750" height="1000" loading="lazy"></div>
-        <h3>Přírodní minerály</h3>
-        <p>Amazonit, akvamarín, růženín a jiné minerály v přirozených odstínech, většinou jako drobné zlomky kamene.</p>
+        <h3 data-cms="mat2-title" data-cms-label="Karta 2: nadpis" data-cms-group="Materiály">Přírodní minerály</h3>
+        <p data-cms="mat2-text" data-cms-label="Karta 2: text" data-cms-group="Materiály">Amazonit, akvamarín, růženín a jiné minerály v přirozených odstínech, většinou jako drobné zlomky kamene.</p>
       </div>
       <div class="mat-card">
         <div class="mat-photo"><img src="/img/produkty/euforie-gold-nausnice/1.jpg" alt="Náušnice Euforie Gold z nerezové oceli s pozlaceným povrchem" width="1000" height="1000" loading="lazy"></div>
-        <h3>Nerezová ocel</h3>
-        <p>Řetízky, zapínání a další drobné díly jsou z nerezové oceli, stříbrné nebo pozlacené.</p>
+        <h3 data-cms="mat3-title" data-cms-label="Karta 3: nadpis" data-cms-group="Materiály">Nerezová ocel</h3>
+        <p data-cms="mat3-text" data-cms-label="Karta 3: text" data-cms-group="Materiály">Řetízky, zapínání a další drobné díly jsou z nerezové oceli, stříbrné nebo pozlacené.</p>
       </div>
       <div class="mat-card">
         <div class="mat-photo"><img src="/img/produkty/charlotte-nausnice-rose/1.jpg" alt="Náušnice Rose z pravých říčních perel na růžovém sáčku" width="1000" height="1000" loading="lazy"></div>
-        <h3>Dodavatelé perel</h3>
-        <p>Při výběru pravých říčních perel upřednostňuji ověřené české dodavatele.</p>
+        <h3 data-cms="mat4-title" data-cms-label="Karta 4: nadpis" data-cms-group="Materiály">Dodavatelé perel</h3>
+        <p data-cms="mat4-text" data-cms-label="Karta 4: text" data-cms-group="Materiály">Při výběru pravých říčních perel upřednostňuji ověřené české dodavatele.</p>
       </div>
     </div>
   </div>
 </section>
 
-<blockquote class="quote-strip">„Nejde o to, co chcete skrýt. Jde o to, co chcete ukázat.“<cite>Sága Art</cite></blockquote>
+<blockquote class="quote-strip"><span data-cms="quote-strip" data-cms-label="Citát přes celou šířku" data-cms-group="Materiály">„Nejde o to, co chcete skrýt. Jde o to, co chcete ukázat.“</span><cite>Sága Art</cite></blockquote>
 
 <!-- ═══ KOLEKCE ═══ -->
 <section class="section" id="kolekce">
@@ -179,7 +183,7 @@
     <div class="carousel" data-carousel>
       <div class="section-head">
         <div>
-          <h2 class="section-title">Kolekce</h2>
+          <h2 class="section-title" data-cms="collections-title" data-cms-label="Nadpis" data-cms-group="Kolekce">Kolekce</h2>
           <p class="section-lead">Šperky z jedné kolekce spolu ladí, takže je můžete nosit samostatně i jako set.</p>
         </div>
         <div class="carousel-head">
@@ -206,9 +210,9 @@
   <div class="footer-strip">
     <div class="footer-strip-head">
       <div>
-        <h2 class="footer-strip-text">Šperky Sága Art na modelce</h2>
+        <h2 class="footer-strip-text" data-cms="gallery-title" data-cms-label="Nadpis" data-cms-group="Galerie">Šperky Sága Art na modelce</h2>
       </div>
-      <p class="footer-strip-hint">Kliknutím na fotku otevřete detail šperku.</p>
+      <p class="footer-strip-hint" data-cms="gallery-hint" data-cms-label="Nápověda" data-cms-group="Galerie">Kliknutím na fotku otevřete detail šperku.</p>
     </div>
     <div class="footer-photos">
       <button type="button" class="footer-photo" data-action="openProduct" data-arg="duna-naramek" style="--i:0"><img src="/img/produkty/duna-naramek/1.jpg" alt="Náramek Duna na zápěstí" width="790" height="1000" loading="lazy"><span>Duna náramek</span></button>
@@ -225,7 +229,7 @@
 <section class="section products" id="produkty">
   <div class="wrap">
     <div class="section-head">
-      <h2 class="section-title">Šperky skladem</h2>
+      <h2 class="section-title" data-cms="products-title" data-cms-label="Nadpis" data-cms-group="Šperky">Šperky skladem</h2>
       <div class="filter-tabs" id="filterTabs">
         <button class="filter-tab active" data-cat="vse">Vše</button>
         <button class="filter-tab" data-cat="nahrdelniky">Náhrdelníky</button>
@@ -247,8 +251,8 @@
 <section class="section" id="doprava">
   <div class="wrap ship-layout">
     <div>
-      <h2 class="section-title">Doprava a&nbsp;balení</h2>
-      <p class="ship-note">Každý šperk pečlivě balím do dárkové krabičky a jako poděkování za váš nákup přikládám hadřík na čištění šperků. Objednávku odesílám po přijetí platby. Doprava Zásilkovnou je od 1&nbsp;490&nbsp;Kč zdarma.</p>
+      <h2 class="section-title" data-cms="shipping-title" data-cms-label="Nadpis" data-cms-group="Doprava">Doprava a&nbsp;balení</h2>
+      <p class="ship-note" data-cms="shipping-note" data-cms-label="Text" data-cms-group="Doprava">Každý šperk pečlivě balím do dárkové krabičky a jako poděkování za váš nákup přikládám hadřík na čištění šperků. Objednávku odesílám po přijetí platby. Doprava Zásilkovnou je od 1&nbsp;490&nbsp;Kč zdarma.</p>
     </div>
     <div class="ship-grid" id="shipGrid"></div>
   </div>
@@ -258,8 +262,8 @@
 <section class="section vouchers" id="poukazy">
   <div class="wrap vouchers-layout">
     <div>
-      <h2 class="section-title">Dárkový poukaz</h2>
-      <p class="vouchers-lead">Nevíte, co vybrat? Darujte poukaz a šperk si obdarovaný vybere sám. Poukaz vám přijde e-mailem hned po zaplacení, takže stihnete i Vánoce na poslední chvíli. Platí 12 měsíců, použít ho jde jednou na zboží (ne na dopravu) a nevyčerpaná část se nevrací.</p>
+      <h2 class="section-title" data-cms="vouchers-title" data-cms-label="Nadpis" data-cms-group="Dárkové poukazy">Dárkový poukaz</h2>
+      <p class="vouchers-lead" data-cms="vouchers-lead" data-cms-label="Text" data-cms-group="Dárkové poukazy">Nevíte, co vybrat? Darujte poukaz a šperk si obdarovaný vybere sám. Poukaz vám přijde e-mailem hned po zaplacení, takže stihnete i Vánoce na poslední chvíli. Platí 12 měsíců, použít ho jde jednou na zboží (ne na dopravu) a nevyčerpaná část se nevrací.</p>
     </div>
     <div class="vouchers-grid">
       <button type="button" class="voucher-card" data-action="addToCart" data-arg="voucher-500"><img src="/img/poukaz-500.jpg" width="1200" height="667" alt="Dárkový poukaz 500 Kč"><span class="voucher-add">Do košíku</span></button>
@@ -274,14 +278,14 @@
   <div class="wrap custom-layout">
     <div class="custom-photo"><img src="/img/produkty/duna-naramek/1.jpg" alt="Náramek Duna na zápěstí" width="790" height="1000" loading="lazy"></div>
     <div>
-      <h2 class="section-title">Šperk na&nbsp;míru</h2>
-      <p class="custom-lead">Skoro všechno, co tu vidíte, umím upravit. Délku řetízku, velikost náramku, zlatou nebo stříbrnou ocel, jiný kámen. A ráda vytvořím i úplně nový šperk podle vašeho nápadu, pro vás, pro partnera nebo pro dítě.</p>
+      <h2 class="section-title" data-cms="custom-title" data-cms-label="Nadpis" data-cms-group="Šperk na míru">Šperk na&nbsp;míru</h2>
+      <p class="custom-lead" data-cms="custom-lead" data-cms-label="Úvodní text" data-cms-group="Šperk na míru">Skoro všechno, co tu vidíte, umím upravit. Délku řetízku, velikost náramku, zlatou nebo stříbrnou ocel, jiný kámen. A ráda vytvořím i úplně nový šperk podle vašeho nápadu, pro vás, pro partnera nebo pro dítě.</p>
       <ul class="custom-list">
-        <li>Napište mi, co si představujete, klidně i s fotkou.</li>
-        <li>Pošlu vám návrh, cenu a termín.</li>
-        <li>Po odsouhlasení šperk vyrobím a odešlu.</li>
+        <li data-cms="custom-li1" data-cms-label="Krok 1" data-cms-group="Šperk na míru">Napište mi, co si představujete, klidně i s fotkou.</li>
+        <li data-cms="custom-li2" data-cms-label="Krok 2" data-cms-group="Šperk na míru">Pošlu vám návrh, cenu a termín.</li>
+        <li data-cms="custom-li3" data-cms-label="Krok 3" data-cms-group="Šperk na míru">Po odsouhlasení šperk vyrobím a odešlu.</li>
       </ul>
-      <a class="btn-primary" href="mailto:info@sagaart.cz?subject=%C5%A0perk%20na%20m%C3%ADru">Napsat poptávku</a>
+      <a class="btn-primary" data-cms-email href="mailto:info@sagaart.cz?subject=%C5%A0perk%20na%20m%C3%ADru" data-cms="custom-btn" data-cms-label="Tlačítko" data-cms-group="Šperk na míru">Napsat poptávku</a>
       <p class="custom-note">Šperk vyrobený nebo upravený na míru nelze vrátit ve 14denní lhůtě. Podrobnosti najdete v <a href="/obchodni-podminky#na-miru">obchodních podmínkách</a>.</p>
     </div>
   </div>
@@ -291,14 +295,14 @@
 <section class="section newsletter">
   <div class="wrap">
     <div>
-      <h2 class="section-title">Novinky e-mailem</h2>
-      <p class="newsletter-desc">Napíšu vám, když přibude nový šperk nebo celá kolekce. Uvidíte je dřív než ostatní.</p>
+      <h2 class="section-title" data-cms="newsletter-title" data-cms-label="Nadpis" data-cms-group="Newsletter">Novinky e-mailem</h2>
+      <p class="newsletter-desc" data-cms="newsletter-desc" data-cms-label="Text" data-cms-group="Newsletter">Napíšu vám, když přibude nový šperk nebo celá kolekce. Uvidíte je dřív než ostatní.</p>
     </div>
     <form class="newsletter-form" id="newsletterForm">
       <label class="sr-only" for="nlEmail">E-mail</label>
       <input type="email" id="nlEmail" class="newsletter-input" placeholder="váš@email.cz" autocomplete="email" required>
       <input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-      <button type="submit" class="newsletter-submit">Odebírat</button>
+      <button type="submit" class="newsletter-submit" data-cms="newsletter-btn" data-cms-label="Tlačítko" data-cms-group="Newsletter">Odebírat</button>
     </form>
     <p class="newsletter-legal">Odesláním souhlasíte se zasíláním novinek. Odhlásit se můžete kdykoli odkazem v e-mailu. Více v <a href="/ochrana-osobnich-udaju">zásadách ochrany osobních údajů</a>.</p>
   </div>
@@ -309,8 +313,8 @@
   <div class="footer-main">
     <div class="footer-brand">
       <a href="#" class="nav-logo">Sága <em>Art</em></a>
-      <p class="footer-desc">Ručně vyráběné šperky z pravých říčních perel, přírodních minerálů a nerezové oceli.</p>
-      <p class="footer-meta">Platba kartou nebo převodem předem<br>Doprava po Česku i na Slovensko od 89 Kč, nad 1 490 Kč zdarma</p>
+      <p class="footer-desc" data-cms="footer-desc" data-cms-label="Krátký popis" data-cms-group="Patička">Ručně vyráběné šperky z pravých říčních perel, přírodních minerálů a nerezové oceli.</p>
+      <p class="footer-meta" data-cms="footer-meta" data-cms-label="Platba a doprava (dva řádky)" data-cms-group="Patička" data-cms-multiline>Platba kartou nebo převodem předem<br>Doprava po Česku i na Slovensko od 89 Kč, nad 1 490 Kč zdarma</p>
     </div>
     <nav class="footer-col" aria-label="Šperky"><h4>Šperky</h4><ul>
       <li><a href="#produkty" data-filter="nahrdelniky">Náhrdelníky</a></li>
@@ -328,10 +332,10 @@
       <li><a href="/pece-o-sperky">Péče o šperky</a></li>
     </ul></nav>
     <div class="footer-col"><h4>Kontakt</h4><ul>
-      <li><a href="mailto:info@sagaart.cz">info@sagaart.cz</a></li>
-      <li><a href="#">Instagram</a></li>
-      <li><a href="#">Facebook</a></li>
-      <li><a href="https://www.fler.cz/sagaart" target="_blank" rel="noopener">Fler</a></li>
+      <li><a href="mailto:info@sagaart.cz" data-cms-email data-cms-email-text>info@sagaart.cz</a></li>
+      <li><a href="#" data-cms-link="instagram" target="_blank" rel="noopener noreferrer">Instagram</a></li>
+      <li><a href="#" data-cms-link="facebook" target="_blank" rel="noopener noreferrer">Facebook</a></li>
+      <li><a href="https://www.fler.cz/sagaart" target="_blank" rel="noopener noreferrer" data-cms-link="fler">Fler</a></li>
     </ul></div>
   </div>
 

@@ -71,3 +71,9 @@ Secrety ukládej na Vercelu jako **Sensitive**, nikdy do repozitáře (je veřej
 - Faktura se k objednávce vytvoří automaticky (číslo = číslo objednávky) a jde v PDF v příloze potvrzovacího e-mailu. PDF se generuje na serveru (pdfkit, pevná verze, písmo DejaVu přibalené v `api/_fonts`).
 - Úprava faktury jen v administraci (po přihlášení). Číslo se nemění, předchozí verze se ukládají do historie (`revisions`). Stornovanou fakturu upravit nejde.
 - Smazat jde jen zrušenou objednávka. Zrušení stornuje fakturu, vrátí poukaz použitý k platbě a zneplatní poukazy, které se z objednávky vydaly. Stornovaná faktura zůstává v evidenci.
+
+## Vzhled webu (administrace)
+- Barvy, písma, texty a odkazy se ukládají do databáze a ve stránce se uplatní jen jako CSS proměnné a obyčejný text. Barva musí být `#rrggbb`, písma jen z pevného seznamu (Google Fonts), odkazy jen `https://`, texty se vkládají přes `textContent`, nikdy jako HTML.
+- Server odmítne barvy, ve kterých by nebyl čitelný text (kontrast aspoň 4,5:1).
+- Náhled v administraci je stránka e-shopu v rámu (`/?preview=1`). Proto je povolené vložení do rámu jen z vlastní domény (`frame-ancestors 'self'`, `X-Frame-Options: SAMEORIGIN`). Zprávy do náhledu a z něj se berou jen od vlastní domény.
+- Každé zveřejnění ukládá předchozí verzi (posledních 10), jde se vrátit i k původnímu vzhledu.

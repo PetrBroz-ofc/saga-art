@@ -12,7 +12,7 @@
   try { seen = sessionStorage.getItem('sa_intro') === '1'; } catch {}
   const skip = seen
     || matchMedia('(prefers-reduced-motion: reduce)').matches
-    || location.hash || scrollY > 10
+    || location.hash || scrollY > 10 || /(^|[?&])preview=1(&|$)/.test(location.search)
     || !('animate' in Element.prototype);
 
   if (skip) { intro.remove(); return; }

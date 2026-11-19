@@ -6,6 +6,7 @@ const { fail } = require('./_utils');
 const HANDLERS = {
   invoices: require('./_h/invoices'),
   account: require('./_h/account'),
+  site: require('./_h/site'),
 };
 
 module.exports = async function handler(req, res) {
