@@ -34,7 +34,7 @@
     }
     box.innerHTML = C.list.map((c, k) => {
       const s = couponState(c), code = esc(c.code);
-      return `<div class="order-row inv-list-row coupon-row" style="animation-delay:${Math.min(k, 12) * 25}ms">
+      return `<div class="order-row coupon-row" style="animation-delay:${Math.min(k, 12) * 25}ms">
         <span class="who"><b class="coupon-code">${code}</b><small>${esc(c.note || '')}</small></span>
         <span class="who"><b>${esc(couponText(c))}</b><small>použito ${c.used}${c.maxUses ? ' z ' + c.maxUses : '×'}</small></span>
         <span class="status"><span class="pill ${s.tone}">${esc(s.label)}</span></span>
@@ -102,7 +102,7 @@
     const list = N.list.filter(s => !q || s.email.toLowerCase().includes(q));
     if (!list.length) { box.innerHTML = `<div class="list-empty"><p class="big">${N.list.length ? 'Nic jsme nenašli' : 'Zatím nikdo'}</p><p>${N.list.length ? 'Zkuste jiné hledání.' : 'Adresy se objeví, jakmile se někdo přihlásí k novinkám na webu.'}</p></div>`; return; }
     box.innerHTML = list.slice(0, 500).map((s, k) => `
-      <div class="order-row inv-list-row" style="animation-delay:${Math.min(k, 12) * 25}ms">
+      <div class="order-row sub-row" style="animation-delay:${Math.min(k, 12) * 25}ms">
         <span class="who"><b>${esc(s.email)}</b><small>přihlášen ${esc(czDate(s.consentAt))}</small></span>
         <span class="status"><span class="pill ${s.unsubscribed ? 'mute' : 'ok'}">${s.unsubscribed ? 'Odhlášen' : 'Odebírá'}</span></span>
         <span class="row-tools">

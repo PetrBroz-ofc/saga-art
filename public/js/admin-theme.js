@@ -355,6 +355,7 @@
     thSecReset: () => { T.cur.sections = []; renderPane(); schedule(); },
     thImgPick: a => { T.uploadKey = a; $('thFile').value = ''; $('thFile').click(); },
     thImgReset: a => { delete T.cur.images[a]; renderPane(); schedule(); },
+    thScrollPreview: () => $('thPreviewBox').scrollIntoView({ behavior: 'smooth', block: 'start' }),
     thSave: save, thDiscard: discard, thReset: reset, thHistory: showHistory, thRestore: restore,
     thDevice: a => {
       $('thFrameWrap').classList.toggle('is-phone', a === 'phone');
