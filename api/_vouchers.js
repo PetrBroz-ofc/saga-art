@@ -6,7 +6,7 @@ const { getDb, sha256, jwtSecret } = require('./_utils');
 // V databázi je dokument pod OTISKEM kódu (sha256), takže kdo by viděl databázi, kód nezjistí.
 // Celý kód je navíc zašifrovaný (AES-256-GCM) u objednávky, aby šel e-mail poslat znovu.
 
-const VOUCHER_VALUES = [500, 1000, 1500, 2000];
+const VOUCHER_VALUES = [500, 1000, 1500];
 const VALID_MONTHS = 12;
 const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // 31 znaků, každý jen jednou
 const VOUCHER_ID_RE = /^voucher-(\d{3,5})$/;

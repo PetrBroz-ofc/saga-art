@@ -24,7 +24,7 @@ let GIFT_WRAP = { name:'Dárkové zabalení', price:59 };
 // Doprava zdarma Zásilkovnou od této částky (zboží + balení po odečtení poukazu); platí server
 let FREE_SHIPPING_FROM = 1490;
 // Dárkové poukazy jako zvláštní položky košíku (cenu stejně ověří server)
-const VOUCHERS = [500, 1000, 1500, 2000].map(v => ({
+const VOUCHERS = [500, 1000, 1500].map(v => ({
   id:'voucher-' + v, name:'Dárkový poukaz ' + v.toLocaleString('cs-CZ') + ' Kč', price:v,
   imgs:['/img/poukaz.svg'], voucher:true, collection:'', cat:'', material:'Elektronický, platí 12 měsíců',
 }));
