@@ -91,7 +91,6 @@ export default async function handler(req, res) {
     const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
-      payment_method_types: ['card'],
       locale: 'cs',
       customer_email: cust.data.email,
       client_reference_id: number,
