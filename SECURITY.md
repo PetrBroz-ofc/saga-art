@@ -77,3 +77,10 @@ Secrety ukládej na Vercelu jako **Sensitive**, nikdy do repozitáře (je veřej
 - Server odmítne barvy, ve kterých by nebyl čitelný text (kontrast aspoň 4,5:1).
 - Náhled v administraci je stránka e-shopu v rámu (`/?preview=1`). Proto je povolené vložení do rámu jen z vlastní domény (`frame-ancestors 'self'`, `X-Frame-Options: SAMEORIGIN`). Zprávy do náhledu a z něj se berou jen od vlastní domény.
 - Každé zveřejnění ukládá předchozí verzi (posledních 10), jde se vrátit i k původnímu vzhledu.
+
+## Obchod, slevové kódy, texty e-mailů, odběratelé
+- Ceny dopravy, doprava zdarma, zabalení, poukazy, platby a dovolená se nastavují v administraci (`settings/shop`). Server všechno kontroluje (celá čísla v rozumných mezích, aspoň jedna doprava a jedna platba zapnutá) a ceny pro objednávku bere vždy z databáze, nikdy od prohlížeče.
+- Slevové kódy: použití se zapisuje ve stejné transakci jako objednávka (limit použití nejde překročit souběžnými objednávkami), při zrušení se vrací. Kontrola kódu v pokladně je omezená na 15 pokusů za 15 minut z jedné IP.
+- Texty e-mailů se vkládají do HTML jen přes escapování, předměty obsahují jen číslo objednávky. Zkušební e-mail jde jen na adresu majitelky a jen ve dvou pevných variantách (6 za hodinu).
+- Odběratelé: seznam a export jen po přihlášení, smazání na žádost o výmaz.
+- Fotky kolekcí a stránky jen z vlastního Cloudinary nebo z `/img/produkty/`.

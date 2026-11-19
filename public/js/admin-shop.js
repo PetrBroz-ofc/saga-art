@@ -73,7 +73,37 @@
         <label class="th-switch"><input type="checkbox" id="shVacBlock" ${c.vacation.block ? 'checked' : ''}><span>Během pauzy zavřít objednávání<small>Zákazníci si nic neobjednají, jen uvidí zprávu.</small></span></label>`;
     }
 
+    if (S.tab === 'collections') {
+      // kolekce, které mají šperky, ale nejsou v seznamu, se přidají (uloží se při dalším uložení)
+      const known = new Set(c.collections.map(x => x.name.toLowerCase()));
+      (typeof state !== 'undefined' ? state.products : []).forEach(p => {
+        const n = (p.collection || '').trim();
+        if (n && !known.has(n.toLowerCase())) { c.collections.push({ name: n, desc: '', cover: '', hidden: false }); known.add(n.toLowerCase()); }
+      });
+      const count = name => (typeof state !== 'undefined' ? state.products : []).filter(p => (p.collection || '') === name).length;
+      pane.innerHTML = `
+        <h2 class="sh-h">Kolekce na webu</h2>
+        <p class="muted sh-lead">Pořadí, popis a titulní fotka kolekcí v nabídce. Název se nemění, patří k němu šperky. Šperk do kolekce zařadíte v jeho detailu.</p>
+        <div class="sh-cols">${c.collections.map((x, i) => `
+          <div class="sh-col ${x.hidden ? 'is-off' : ''}">
+            <span class="sh-col-pic">${x.cover ? `<img src="${esc(x.cover)}" alt="">` : '<i>bez fotky</i>'}</span>
+            <div class="sh-col-body">
+              <div class="sh-col-top"><b>${esc(x.name)}</b><small>${count(x.name)} ${count(x.name) === 1 ? 'šperk' : count(x.name) >= 2 && count(x.name) <= 4 ? 'šperky' : 'šperků'}</small>
+                <span class="th-sec-mv"><button type="button" class="icon-btn" data-action="shColMove" data-arg="${i}:-1" aria-label="Posunout nahoru" ${i === 0 ? 'disabled' : ''}>↑</button><button type="button" class="icon-btn" data-action="shColMove" data-arg="${i}:1" aria-label="Posunout dolů" ${i === c.collections.length - 1 ? 'disabled' : ''}>↓</button></span></div>
+              <textarea data-sh-coldesc="${i}" rows="2" maxlength="200" placeholder="Krátký popis kolekce">${esc(x.desc)}</textarea>
+              <div class="sh-col-btns">
+                <button type="button" class="btn btn-ghost btn-sm" data-action="shColPhoto" data-arg="${i}">${x.cover ? 'Změnit fotku' : 'Nahrát fotku'}</button>
+                <label class="th-switch" style="margin:0"><input type="checkbox" data-sh-colhide="${i}" ${x.hidden ? '' : 'checked'}><span>Zobrazit na webu</span></label>
+                ${count(x.name) === 0 ? `<button type="button" class="th-undo" data-action="shColDel" data-arg="${i}">odebrat</button>` : ''}
+                <small class="sh-col-st" id="shColSt-${i}"></small>
+              </div>
+            </div>
+          </div>`).join('')}</div>
+        <div class="sh-add" style="margin-top:14px"><input type="text" id="shColNew" maxlength="40" placeholder="Název nové kolekce"><button type="button" class="btn btn-ghost btn-sm" data-action="shColAdd">Přidat kolekci</button></div>`;
+    }
+
     if (S.tab === 'mail' && window.ShopMail) window.ShopMail.render(pane);
+    $('shSave').hidden = S.tab === 'mail'; $('shDiscard').hidden = S.tab === 'mail';
     renderDirty();
   }
 
@@ -91,6 +121,8 @@
     else if (t.id === 'shVacOn') c.vacation.on = t.checked;
     else if (t.id === 'shVacMsg') c.vacation.message = t.value;
     else if (t.id === 'shVacBlock') c.vacation.block = t.checked;
+    else if (t.dataset.shColdesc) c.collections[Number(t.dataset.shColdesc)].desc = t.value;
+    else if (t.dataset.shColhide) { c.collections[Number(t.dataset.shColhide)].hidden = !t.checked; t.closest('.sh-col').classList.toggle('is-off', !t.checked); }
     else return;
     renderDirty();
   }
@@ -106,6 +138,7 @@
   const toBody = c => ({
     shipping: Object.fromEntries(Object.entries(c.shipping).map(([k, s]) => [k, { price: s.price, on: s.on }])),
     freeFrom: c.freeFrom, giftWrap: c.giftWrap, vouchers: c.vouchers, payments: c.payments, vacation: c.vacation,
+    collections: c.collections,
   });
 
   async function save() {
@@ -130,11 +163,48 @@
       if (S.cur.vouchers.values.length >= 6) return toast('Nejvýš 6 hodnot poukazů.', { err: true });
       S.cur.vouchers.values = [...S.cur.vouchers.values, v].sort((a, b) => a - b); render();
     },
+    shColMove: a => {
+      const [i, d] = a.split(':').map(Number), l = S.cur.collections, j = i + d;
+      if (j < 0 || j >= l.length) return;
+      [l[i], l[j]] = [l[j], l[i]]; render();
+    },
+    shColAdd: () => {
+      const n = ($('shColNew').value || '').trim();
+      if (!n) return toast('Napište název kolekce.', { err: true });
+      if (S.cur.collections.some(x => x.name.toLowerCase() === n.toLowerCase())) return toast('Taková kolekce už je.', { err: true });
+      if (S.cur.collections.length >= 30) return toast('Nejvýš 30 kolekcí.', { err: true });
+      S.cur.collections.push({ name: n, desc: '', cover: '', hidden: false }); render();
+    },
+    shColDel: a => { S.cur.collections.splice(Number(a), 1); render(); },
+    shColPhoto: a => { S.colIdx = Number(a); $('shFile').value = ''; $('shFile').click(); },
     shVoucherDel: a => {
       if (S.cur.vouchers.values.length < 2) return toast('Aspoň jedna hodnota poukazu musí zůstat.', { err: true });
       S.cur.vouchers.values.splice(Number(a), 1); render();
     },
   });
+  // nahrání titulní fotky kolekce do Cloudinary (stejný postup jako u šperků)
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file'; fileInput.id = 'shFile'; fileInput.accept = 'image/jpeg,image/png,image/webp'; fileInput.hidden = true;
+  document.body.appendChild(fileInput);
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files[0], i = S.colIdx; if (!file || i === undefined) return;
+    const st = document.getElementById('shColSt-' + i);
+    const say = (m, err) => { if (st) { st.textContent = m; st.style.color = err ? 'var(--bad)' : ''; } };
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024) return say('JPG, PNG nebo WebP do 10 MB.', true);
+    say('Nahrávám…');
+    try {
+      const sig = await api('/api/upload-sign', 'POST', {});
+      const fd = new FormData();
+      fd.append('file', file); fd.append('api_key', sig.apiKey); fd.append('timestamp', sig.timestamp); fd.append('folder', sig.folder);
+      fd.append('allowed_formats', sig.allowed_formats); fd.append('signature', sig.signature); fd.append('signature_algorithm', sig.signatureAlgorithm);
+      const res = await fetch('https://api.cloudinary.com/v1_1/' + encodeURIComponent(sig.cloud) + '/image/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      const url = typeof data.secure_url === 'string' && /^https:\/\/res\.cloudinary\.com\//.test(data.secure_url) ? data.secure_url : '';
+      if (!url) throw new Error(data.error?.message || 'neznámá chyba');
+      S.cur.collections[i].cover = url; render();
+    } catch (err) { if (err.message !== 'unauthorized') say('Nenahrálo se: ' + err.message, true); }
+  });
+
   const pane = $('shPane');
   pane.addEventListener('input', onInput);
   pane.addEventListener('change', onInput);

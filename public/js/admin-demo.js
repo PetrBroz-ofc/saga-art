@@ -144,13 +144,43 @@
     fonts: { heading: 'newsreader', body: 'instrument' }, radius: 3, scale: 100 };
   let shopDoc = { shipping: { zasilkovna: { name: 'Zásilkovna, výdejní místo nebo Z-BOX', price: 89, on: true, freeFrom: true, country: 'CZ' }, zasilkovna_adresa: { name: 'Zásilkovna, doručení na adresu', price: 119, on: true, freeFrom: true, country: 'CZ' },
     balikovna: { name: 'Česká pošta, Balíkovna', price: 109, on: true, freeFrom: false, country: 'CZ' }, posta: { name: 'Česká pošta na adresu', price: 130, on: true, freeFrom: false, country: 'CZ' }, packeta_sk: { name: 'Packeta na Slovensko', price: 130, on: true, freeFrom: false, country: 'SK' } },
+    collections: [{ name: 'Charlotte', desc: 'Jemný amazonit, pravé říční perly a čtyřlístek pro štěstí.', cover: '/img/produkty/charlotte-nahrdelnik/1.jpg', hidden: false }, { name: 'Euforie', desc: 'Drobné říční perly a zlatá ocel.', cover: '/img/produkty/euforie-gold-long/1.jpg', hidden: false }, { name: 'Moře', desc: 'Akvamarín a říční perly.', cover: '/img/produkty/more-kvet-nahrdelnik/1.jpg', hidden: false }],
     freeFrom: 1490, giftWrap: { price: 59, on: true }, vouchers: { values: [500, 1000, 1500], months: 12, on: true }, payments: { card: true, transfer: true }, vacation: { on: false, block: false, message: '' } };
   function shopApi(method, body) {
     if (method === 'PUT') {
       Object.entries(body.shipping).forEach(([k, s]) => { shopDoc.shipping[k].price = s.price; shopDoc.shipping[k].on = s.on; });
+      if (body.collections) shopDoc.collections = body.collections;
       Object.assign(shopDoc, { freeFrom: body.freeFrom, giftWrap: body.giftWrap, vouchers: body.vouchers, payments: body.payments, vacation: body.vacation });
     }
     return clone(shopDoc);
+  }
+  let coupons = [
+    { code: 'JARO10', type: 'percent', value: 10, minGoods: 0, validFrom: '', validTo: '', maxUses: 0, used: 4, enabled: true, note: 'Instagram', createdAt: new Date().toISOString() },
+    { code: 'PRVNI100', type: 'amount', value: 100, minGoods: 800, validFrom: '', validTo: '', maxUses: 50, used: 12, enabled: true, note: 'Nová zákaznice', createdAt: new Date().toISOString() },
+  ];
+  function couponsApi(method, body) {
+    if (method === 'GET') return clone(coupons);
+    if (method === 'POST') { if (coupons.some(c => c.code === body.code.toUpperCase())) throw new Error('Kód už existuje'); const c = { ...body, code: body.code.toUpperCase(), used: 0, createdAt: new Date().toISOString() }; coupons.unshift(c); return clone(c); }
+    const c = coupons.find(x => x.code === body.code); if (!c) throw new Error('Kód neexistuje');
+    if (method === 'DELETE') { if (c.used) throw new Error('Kód už někdo použil, smazat ho nejde. Vypněte ho.'); coupons = coupons.filter(x => x !== c); return { ok: true }; }
+    Object.assign(c, body, { used: c.used }); return clone(c);
+  }
+  let subs = ['jana.novakova@example.cz', 'petra.k@example.cz', 'eva.vesela@example.cz', 'lucie.m@example.cz'].map((e, i) => ({ id: String(i).repeat(40).slice(0, 40).replace(/\d/g, 'a'), email: e, consentAt: new Date(Date.now() - i * 864e5 * 3).toISOString(), unsubscribed: i === 3 }));
+  subs.forEach((s, i) => { s.id = ('abcdef01'.repeat(5)).slice(0, 39) + i.toString(16); });
+  function subsApi(method, body) {
+    if (method === 'GET') return clone(subs);
+    const s = subs.find(x => x.id === body.id); if (!s) throw new Error('Odběratel neexistuje');
+    if (method === 'DELETE') { subs = subs.filter(x => x !== s); return { ok: true }; }
+    s.unsubscribed = !!body.unsubscribed; return { ok: true };
+  }
+  const MAIL_DEFAULTS = { orderIntro: 'děkuji za vaši objednávku č. {cislo}. Tady je její shrnutí.', transferNote: 'Platbu čekám do 7 dnů, jinak objednávku zruším. Jakmile peníze dorazí, začnu balit.', paidNote: 'Platbu jsem přijala, děkuji.',
+    shipNote: 'Zásilku odesílám nejpozději do 5 pracovních dnů od přijetí platby.', returnNote: 'Vrátit zboží do 14 dnů můžete podle obchodních podmínek. Kdyby cokoli nesedělo, stačí odpovědět na tento e-mail.',
+    voucherIntro: 'děkuji za nákup. Tady je váš dárkový poukaz:', voucherIntroMany: 'děkuji za nákup. Tady jsou vaše dárkové poukazy:', sign: 'Petra, Sága Art' };
+  let mailTexts = { ...MAIL_DEFAULTS };
+  function mailApi(method, body) {
+    if (method === 'PUT') { mailTexts = { ...MAIL_DEFAULTS, ...Object.fromEntries(Object.entries(body).filter(([, v]) => v)) }; }
+    if (method === 'POST') return { ok: true, to: 'majitelka@example.cz' };
+    return { texts: { ...mailTexts }, defaults: { ...MAIL_DEFAULTS } };
   }
   let siteDoc = null, siteHistory = [];
   function siteApi(method, body) {
@@ -226,6 +256,9 @@
     if (path === '/api/invoices') return invoicesApi(method, body);
     if (path === '/api/site-settings') return siteApi(method, body);
     if (path === '/api/shop-settings') return shopApi(method, body);
+    if (path === '/api/coupons') return couponsApi(method, body);
+    if (path === '/api/subscribers') return subsApi(method, body);
+    if (path === '/api/mail-settings') return mailApi(method, body);
     if (path === '/api/account') {
       // v ukázce jde zkusit obě role: /admin?demo (majitelka) nebo /admin?demo=owner (hlavní účet)
       const who = new URLSearchParams(location.search).get('demo') === 'owner' ? 'owner' : 'client';

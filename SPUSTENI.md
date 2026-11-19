@@ -99,3 +99,9 @@ Texty e-mailů (potvrzení objednávky, upozornění pro Petru, kód pro přihl�
 - [ ] koupě poukazu → po „Platba dorazila“ přijde kód e-mailem
 - [ ] faktura k objednávce: přijde v příloze potvrzovacího e-mailu (číslo faktury = číslo objednávky), v adminu jde upravit a stáhnout jako PDF
 - [ ] zrušená objednávka jde v adminu smazat (zaplacenou nejdřív zrušit, faktura se stornuje)
+
+## Co si majitelka nastavuje sama v administraci
+- **Vzhled webu:** barvy (hotové kombinace i vlastní), písma, zaoblení, texty, odkazy a oznámení, fotky včetně loga a ikony, pořadí a skrývání sekcí, titulek a popis pro vyhledávače. Živý náhled, historie verzí, návrat k původnímu.
+- **Obchod:** ceny dopravy, doprava zdarma, dárkové zabalení, hodnoty a platnost poukazů, platby, dovolená, kolekce, texty e-mailů (se zkušebním odesláním).
+- **Slevové kódy** a **Newsletter** (seznam, export CSV).
+- Právní texty (obchodní podmínky, ochrana údajů) a čísla v nich (např. „12 měsíců“, „1 490 Kč“) se nemění samy, po změně pravidel je třeba je zkontrolovat.

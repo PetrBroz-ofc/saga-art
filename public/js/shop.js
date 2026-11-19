@@ -253,6 +253,7 @@ let cart = load('sa_cart', [])
   .map(i => ({ id:safeId(i.id), qty:Math.min(10, i.qty) }));
 let selectedShipping = null, selectedPayment = null;
 let giftWrap = load('sa_wrap', false) === true;
+let appliedCoupon = null; // { code, type, value, minGoods } po ověření na serveru
 let appliedVoucher = null; // { code, balance } po ověření na serveru
 
 const cartLines = () => cart.map(i => ({ ...i, p: findItem(i.id) })).filter(l => l.p);
@@ -260,7 +261,14 @@ const onlyVouchers = () => cartLines().every(l => l.p.voucher);
 const wrapPrice = () => (giftWrap && SHOP.giftWrapOn && !onlyVouchers() ? GIFT_WRAP.price : 0);
 // z čeho smí poukaz platit: šperky a balení (ne doprava, ne jiné poukazy)
 const goodsTotal = () => cartLines().filter(l => !l.p.voucher).reduce((s, l) => s + l.p.price * l.qty, 0);
-const voucherBase = () => goodsTotal() + wrapPrice();
+// slevový kód: procenta nebo částka ze zboží (server počítá stejně)
+const couponDiscount = () => {
+  if (!appliedCoupon || onlyVouchers()) return 0;
+  const g = goodsTotal();
+  if (g < (appliedCoupon.minGoods || 0)) return 0;
+  return appliedCoupon.type === 'percent' ? Math.floor(g * appliedCoupon.value / 100) : Math.min(appliedCoupon.value, g);
+};
+const voucherBase = () => goodsTotal() - couponDiscount() + wrapPrice();
 const discount = () => (appliedVoucher ? Math.min(appliedVoucher.balance, voucherBase()) : 0);
 // kolik chybí do dopravy zdarma (0 = už ji máte); limit se počítá po odečtení poukazu
 const freeShipLeft = () => Math.max(0, FREE_SHIPPING_FROM - (voucherBase() - discount()));
@@ -339,6 +347,29 @@ function renderCart() {
 function setGiftWrap(on) {
   giftWrap = !!on; save('sa_wrap', giftWrap); renderCart();
   if (selectedShipping) renderOrderSummary('orderSummaryFinal');
+}
+
+// ─── SLEVOVÝ KÓD V POKLADNĚ ───
+async function applyCoupon() {
+  const code = $('f_coupon').value.trim();
+  const msg = $('couponMsg');
+  if (!code) { appliedCoupon = null; msg.textContent = ''; renderOrderSummary('orderSummaryFinal'); return; }
+  const btn = $('btnCoupon'); btn.disabled = true;
+  try {
+    const r = await fetch('/api/coupon', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ code, goods: goodsTotal() }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || 'Kód se nepodařilo ověřit');
+    appliedCoupon = { code: j.code, type: j.type, value: j.value, minGoods: j.minGoods || 0 };
+    msg.className = 'voucher-msg ok';
+    msg.textContent = j.type === 'percent' ? `Kód platí: sleva ${j.value} % ze zboží.` : `Kód platí: sleva ${kc(j.value)} ze zboží.`;
+  } catch (err) {
+    appliedCoupon = null;
+    msg.className = 'voucher-msg err';
+    msg.textContent = err.message;
+  } finally {
+    btn.disabled = false;
+    renderOrderSummary('orderSummaryFinal');
+  }
 }
 
 // ─── DÁRKOVÝ POUKAZ V POKLADNĚ ───
@@ -473,13 +504,15 @@ function renderOrderSummary(containerId) {
     `<div class="order-summary-item"><span>${esc(l.p.name)} × ${l.qty}</span><span>${kc(l.p.price * l.qty)}</span></div>`).join('');
   const ship = selectedShipping ? `<div class="order-summary-item"><span>Doprava</span><span>${shipPrice() === 0 ? 'zdarma' : kc(shipPrice())}</span></div>` : '';
   const wrap = wrapPrice() ? `<div class="order-summary-item"><span>${esc(GIFT_WRAP.name)}</span><span>${kc(wrapPrice())}</span></div>` : '';
+  const cdisc = couponDiscount() ? `<div class="order-summary-item"><span>Slevový kód ${esc(appliedCoupon.code)}</span><span>−${kc(couponDiscount())}</span></div>` : '';
   const disc = discount() ? `<div class="order-summary-item"><span>Dárkový poukaz</span><span>−${kc(discount())}</span></div>` : '';
+  if (containerId === 'orderSummaryFinal') $('couponReview').hidden = onlyVouchers();
   if (containerId === 'orderSummaryFinal' && selectedShipping) {
     $('reviewShipping').textContent = SHIPPING[selectedShipping].name + ' (' + (shipPrice() === 0 ? 'zdarma' : kc(shipPrice())) + ')';
   }
   const freeNote = onlyVouchers() ? '' : `<div class="free-ship free-ship-in">${freeShipHtml()}</div>`;
-  $(containerId).innerHTML = freeNote + items + ship + wrap + disc +
-    `<div class="order-summary-total"><span>Celkem k úhradě</span><span>${kc(Math.max(0, getCartSubtotal() + shipPrice() + wrapPrice() - discount()))}</span></div>`;
+  $(containerId).innerHTML = freeNote + items + ship + wrap + cdisc + disc +
+    `<div class="order-summary-total"><span>Celkem k úhradě</span><span>${kc(Math.max(0, getCartSubtotal() + shipPrice() + wrapPrice() - couponDiscount() - discount()))}</span></div>`;
 }
 
 let submitting = false;
@@ -508,6 +541,7 @@ async function confirmOrder() {
         giftWrap: wrapPrice() > 0,
         giftMessage: wrapPrice() > 0 ? $('f_wrapMsg').value.trim() : '',
         voucherCode: appliedVoucher ? appliedVoucher.code : '',
+        couponCode: couponDiscount() > 0 ? appliedCoupon.code : '',
         customer: {
           jmeno: v('f_jmeno'), prijmeni: v('f_prijmeni'), email: v('f_email'), telefon: v('f_telefon'),
           ulice: v('f_ulice'), mesto: v('f_mesto'), psc: v('f_psc'), zeme: v('f_zeme'), poznamka: v('f_poznamka'),
@@ -550,6 +584,7 @@ function showSuccess(data) {
   cart = []; cartChanged();
   selectedShipping = null; selectedPayment = null;
   appliedVoucher = null; $('f_voucher').value = ''; $('voucherMsg').textContent = '';
+  appliedCoupon = null; $('f_coupon').value = ''; $('couponMsg').textContent = '';
   setGiftWrap(false); $('f_wrapMsg').value = ''; $('f_wrapMsg2').value = '';
   document.querySelectorAll('#step3 .opt').forEach(o => o.classList.remove('selected'));
   $('btnStep3Next').disabled = true;
@@ -589,7 +624,7 @@ const ACTIONS = {
   toggleWish: (arg, el) => toggleWish(arg, el),
   changeQty: arg => { const [i, d] = arg.split(':').map(Number); changeQty(i, d); },
   removeFromCart: arg => removeFromCart(Number(arg)),
-  applyVoucher,
+  applyVoucher, applyCoupon,
 };
 $('f_wrap').addEventListener('change', e => setGiftWrap(e.target.checked));
 $('f_wrap2').addEventListener('change', e => setGiftWrap(e.target.checked));

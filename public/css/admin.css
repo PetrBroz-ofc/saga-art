@@ -627,3 +627,25 @@ a.btn { text-decoration:none; }
 .th-serp small { color:#4d5156; font-size:.78rem; }
 .th-serp b { color:#1a0dab; font-weight:400; font-size:1.1rem; line-height:1.3; }
 .th-serp span { color:#4d5156; font-size:.85rem; line-height:1.45; }
+.sh-cols { display:flex; flex-direction:column; gap:12px; }
+.sh-col { display:flex; gap:12px; padding:12px; border:1px solid var(--line); border-radius:var(--r-sm); background:var(--paper); }
+.sh-col.is-off { background:var(--sand-2); }
+.sh-col-pic { width:88px; height:88px; flex-shrink:0; border-radius:8px; overflow:hidden; background:var(--sand); border:1px solid var(--line); display:grid; place-items:center; font-size:.72rem; color:var(--ink-3); }
+.sh-col-pic img { width:100%; height:100%; object-fit:cover; }
+.sh-col-body { flex:1; min-width:0; display:flex; flex-direction:column; gap:8px; }
+.sh-col-top { display:flex; align-items:center; gap:10px; }
+.sh-col-top b { font-weight:500; }
+.sh-col-top small { color:var(--ink-3); flex:1; }
+.sh-col textarea { width:100%; resize:vertical; padding:8px 10px; border:1px solid var(--line-2); border-radius:8px; background:var(--paper); font-size:.88rem; }
+.sh-col-btns { display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
+.sh-col-st { color:var(--ink-3); font-size:.78rem; }
+.coupon-code { font-family:ui-monospace, Consolas, monospace; letter-spacing:.04em; }
+.cp-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.cp-grid .field input, .cp-grid .select { width:100%; }
+.mail-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:6px; }
+.more-list { display:flex; flex-direction:column; gap:6px; }
+.more-list button, .more-list a { display:flex; align-items:center; gap:12px; padding:14px 12px; border-radius:var(--r-sm); font-size:.98rem; text-align:left; color:var(--ink); text-decoration:none; border:1px solid var(--line); background:var(--paper); }
+.more-list button:hover, .more-list a:hover { border-color:var(--accent); }
+@media (max-width:560px) { .cp-grid { grid-template-columns:1fr; } }
+#couponSheet .sheet-body, #moreSheet .sheet-body, #themeHistorySheet .sheet-body { padding:22px 22px 28px; }
+#couponSheet .od-top, #moreSheet .od-top, #themeHistorySheet .od-top { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:16px; }

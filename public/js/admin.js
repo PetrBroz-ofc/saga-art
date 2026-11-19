@@ -288,7 +288,7 @@ function renderSkeletons() {
 }
 
 // ═══ NAVIGACE ═══
-const VIEWS = ['prehled', 'objednavky', 'sperky', 'faktury', 'obchod', 'vzhled'];
+const VIEWS = ['prehled', 'objednavky', 'sperky', 'faktury', 'slevy', 'newsletter', 'obchod', 'vzhled'];
 function setView(v, { push = true } = {}) {
   if (!VIEWS.includes(v)) v = 'prehled';
   state.view = v;
@@ -300,6 +300,7 @@ function setView(v, { push = true } = {}) {
   });
   if (v === 'vzhled') window.ThemeEditor?.show();
   if (v === 'obchod') window.ShopEditor?.show();
+  if (v === 'slevy' || v === 'newsletter') window.ExtraViews?.show(v);
   if (push && location.hash !== '#' + v) history.pushState(null, '', location.pathname + location.search + '#' + v);
   scrollTo(0, 0);
 }
@@ -576,6 +577,7 @@ function openOrder(number) {
         <dt>Zboží</dt><dd>${kc(o.subtotal)}</dd>
         <dt>Doprava · ${esc(SHIPPING[o.shipping] || o.shipping)}</dt><dd>${kc(o.shippingPrice)}</dd>
         ${o.giftWrap ? `<dt>Dárkové zabalení</dt><dd>${kc(o.giftWrapPrice)}</dd>` : ''}
+        ${o.couponDiscount ? `<dt>Slevový kód ${esc(o.couponCode)}</dt><dd>−${kc(o.couponDiscount)}</dd>` : ''}
         ${o.discount ? `<dt>Dárkový poukaz${o.voucherLast4 ? ' ···' + esc(o.voucherLast4) : ''}</dt><dd>−${kc(o.discount)}</dd>` : ''}
         <dt class="total">Celkem</dt><dd class="total">${kc(o.total)}</dd>
       </dl>
