@@ -97,4 +97,5 @@ Texty e-mailů (potvrzení objednávky, upozornění pro Petru, kód pro přihl�
 - [ ] objednávka převodem: oba e-maily přijdou, v adminu je vidět
 - [ ] platba kartou v testovacím režimu Stripe (klíče `sk_test_…`), potom přepnout na ostré
 - [ ] koupě poukazu → po „Platba dorazila“ přijde kód e-mailem
-- [ ] faktura k objednávce → PDF
+- [ ] faktura k objednávce: přijde v příloze potvrzovacího e-mailu (číslo faktury = číslo objednávky), v adminu jde upravit a stáhnout jako PDF
+- [ ] zrušená objednávka jde v adminu smazat (zaplacenou nejdřív zrušit, faktura se stornuje)

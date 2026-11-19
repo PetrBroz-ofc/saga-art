@@ -123,6 +123,11 @@
       i.storno = true; i.stornoAt = new Date().toISOString();
       const o = orders.find(x => x.invoiceNumber === i.number);
       if (o) o.invoiceNumber = '';
+    } else if (body.edit) {
+      const items = body.items.map(x => ({ ...x, sum: Math.round(x.qty * x.price * 100) / 100 }));
+      Object.assign(i, { issueDate: body.issueDate, taxDate: body.taxDate, dueDate: body.dueDate, payment: body.payment, paymentLabel: PAY[body.payment],
+        customer: body.customer, items, total: Math.round(items.reduce((a, x) => a + x.sum, 0) * 100) / 100, note: body.note,
+        paid: !!body.paid, paidAt: body.paid ? (i.paidAt || new Date().toISOString()) : null, editedAt: new Date().toISOString() });
     } else { i.paid = !!body.paid; i.paidAt = i.paid ? new Date().toISOString() : null; }
     saveInv();
     return clone(i);
@@ -173,6 +178,11 @@
       if (method === 'GET') return clone(orders);
       const o = orders.find(x => x.number === body.number);
       if (!o) throw new Error('Objednávka neexistuje');
+      if (method === 'DELETE') {
+        if (o.status !== 'cancelled') throw new Error('Smazat jde jen zrušenou objednávku. Nejdřív ji zrušte.');
+        orders = orders.filter(x => x !== o);
+        return { ok: true, number: o.number };
+      }
       if (body.status && body.status !== o.status) {
         if (!TRANSITIONS[o.status].includes(body.status)) throw new Error('Tuhle změnu stavu nejde udělat');
         o.status = body.status;

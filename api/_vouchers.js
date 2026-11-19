@@ -132,7 +132,16 @@ async function issueForOrder(orderNumber) {
   });
 }
 
+// Zrušená objednávka: poukazy, které se z ní vystavily, přestanou platit (kód už je v e-mailu zákaznice).
+async function disableForOrder(orderNumber) {
+  const snap = await getDb().collection('vouchers').where('orderNumber', '==', orderNumber).get();
+  for (const doc of snap.docs) {
+    if (!doc.data().disabled) await doc.ref.update({ disabled: true, disabledAt: new Date() });
+  }
+}
+
 module.exports = {
+  disableForOrder,
   VOUCHER_VALUES, VALID_MONTHS, isVoucherId, voucherValue, voucherName, normCode,
   checkVoucher, reserveInTx, releaseForOrder, issueForOrder, decrypt,
 };

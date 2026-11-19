@@ -1,9 +1,11 @@
 const { getDb, fail, requireAdmin } = require('./_utils');
 const { clean, afterPaid } = require('./_shop');
-const { releaseForOrder } = require('./_vouchers');
+const { releaseForOrder, disableForOrder } = require('./_vouchers');
+const { setPaidForOrder, stornoForOrder } = require('./_invoice');
 
 // GET   /api/orders  — seznam objednávek pro admin (nejnovější první)
 // PATCH /api/orders  — změna stavu, čísla zásilky nebo interní poznámky
+// DELETE /api/orders — smazání ZRUŠENÉ objednávky ({ number }); faktura (stornovaná) zůstane v evidenci
 
 // Kam smí admin objednávku posunout z daného stavu. Nic jiného server nepřijme.
 const TRANSITIONS = {
@@ -58,13 +60,29 @@ function publicOrder(id, o) {
 }
 
 export default async function handler(req, res) {
-  if (!(await requireAdmin(req, res, ['GET', 'PATCH']))) return;
+  if (!(await requireAdmin(req, res, ['GET', 'PATCH', 'DELETE']))) return;
   const col = getDb().collection('orders');
 
   try {
     if (req.method === 'GET') {
       const snap = await col.orderBy('createdAt', 'desc').limit(LIMIT).get();
       return res.status(200).json(snap.docs.map(d => publicOrder(d.id, d.data())));
+    }
+
+    if (req.method === 'DELETE') {
+      const del = req.body?.number;
+      if (typeof del !== 'string' || !NUMBER_RE.test(del)) return fail(res, 400, 'Neplatné číslo objednávky');
+      const dref = col.doc(del);
+      const out = await getDb().runTransaction(async tx => {
+        const snap = await tx.get(dref);
+        if (!snap.exists) return { error: [404, 'Objednávka neexistuje'] };
+        if (snap.data().status !== 'cancelled') return { error: [409, 'Smazat jde jen zrušenou objednávku. Nejdřív ji zrušte.'] };
+        tx.delete(dref);
+        return { ok: true };
+      });
+      if (out.error) return fail(res, ...out.error);
+      console.log('Objednávka', del, 'smazána administrátorem');
+      return res.status(200).json({ ok: true, number: del });
     }
 
     // PATCH
@@ -96,8 +114,8 @@ export default async function handler(req, res) {
     });
     if (result.error) return fail(res, ...result.error);
     // následky změny stavu: zaplaceno → vystavit poukazy, zrušeno → vrátit stržený poukaz
-    if (patch.status === 'paid') await afterPaid(number);
-    if (patch.status === 'cancelled') await releaseForOrder(number);
+    if (patch.status === 'paid') { await setPaidForOrder(number); await afterPaid(number); }
+    if (patch.status === 'cancelled') { await releaseForOrder(number); await disableForOrder(number); await stornoForOrder(number); }
     return res.status(200).json(result.order);
   } catch (err) {
     console.error('orders error:', err.message);

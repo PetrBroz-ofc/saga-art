@@ -19,13 +19,20 @@ const SIGN = 'Petra, Sága Art';
 const FOOTER = 'Sága Art · Petra Miklušáková · IČO 47055723 · Městečko 212, 270 23 Křivoklát';
 
 // ── odeslání ──
-async function sendMail({ to, subject, text, html, replyTo }) {
+// attachments = [{ filename, content }], content je Buffer (do Resend jde jako base64)
+async function sendMail({ to, subject, text, html, replyTo, attachments }) {
   const key = process.env.RESEND_API_KEY, from = process.env.MAIL_FROM;
   if (!key || !from || !from.includes('@')) throw new Error('Odesílání e-mailů není nakonfigurováno (RESEND_API_KEY, MAIL_FROM)');
   if (!to || !String(to).includes('@')) throw new Error('Chybí příjemce e-mailu');
   const body = { from, to: [String(to)], subject: oneLine(subject).slice(0, 200), text, html };
   const rt = replyTo || process.env.MAIL_REPLY_TO || process.env.OWNER_EMAIL;
   if (rt) body.reply_to = String(rt);
+  if (Array.isArray(attachments) && attachments.length) {
+    body.attachments = attachments.map(a => ({
+      filename: String(a.filename).replace(/[^\w.-]/g, '_'),
+      content: Buffer.isBuffer(a.content) ? a.content.toString('base64') : String(a.content),
+    }));
+  }
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
@@ -132,6 +139,7 @@ function orderCustomer(v) {
     `Doprava: ${v.shippingLabel}`, `Platba: ${v.paymentLabel}`, `Doručovací údaje: ${v.address}`,
     ...(v.giftMessage ? ['', `Vzkaz na kartičku: ${v.giftMessage}`] : []),
     '', pay, ship, '',
+    ...(v.invoiceNumber ? [`Fakturu č. ${v.invoiceNumber} najdete v příloze tohoto e-mailu.`, ''] : []),
     `Vrátit zboží do 14 dnů můžete podle obchodních podmínek (${SITE_URL}/obchodni-podminky). Kdyby cokoli nesedělo, stačí odpovědět na tento e-mail.`, '',
     SIGN,
   ].join('\n');
@@ -143,6 +151,7 @@ function orderCustomer(v) {
     (v.giftMessage ? para(`Vzkaz na kartičku: ${v.giftMessage}`) : '') +
     (transfer ? `<div style="margin:0 0 14px;padding:14px 16px;background:#f1ebf7;border-radius:8px;line-height:1.65">${esc(pay)}</div>` : para(pay)) +
     para(ship) +
+    (v.invoiceNumber ? para(`Fakturu č. ${v.invoiceNumber} najdete v příloze tohoto e-mailu.`) : '') +
     para(`Vrátit zboží do 14 dnů můžete podle obchodních podmínek. Kdyby cokoli nesedělo, stačí odpovědět na tento e-mail.`) +
     para(SIGN));
   return { subject, text, html };

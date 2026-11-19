@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const { getDb } = require('./_utils');
 const V = require('./_vouchers');
 const Mail = require('./_mail');
+const Invoices = require('./_invoice');
 
 // Ceník dopravy — JEDINÝ zdroj pravdy. Frontend si ho jen zobrazuje (GET /api/config).
 const SHIPPING = {
@@ -163,9 +164,18 @@ async function sendOrderEmails(order) {
     payment: order.payment, paymentLabel: PAYMENTS[order.payment],
     bank, giftMessage: order.giftWrap ? order.giftMessage || '' : '',
   };
+  // Faktura k objednávce (číslo faktury = číslo objednávky) jde v příloze. Když se nepovede, e-mail odejde i bez ní.
+  let attachments;
+  try {
+    const inv = await Invoices.ensureForOrder(order, SHIPPING[order.shipping].name, GIFT_WRAP.name);
+    attachments = [{ filename: `faktura-${inv.number}.pdf`, content: await Invoices.pdf(inv) }];
+    view.invoiceNumber = inv.number;
+  } catch (err) {
+    console.error('Faktura k objednávce', order.number, 'selhala:', err.message);
+  }
   const results = await Promise.allSettled([
-    Mail.sendMail({ to: c.email, ...Mail.orderCustomer(view) }),
-    Mail.sendMail({ to: process.env.OWNER_EMAIL, replyTo: c.email, ...Mail.orderOwner(view) }),
+    Mail.sendMail({ to: c.email, attachments, ...Mail.orderCustomer(view) }),
+    Mail.sendMail({ to: process.env.OWNER_EMAIL, replyTo: c.email, attachments, ...Mail.orderOwner(view) }),
   ]);
   const failed = results.filter(r => r.status === 'rejected');
   failed.forEach(r => console.error('E-mail k objednávce', order.number, 'selhal:', r.reason?.message));

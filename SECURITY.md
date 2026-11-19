@@ -66,3 +66,8 @@ Secrety ukládej na Vercelu jako **Sensitive**, nikdy do repozitáře (je veřej
 6. Vercel: Settings → Deployment Protection pro Preview deploymenty; zapnout **Firewall / Bot protection**.
 7. Účty Vercel, GitHub, Stripe, Neon, Cloudinary, Resend: všude **2FA**.
 8. Doména: po ověření HTTPS přidat na https://hstspreload.org.
+
+## Faktury a mazání objednávek
+- Faktura se k objednávce vytvoří automaticky (číslo = číslo objednávky) a jde v PDF v příloze potvrzovacího e-mailu. PDF se generuje na serveru (pdfkit, pevná verze, písmo DejaVu přibalené v `api/_fonts`).
+- Úprava faktury jen v administraci (po přihlášení). Číslo se nemění, předchozí verze se ukládají do historie (`revisions`). Stornovanou fakturu upravit nejde.
+- Smazat jde jen zrušenou objednávka. Zrušení stornuje fakturu, vrátí poukaz použitý k platbě a zneplatní poukazy, které se z objednávky vydaly. Stornovaná faktura zůstává v evidenci.

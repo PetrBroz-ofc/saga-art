@@ -1,39 +1,23 @@
-const { getDb, sha256, fail, requireAdmin } = require('../_utils');
+const { getDb, fail, requireAdmin } = require('../_utils');
 const { clean } = require('../_shop');
 const { SELLER, seller, bank } = require('../_business');
+const { PAYMENTS, idOf, publicInvoice, pdf } = require('../_invoice');
 
-// Faktury (jen admin).
+// Faktury (jen admin). Faktura k objednávce vzniká sama (číslo = číslo objednávky), ruční jde vystavit tady.
 // GET   /api/invoices               — seznam (nejnovější první)
-// GET   /api/invoices?number=…      — jedna faktura (pro tisk / PDF)
-// POST  /api/invoices               — vystavit fakturu (vlastní číslo, z objednávky i ruční)
-// PATCH /api/invoices { number, paid } | { number, storno: true }
-// Vystavená faktura se kvůli účetnictví už needituje. Chyba = storno a nová faktura.
+// GET   /api/invoices?number=…      — jedna faktura; s &pdf=1 rovnou PDF soubor
+// POST  /api/invoices               — vystavit fakturu (z objednávky i ruční)
+// PATCH /api/invoices { number, paid } | { number, storno: true } | { number, edit: true, …údaje }
+// Úprava změní údaje, číslo zůstává. Předchozí verze se ukládají do historie (revisions).
 
 const NUMBER_RE = /^[A-Za-z0-9][A-Za-z0-9/._-]{0,19}$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const PAYMENTS = {
-  prevod: 'Bankovním převodem', karta: 'Platební kartou', hotove: 'V hotovosti',
-  dobirka: 'Na dobírku', poukaz: 'Dárkovým poukazem',
-};
 const EMAIL_RE = /^[^\s@<>()[\]\\,;:"]{1,64}@[A-Za-z0-9.-]{1,253}\.[A-Za-z]{2,24}$/;
 const LIMIT = 500;
 
-const idOf = number => sha256('invoice:' + number).slice(0, 40);
-const iso = v => (v && typeof v.toDate === 'function' ? v.toDate() : v instanceof Date ? v : null)?.toISOString() || null;
 const round2 = n => Math.round(n * 100) / 100;
 const decimals = (n, d) => Math.abs(n * 10 ** d - Math.round(n * 10 ** d)) < 1e-6;
 const validDate = s => DATE_RE.test(s) && !isNaN(Date.parse(s + 'T00:00:00Z'));
-
-function publicInvoice(d) {
-  return {
-    number: String(d.number || ''), issueDate: d.issueDate || '', dueDate: d.dueDate || '', taxDate: d.taxDate || '',
-    payment: d.payment || '', paymentLabel: PAYMENTS[d.payment] || '', vs: d.vs || '',
-    customer: d.customer || {}, items: Array.isArray(d.items) ? d.items : [], total: Number(d.total) || 0,
-    note: d.note || '', orderNumber: d.orderNumber || '', paid: d.paid === true, paidAt: iso(d.paidAt),
-    storno: d.storno === true, stornoAt: iso(d.stornoAt), createdAt: iso(d.createdAt),
-    seller: d.seller || SELLER, bank: d.bank || {},
-  };
-}
 
 function validate(b) {
   if (!b || typeof b !== 'object') return { error: 'Chybí data faktury' };
@@ -94,6 +78,12 @@ module.exports = async function handler(req, res) {
         if (typeof number !== 'string' || !NUMBER_RE.test(number)) return fail(res, 400, 'Neplatné číslo faktury');
         const snap = await col.doc(idOf(number)).get();
         if (!snap.exists) return fail(res, 404, 'Faktura neexistuje');
+        if (req.query?.pdf) {
+          const buf = await pdf(snap.data());
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Disposition', `attachment; filename="faktura-${number.replace(/[^\w.-]/g, '_')}.pdf"`);
+          return res.status(200).send(buf);
+        }
         return res.status(200).json(publicInvoice(snap.data()));
       }
       const snap = await col.orderBy('createdAt', 'desc').limit(LIMIT).get();
@@ -142,6 +132,21 @@ module.exports = async function handler(req, res) {
           const o = await tx.get(oRef);
           if (o.exists && o.data().invoiceNumber === cur.number) tx.update(oRef, { invoiceNumber: '', updatedAt: new Date() });
         }
+      } else if (req.body.edit === true) {
+        if (cur.storno) return { error: [409, 'Stornovanou fakturu nejde upravit'] };
+        const v = validate({ ...req.body, number: cur.number, orderNumber: cur.orderNumber || '' });
+        if (v.error) return { error: [400, v.error] };
+        const d = v.data, now = new Date();
+        const before = {
+          at: now, issueDate: cur.issueDate, taxDate: cur.taxDate, dueDate: cur.dueDate, payment: cur.payment,
+          customer: cur.customer, items: cur.items, total: cur.total, note: cur.note, paid: cur.paid === true,
+        };
+        Object.assign(patch, {
+          issueDate: d.issueDate, taxDate: d.taxDate, dueDate: d.dueDate, payment: d.payment,
+          customer: d.customer, items: d.items, total: d.total, note: d.note,
+          paid: d.paid, paidAt: d.paid ? (cur.paidAt || now) : null,
+          editedAt: now, revisions: [...(Array.isArray(cur.revisions) ? cur.revisions : []).slice(-19), before],
+        });
       } else if (typeof req.body.paid === 'boolean') {
         if (cur.storno) return { error: [409, 'Stornovanou fakturu nejde měnit'] };
         patch.paid = req.body.paid; patch.paidAt = req.body.paid ? new Date() : null;

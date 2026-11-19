@@ -529,6 +529,7 @@ function openOrder(number) {
   if (st === 'paid') actions += `<button class="btn btn-dark" data-action="orderStatus" data-arg="shipped">${icon('truck')}Označit jako odeslané</button>`;
   if (st === 'shipped') actions += `<button class="btn btn-ghost" data-action="orderStatus" data-arg="paid">Vrátit mezi k odeslání</button>`;
   if (['awaiting_transfer', 'awaiting_payment', 'amount_mismatch', 'paid'].includes(st)) actions += `<button class="btn btn-ghost danger" data-action="orderStatus" data-arg="cancelled">Zrušit</button>`;
+  if (cancelled) actions += `<button class="btn btn-ghost danger" data-action="orderDelete">${icon('x')}Smazat objednávku</button>`;
 
   $('orderBody').innerHTML = `
     <div class="od-head">
@@ -633,6 +634,24 @@ async function orderStatus(status) {
     shipped: 'Odesláno. Hezká práce!',
     cancelled: 'Objednávka zrušena.',
   }[status]);
+}
+async function orderDelete() {
+  const o = state.orders.find(x => x.number === currentOrder);
+  if (!o || o.status !== 'cancelled') return;
+  if (!(await ask({
+    title: `Smazat objednávku č. ${o.number}?`,
+    text: 'Zmizí z přehledu a nejde ji vrátit. Faktura k ní zůstane stornovaná v seznamu faktur.',
+    yes: 'Smazat objednávku', danger: true,
+  }))) return;
+  try {
+    await api('/api/orders', 'DELETE', { number: o.number });
+    state.orders = state.orders.filter(x => x.number !== o.number);
+    closeAllSheets();
+    renderAll();
+    toast(`Objednávka č. ${o.number} je smazaná.`);
+  } catch (err) {
+    if (err.message !== 'unauthorized') toast(err.message, { err: true });
+  }
 }
 async function orderSaveNote() {
   const body = { number: currentOrder, adminNote: $('odNote').value };
@@ -927,7 +946,7 @@ $('productForm').addEventListener('submit', async e => {
 });
 
 // ═══ FAKTURY ═══
-// Faktura se po vystavení needituje (účetnictví). Oprava = storno a nová faktura.
+// Faktura k objednávce vzniká sama (číslo = číslo objednávky). Jde upravit; předchozí verze se na serveru ukládají do historie.
 const invoiceUrl = n => '/admin-faktura?c=' + encodeURIComponent(n) + (DEMO ? '&demo' : '');
 const isoDay = (d = new Date()) => d.toLocaleDateString('sv-SE'); // YYYY-MM-DD v místním čase
 const addDays = (iso, n) => { const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n); return isoDay(d); };
@@ -992,7 +1011,8 @@ function renderInvoices() {
       <span class="status"><span class="pill ${s.tone}">${esc(s.label)}</span></span>
       <span class="total">${kc2(i.total)}<small>splatnost ${esc(czDate(i.dueDate))}</small></span>
       <span class="row-tools">
-        <a class="btn btn-ghost btn-sm" href="${esc(invoiceUrl(i.number))}" target="_blank" rel="noopener">${icon('print')}PDF</a>
+        <a class="btn btn-ghost btn-sm" href="${esc(DEMO ? invoiceUrl(i.number) : '/api/invoices?number=' + encodeURIComponent(i.number) + '&pdf=1')}" ${DEMO ? 'target="_blank" rel="noopener"' : 'download'}>${icon('print')}PDF</a>
+        ${!i.storno ? `<button class="btn btn-ghost btn-sm" data-action="invoiceEdit" data-arg="${n}">Upravit</button>` : ''}
         ${!i.storno && !i.paid ? `<button class="btn btn-ghost btn-sm" data-action="invoicePaid" data-arg="${n}">${icon('check')}Zaplaceno</button>` : ''}
         ${!i.storno ? `<button class="btn btn-ghost btn-sm danger" data-action="invoiceStorno" data-arg="${n}">Storno</button>` : ''}
       </span>
@@ -1000,29 +1020,47 @@ function renderInvoices() {
   }).join('');
 }
 
-const inv = { items: [], orderNumber: '', snapshot: '' };
+const inv = { items: [], orderNumber: '', snapshot: '', editing: '' };
 
 function openInvoiceEditor(prefill = {}) {
   const today = isoDay();
   const c = prefill.customer || {};
+  const editing = prefill.editing || '';
+  inv.editing = editing;
   inv.orderNumber = prefill.orderNumber || '';
   inv.items = (prefill.items || [{ name: '', qty: 1, unit: 'ks', price: '' }]).map(x => ({ ...x }));
-  $('iNumber').value = nextInvoiceNumber();
-  $('iIssue').value = today;
+  $('iNumber').value = editing || nextInvoiceNumber();
+  $('iNumber').readOnly = !!editing;
+  $('iIssue').value = prefill.issueDate || today;
   $('iDue').value = prefill.dueDate || addDays(today, 14);
   $('iPayment').value = prefill.payment || 'prevod';
   $('iPaid').checked = !!prefill.paid;
   $('cName').value = c.name || ''; $('cStreet').value = c.street || ''; $('cEmail').value = c.email || '';
   $('cZip').value = c.zip || ''; $('cCity').value = c.city || ''; $('cCountry').value = c.country || 'Česká republika';
-  $('cIco').value = ''; $('cDic').value = '';
+  $('cIco').value = c.ico || ''; $('cDic').value = c.dic || '';
   $('iNote').value = prefill.note || '';
-  $('invEyebrow').textContent = inv.orderNumber ? 'Faktura k objednávce' : 'Ruční faktura';
-  $('iOrderHint').hidden = !inv.orderNumber;
-  $('iOrderHint').textContent = inv.orderNumber ? `Položky jsou převzaté z objednávky č. ${inv.orderNumber}. Faktura se k ní připojí.` : '';
+  $('invEyebrow').textContent = editing ? 'Úprava faktury' : inv.orderNumber ? 'Faktura k objednávce' : 'Ruční faktura';
+  $('invTitle').textContent = editing ? `Faktura č. ${editing}` : 'Nová faktura';
+  $('invSaveBtn').innerHTML = icon('check') + (editing ? 'Uložit změny' : 'Vystavit fakturu');
+  $('iOrderHint').hidden = !(inv.orderNumber || editing);
+  $('iOrderHint').textContent = editing
+    ? 'Číslo faktury se nemění. Předchozí verze zůstane uložená v historii úprav. Zákazník už dostal původní PDF e-mailem, upravené mu pošlete sama.'
+    : inv.orderNumber ? `Položky jsou převzaté z objednávky č. ${inv.orderNumber}. Faktura se k ní připojí.` : '';
   renderInvItems();
   inv.snapshot = invoiceJson();
   openSheet('invoiceSheet');
   setTimeout(() => $(inv.orderNumber ? 'iNumber' : 'cName').focus({ preventScroll: true }), 90);
+}
+
+function invoiceEdit(number) {
+  const i = state.invoices.find(x => x.number === number);
+  if (!i || i.storno) return;
+  closeAllSheets();
+  openInvoiceEditor({
+    editing: i.number, orderNumber: i.orderNumber,
+    items: i.items.map(it => ({ name: it.name, qty: it.qty, unit: it.unit || 'ks', price: it.price })),
+    customer: i.customer, payment: i.payment, paid: i.paid, issueDate: i.issueDate, dueDate: i.dueDate, note: i.note,
+  });
 }
 
 function invoiceFromOrder(number) {
@@ -1095,7 +1133,7 @@ $('invoiceForm').addEventListener('submit', async e => {
   const d = invoiceData();
   const bad = (msg, id) => { toast(msg, { err: true }); if (id) $(id).focus(); };
   if (!INV_NUM_RE.test(d.number)) return bad('Číslo faktury: jen písmena, číslice a / . _ -, nejvýš 20 znaků.', 'iNumber');
-  if (state.invoices.some(i => i.number === d.number)) return bad(`Faktura č. ${d.number} už existuje.`, 'iNumber');
+  if (!inv.editing && state.invoices.some(i => i.number === d.number)) return bad(`Faktura č. ${d.number} už existuje.`, 'iNumber');
   if (!d.issueDate || !d.dueDate) return bad('Doplňte prosím data.', 'iIssue');
   if (d.customer.name.length < 2) return bad('Doplňte odběratele.', 'cName');
   if (d.customer.ico && !/^\d{8}$/.test(d.customer.ico)) return bad('IČO má 8 číslic.', 'cIco');
@@ -1105,6 +1143,16 @@ $('invoiceForm').addEventListener('submit', async e => {
   const btn = $('invSaveBtn');
   btn.disabled = true;
   try {
+    if (inv.editing) {
+      const updated = await api('/api/invoices', 'PATCH', { ...d, number: inv.editing, edit: true });
+      const k = state.invoices.findIndex(x => x.number === inv.editing);
+      if (k >= 0) state.invoices[k] = updated;
+      inv.snapshot = invoiceJson();
+      closeSheet(true);
+      renderAll();
+      toast(`Faktura č. ${updated.number} je upravená.`);
+      return;
+    }
     const created = await api('/api/invoices', 'POST', d);
     state.invoices.unshift(created);
     if (created.orderNumber) {
@@ -1253,6 +1301,8 @@ const ACTIONS = {
   photoLeft: a => { const i = Number(a); [ed.imgs[i - 1], ed.imgs[i]] = [ed.imgs[i], ed.imgs[i - 1]]; renderPhotos(); renderPreview(); },
   newInvoice: () => openInvoiceEditor(),
   invoiceFromOrder: a => invoiceFromOrder(a),
+  invoiceEdit: a => invoiceEdit(a),
+  orderDelete,
   invAddItem: () => {
     if (inv.items.length >= 30) return toast('Nejvýš 30 položek.', { err: true });
     inv.items.push({ name: '', qty: 1, unit: 'ks', price: '' });
