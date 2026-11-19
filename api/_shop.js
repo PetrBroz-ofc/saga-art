@@ -5,7 +5,8 @@ const Mail = require('./_mail');
 
 // Ceník dopravy — JEDINÝ zdroj pravdy. Frontend si ho jen zobrazuje (GET /api/config).
 const SHIPPING = {
-  zasilkovna: { name: 'Zásilkovna, výdejní místo nebo Z-BOX', price: 109, country: 'CZ' },
+  zasilkovna: { name: 'Zásilkovna, výdejní místo nebo Z-BOX', price: 89,  country: 'CZ', freeFrom: true },
+  zasilkovna_adresa: { name: 'Zásilkovna, doručení na adresu', price: 119, country: 'CZ', freeFrom: true },
   balikovna:  { name: 'Česká pošta, Balíkovna',            price: 109, country: 'CZ' },
   posta:      { name: 'Česká pošta na adresu',            price: 130, country: 'CZ' },
   packeta_sk: { name: 'Packeta na Slovensko',                price: 130, country: 'SK' },
@@ -15,6 +16,9 @@ const SHIPPING = {
 // Dárkové zabalení na přání (navíc ke krabičce, kterou dostane každý šperk).
 // CENU UPŘESNÍ MAJITELKA, zatím provizorní.
 const GIFT_WRAP = { name: 'Dárkové zabalení', price: 59 };
+// Doprava zdarma (jen Zásilkovna, viz freeFrom): od této částky za zboží a balení PO odečtení poukazu.
+// Dopravu poukazem platit nejde, proto se limit neposuzuje v kruhu z ceny s dopravou.
+const FREE_SHIPPING_FROM = 1490;
 const COUNTRIES = { CZ: 'Česká republika', SK: 'Slovensko' };
 const PAYMENTS = { card: 'Platební karta online', transfer: 'Bankovní převod předem', voucher: 'Dárkový poukaz' };
 
@@ -104,8 +108,9 @@ function newOrderNumber() {
 }
 
 // Vytvoří objednávku s unikátním číslem. Když je zadaný poukaz, strhne ho ve STEJNÉ transakci
-// (buď proběhne obojí, nebo nic). discountBase = z čeho smí poukaz platit (ne z jiných poukazů).
-// Vrací { number, order } nebo { error }.
+// (buď proběhne obojí, nebo nic). discountBase = z čeho smí poukaz platit (jen zboží a balení,
+// ne doprava a ne jiné poukazy). Poukaz je jednorázový: čerpá se z něj, co jde, zbytek propadá.
+// Doprava zdarma se posuzuje z částky za zboží a balení po slevě. Vrací { number, order } nebo { error }.
 async function createOrder(data, voucherCode, discountBase) {
   const db = getDb();
   for (let attempt = 0; attempt < 8; attempt++) {
@@ -118,11 +123,13 @@ async function createOrder(data, voucherCode, discountBase) {
       if (voucherCode) {
         const v = await V.reserveInTx(tx, voucherCode, discountBase, number);
         if (v.error) return { error: v.error };
-        order.voucher = { docId: v.docId, last4: v.last4, amount: v.amount, released: false };
+        order.voucher = { docId: v.docId, last4: v.last4, amount: v.amount, consumed: v.consumed, released: false };
         order.discount = v.amount;
-        order.total = Math.max(0, order.total - v.amount);
-        if (order.total === 0) { order.status = 'paid'; order.payment = 'voucher'; order.paidAt = new Date(); }
       }
+      const discount = order.discount || 0;
+      if (SHIPPING[order.shipping]?.freeFrom && discountBase - discount >= FREE_SHIPPING_FROM) order.shippingPrice = 0;
+      order.total = Math.max(0, (order.subtotal || 0) + (order.shippingPrice || 0) + (order.giftWrapPrice || 0) - discount);
+      if (voucherCode && order.total === 0) { order.status = 'paid'; order.payment = 'voucher'; order.paidAt = new Date(); }
       tx.create(ref, order);
       return { number, order };
     });
@@ -176,7 +183,7 @@ async function afterPaid(orderNumber) {
       'Dobrý den,',
       'děkuji za nákup. Tady je váš dárkový poukaz:',
       list,
-      `Platí do ${exp}. Kód stačí zadat v pokladně na sagaart.cz a jeho hodnota se odečte od ceny. Zbytek můžete využít při dalším nákupu.`,
+      `Platí do ${exp}. Kód stačí zadat v pokladně na sagaart.cz a jeho hodnota se odečte od ceny zboží. Poukaz jde využít jednou a nelze jím platit dopravu. Nevyčerpaná část hodnoty se nevrací.`,
       'Petra, Sága Art',
     ].join('\n\n');
     await Mail.sendMail({ to: res.email, ...Mail.notice('Váš dárkový poukaz Sága Art', msg) });
@@ -187,6 +194,6 @@ async function afterPaid(orderNumber) {
 }
 
 module.exports = {
-  SHIPPING, COUNTRIES, PAYMENTS, GIFT_WRAP, ID_RE, clean, validateCustomer, priceCart,
+  SHIPPING, FREE_SHIPPING_FROM, COUNTRIES, PAYMENTS, GIFT_WRAP, ID_RE, clean, validateCustomer, priceCart,
   createOrder, sendOrderEmails, bankInfo, afterPaid,
 };

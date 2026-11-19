@@ -76,11 +76,12 @@ async function reserveInTx(tx, code, maxAmount, orderNumber) {
   if (st.error) return st;
   const amount = Math.min(st.balance, Math.max(0, maxAmount));
   if (amount <= 0) return { error: 'Poukazem nejde platit jiný poukaz.' };
+  // Poukaz je jednorázový: použije se celý, nevyčerpaná část (st.balance - amount) propadá.
   tx.update(r, {
-    balance: st.balance - amount,
-    uses: [...(snap.data().uses || []), { order: orderNumber, amount, at: new Date() }].slice(-50),
+    balance: 0,
+    uses: [...(snap.data().uses || []), { order: orderNumber, amount, forfeited: st.balance - amount, at: new Date() }].slice(-50),
   });
-  return { amount, docId: r.id, last4: norm.slice(-4) };
+  return { amount, consumed: st.balance, docId: r.id, last4: norm.slice(-4) };
 }
 
 // Zrušená / propadlá objednávka: vrátí strženou částku zpět na poukaz (jen jednou).
@@ -93,7 +94,8 @@ async function releaseForOrder(orderNumber) {
     if (!v || v.released || !(v.amount > 0)) return;
     const vRef = db.collection('vouchers').doc(v.docId);
     const vs = await tx.get(vRef);
-    if (vs.exists) tx.update(vRef, { balance: (vs.data().balance || 0) + v.amount });
+    // vrací se celá strhnutá částka (u starších objednávek jen použitá)
+    if (vs.exists) tx.update(vRef, { balance: (vs.data().balance || 0) + (v.consumed || v.amount) });
     tx.update(oRef, { 'voucher.released': true });
   });
 }
@@ -118,8 +120,7 @@ async function issueForOrder(orderNumber) {
       const norm = normCode(code);
       tx.create(ref(norm), {
         value, balance: value, orderNumber, createdAt: now, expiresAt,
-        last4: norm.slice(-4), uses: [], disabled: false,
-      });
+        last4: norm.slice(-4), uses: [], disabled: false,      });
       return { code, value, last4: norm.slice(-4) };
     });
     tx.update(oRef, {

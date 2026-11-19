@@ -390,6 +390,15 @@ img { max-width:100%; display:block; }
 .bank-box { background:var(--petal); border:1px dashed var(--dusty-rose); border-radius:4px; padding:16px 20px; font-size:.86rem; line-height:1.8; text-align:left; max-width:380px; margin:0 auto 24px; }
 .bank-box strong { color:var(--mauve); }
 
+/* Ukazatel dopravy zdarma v košíku a v souhrnu */
+.free-ship { margin:0 0 12px; font-size:.84rem; color:var(--text-light); }
+.free-ship-text b { color:var(--mauve); font-weight:600; }
+.free-ship-bar { height:6px; border-radius:3px; background:var(--petal); margin-top:6px; overflow:hidden; }
+.free-ship-bar span { display:block; height:100%; background:var(--mauve); border-radius:3px; transition:width .3s; }
+.free-ship-in { padding:10px 12px; background:var(--petal); border-radius:4px; margin-bottom:10px; }
+.free-ship-in .free-ship-bar { background:#fff; }
+.ship-price small { font-size:.72rem; font-weight:400; opacity:.8; }
+
 /* Dodávka na obrazovce po objednávce: přijede, naloží balíčky a odjede (čistě CSS, bez skriptu) */
 .van-scene { display:block; width:min(320px, 82%); height:auto; margin:0 auto 6px; overflow:hidden; }
 .van-scene .van-road { stroke:var(--dusty-rose); stroke-width:2; stroke-dasharray:10 8; stroke-linecap:round; animation:van-road 5.2s linear both; }

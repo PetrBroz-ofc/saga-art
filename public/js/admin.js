@@ -14,7 +14,7 @@ const kc = n => (Number(n) || 0).toLocaleString('cs-CZ') + ' Kč';
 const DAY = 864e5;
 
 const CAT_LABELS = { nahrdelniky:'Náhrdelníky', nausnice:'Náušnice', naramky:'Náramky', soupravy:'Sety' };
-const SHIPPING = { zasilkovna:'Zásilkovna', balikovna:'Balíkovna', posta:'Česká pošta', packeta_sk:'Packeta SK', email:'E-mailem (poukaz)' };
+const SHIPPING = { zasilkovna:'Zásilkovna', zasilkovna_adresa:'Zásilkovna na adresu', balikovna:'Balíkovna', posta:'Česká pošta', packeta_sk:'Packeta SK', email:'E-mailem (poukaz)' };
 const PAY_LABELS = { card:'Kartou online', transfer:'Převodem předem', voucher:'Celé dárkovým poukazem' };
 const INV_PAY = { card:'karta', transfer:'prevod', voucher:'poukaz' };
 const INV_NUM_RE = /^[A-Za-z0-9][A-Za-z0-9/._-]{0,19}$/;
@@ -611,7 +611,7 @@ function openOrder(number) {
 function trackingUrl(o) {
   const t = String(o.tracking || '').replace(/\s/g, '');
   if (!/^[A-Za-z0-9-]{5,40}$/.test(t)) return '';
-  if (o.shipping === 'zasilkovna' || o.shipping === 'packeta_sk') return 'https://tracking.packeta.com/cs/?id=' + encodeURIComponent(t);
+  if (o.shipping === 'zasilkovna' || o.shipping === 'zasilkovna_adresa' || o.shipping === 'packeta_sk') return 'https://tracking.packeta.com/cs/?id=' + encodeURIComponent(t);
   return 'https://www.postaonline.cz/trackandtrace/-/zasilka/cislo?parcelNumbers=' + encodeURIComponent(t);
 }
 

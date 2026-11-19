@@ -54,8 +54,8 @@ export default async function handler(req, res) {
       total,
       emailsSent: false,
     };
-    // poukazem jde platit šperky, dopravu a balení, ne další poukazy
-    const created = await createOrder(order, voucherCode ? voucherCode : '', cart.goods + shippingPrice + wrapPrice);
+    // poukazem jde platit jen zboží a balení, ne dopravu ani další poukazy
+    const created = await createOrder(order, voucherCode ? voucherCode : '', cart.goods + wrapPrice);
     if (created.error) return fail(res, 400, created.error);
     number = created.number;
     Object.assign(order, created.order);
@@ -84,7 +84,7 @@ export default async function handler(req, res) {
             price_data: { currency: 'czk', product_data: { name: l.name }, unit_amount: l.price * 100 },
             quantity: l.qty,
           })),
-          ...(shippingPrice ? [{ price_data: { currency: 'czk', product_data: { name: 'Doprava: ' + ship.name }, unit_amount: shippingPrice * 100 }, quantity: 1 }] : []),
+          ...(order.shippingPrice ? [{ price_data: { currency: 'czk', product_data: { name: 'Doprava: ' + ship.name }, unit_amount: order.shippingPrice * 100 }, quantity: 1 }] : []),
           ...(wrapPrice ? [{ price_data: { currency: 'czk', product_data: { name: GIFT_WRAP.name }, unit_amount: wrapPrice * 100 }, quantity: 1 }] : []),
         ];
 
