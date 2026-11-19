@@ -19,6 +19,7 @@
 <!-- Ikony (jedna sada, odkazuje se na ně přes <use>) -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-brush" viewBox="0 0 24 24"><path d="M14.5 4.5l5 5L10 19H5v-5z"/><path d="M13 6l5 5"/><path d="M5 19c-1 0-2 .5-2 2h6"/></symbol>
+<symbol id="i-shop" viewBox="0 0 24 24"><path d="M4 9l1.5-5h13L20 9"/><path d="M4 9v10h16V9"/><path d="M4 9c0 1.7 1.3 3 3 3s3-1.3 3-3c0 1.7 1.3 3 3 3s3-1.3 3-3c0 1.7 1.3 3 3 3"/></symbol>
 <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/><path d="M10 20v-6h4v6"/></symbol>
   <symbol id="i-box" viewBox="0 0 24 24"><path d="M3 7.5 12 3l9 4.5v9L12 21l-9-4.5z"/><path d="M3 7.5 12 12l9-4.5M12 12v9"/></symbol>
   <symbol id="i-gem" viewBox="0 0 24 24"><circle cx="12" cy="14" r="6"/><circle cx="10" cy="12" r="1.6"/><path d="M8.5 4.5 12 8l3.5-3.5"/></symbol>
@@ -106,6 +107,7 @@
       <button class="side-link" data-action="view" data-arg="objednavky"><svg class="i"><use href="#i-box"/></svg>Objednávky <b class="side-count" id="navOrderCount" hidden></b></button>
       <button class="side-link" data-action="view" data-arg="sperky"><svg class="i"><use href="#i-gem"/></svg>Šperky</button>
       <button class="side-link" data-action="view" data-arg="faktury"><svg class="i"><use href="#i-doc"/></svg>Faktury</button>
+      <button class="side-link" data-action="view" data-arg="obchod"><svg class="i"><use href="#i-shop"/></svg>Obchod</button>
       <button class="side-link" data-action="view" data-arg="vzhled"><svg class="i"><use href="#i-brush"/></svg>Vzhled webu</button>
     </nav>
     <button class="btn btn-accent side-add" data-action="newProduct"><svg class="i"><use href="#i-plus"/></svg>Nový šperk</button>
@@ -212,6 +214,27 @@
       </header>
       <div class="kpis kpis-3" id="invoiceKpis"></div>
       <div class="orders" id="invoicesList"></div>
+    </section>
+
+    <!-- OBCHOD -->
+    <section class="view" data-view="obchod" aria-labelledby="hObchod" hidden>
+      <header class="view-head">
+        <div><p class="eyebrow">Nastavení e-shopu</p><h1 id="hObchod">Obchod</h1></div>
+        <div class="view-tools">
+          <span class="theme-dirty" id="shDirty" hidden>Neuložené změny</span>
+          <button class="btn btn-ghost" data-action="shDiscard">Zahodit změny</button>
+          <button class="btn btn-accent" data-action="shSave" id="shSave"><svg class="i"><use href="#i-check"/></svg>Uložit</button>
+        </div>
+      </header>
+      <div class="shop-card">
+        <div class="theme-tabs" role="tablist" aria-label="Nastavení obchodu">
+          <button type="button" role="tab" class="theme-tab shop-tab is-on" data-action="shTab" data-arg="ship" aria-selected="true">Doprava a platby</button>
+          <button type="button" role="tab" class="theme-tab shop-tab" data-action="shTab" data-arg="extras" aria-selected="false">Poukazy a zabalení</button>
+          <button type="button" role="tab" class="theme-tab shop-tab" data-action="shTab" data-arg="vacation" aria-selected="false">Dovolená</button>
+          <button type="button" role="tab" class="theme-tab shop-tab" data-action="shTab" data-arg="mail" aria-selected="false">E-maily</button>
+        </div>
+        <div class="shop-pane" id="shPane"></div>
+      </div>
     </section>
 
     <!-- VZHLED WEBU -->
@@ -504,5 +527,6 @@
 
 <script src="/js/admin.js" defer></script>
 <script src="/js/admin-theme.js" defer></script>
+<script src="/js/admin-shop.js" defer></script>
 </body>
 </html>

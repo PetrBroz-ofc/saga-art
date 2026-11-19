@@ -142,6 +142,16 @@
   ].map(([key, label, kind, gf]) => ({ key, label, kind, css: `'${label}', ${kind === 'serif' ? 'Georgia, serif' : 'system-ui, sans-serif'}`, gf }));
   const DEMO_DEFAULTS = { colors: { bg: '#f8f7fb', paper: '#fefdff', ink: '#3e3a52', ink2: '#5b566e', accent: '#83639f', accentDark: '#6a5089', pink: '#f8e9ef', sea: '#e6f2f1', lilac: '#efe9f7', line: '#e0dbe9' },
     fonts: { heading: 'newsreader', body: 'instrument' }, radius: 3, scale: 100 };
+  let shopDoc = { shipping: { zasilkovna: { name: 'Zásilkovna, výdejní místo nebo Z-BOX', price: 89, on: true, freeFrom: true, country: 'CZ' }, zasilkovna_adresa: { name: 'Zásilkovna, doručení na adresu', price: 119, on: true, freeFrom: true, country: 'CZ' },
+    balikovna: { name: 'Česká pošta, Balíkovna', price: 109, on: true, freeFrom: false, country: 'CZ' }, posta: { name: 'Česká pošta na adresu', price: 130, on: true, freeFrom: false, country: 'CZ' }, packeta_sk: { name: 'Packeta na Slovensko', price: 130, on: true, freeFrom: false, country: 'SK' } },
+    freeFrom: 1490, giftWrap: { price: 59, on: true }, vouchers: { values: [500, 1000, 1500], months: 12, on: true }, payments: { card: true, transfer: true }, vacation: { on: false, block: false, message: '' } };
+  function shopApi(method, body) {
+    if (method === 'PUT') {
+      Object.entries(body.shipping).forEach(([k, s]) => { shopDoc.shipping[k].price = s.price; shopDoc.shipping[k].on = s.on; });
+      Object.assign(shopDoc, { freeFrom: body.freeFrom, giftWrap: body.giftWrap, vouchers: body.vouchers, payments: body.payments, vacation: body.vacation });
+    }
+    return clone(shopDoc);
+  }
   let siteDoc = null, siteHistory = [];
   function siteApi(method, body) {
     const view = () => ({ settings: siteDoc ? clone(siteDoc) : null, updatedAt: null,
@@ -215,6 +225,7 @@
     }
     if (path === '/api/invoices') return invoicesApi(method, body);
     if (path === '/api/site-settings') return siteApi(method, body);
+    if (path === '/api/shop-settings') return shopApi(method, body);
     if (path === '/api/account') {
       // v ukázce jde zkusit obě role: /admin?demo (majitelka) nebo /admin?demo=owner (hlavní účet)
       const who = new URLSearchParams(location.search).get('demo') === 'owner' ? 'owner' : 'client';

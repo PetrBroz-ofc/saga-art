@@ -24,10 +24,19 @@ let GIFT_WRAP = { name:'Dárkové zabalení', price:59 };
 // Doprava zdarma Zásilkovnou od této částky (zboží + balení po odečtení poukazu); platí server
 let FREE_SHIPPING_FROM = 1490;
 // Dárkové poukazy jako zvláštní položky košíku (cenu stejně ověří server)
-const VOUCHERS = [500, 1000, 1500].map(v => ({
-  id:'voucher-' + v, name:'Dárkový poukaz ' + v.toLocaleString('cs-CZ') + ' Kč', price:v,
-  imgs:['/img/poukaz-' + v + '.jpg'], voucher:true, collection:'', cat:'', material:'Elektronický, platí 12 měsíců',
-}));
+// Pravidla z nastavení v administraci (přijdou z /api/products-public, jinak platí tyto výchozí)
+let SHOP = { vouchers:{ on:true, values:[500, 1000, 1500], months:12 }, payments:{ card:true, transfer:true }, vacation:{ on:false, block:false, message:'' }, giftWrapOn:true };
+const BAKED_VOUCHERS = [500, 1000, 1500]; // k těmto hodnotám jsou hotové obrázky karty, ostatní se skládají z pozadí a textu
+const monthsText = n => n + (n === 1 ? ' měsíc' : n >= 2 && n <= 4 ? ' měsíce' : ' měsíců');
+let VOUCHERS = [];
+function buildVouchers() {
+  VOUCHERS = SHOP.vouchers.on ? SHOP.vouchers.values.map(v => ({
+    id:'voucher-' + v, name:'Dárkový poukaz ' + v.toLocaleString('cs-CZ') + ' Kč', price:v,
+    imgs:[BAKED_VOUCHERS.includes(v) ? '/img/poukaz-' + v + '.jpg' : '/img/poukaz-base.jpg'], voucher:true, collection:'', cat:'',
+    material:'Elektronický, platí ' + monthsText(SHOP.vouchers.months),
+  })) : [];
+}
+buildVouchers();
 const findItem = id => PRODUCTS.find(p => p.id === id) || VOUCHERS.find(p => p.id === id);
 const HEART = '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"/></svg>';
 const BAG = '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h12l-1 13H7L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>';
@@ -248,15 +257,16 @@ let appliedVoucher = null; // { code, balance } po ověření na serveru
 
 const cartLines = () => cart.map(i => ({ ...i, p: findItem(i.id) })).filter(l => l.p);
 const onlyVouchers = () => cartLines().every(l => l.p.voucher);
-const wrapPrice = () => (giftWrap && !onlyVouchers() ? GIFT_WRAP.price : 0);
+const wrapPrice = () => (giftWrap && SHOP.giftWrapOn && !onlyVouchers() ? GIFT_WRAP.price : 0);
 // z čeho smí poukaz platit: šperky a balení (ne doprava, ne jiné poukazy)
 const goodsTotal = () => cartLines().filter(l => !l.p.voucher).reduce((s, l) => s + l.p.price * l.qty, 0);
 const voucherBase = () => goodsTotal() + wrapPrice();
 const discount = () => (appliedVoucher ? Math.min(appliedVoucher.balance, voucherBase()) : 0);
 // kolik chybí do dopravy zdarma (0 = už ji máte); limit se počítá po odečtení poukazu
 const freeShipLeft = () => Math.max(0, FREE_SHIPPING_FROM - (voucherBase() - discount()));
+const freeShipOn = () => FREE_SHIPPING_FROM > 0;
 function freeShipHtml() {
-  if (onlyVouchers()) return '';
+  if (onlyVouchers() || !freeShipOn()) return '';
   const left = freeShipLeft();
   const pct = Math.min(100, Math.round((1 - left / FREE_SHIPPING_FROM) * 100));
   const text = left > 0 ? `Do dopravy zdarma vám zbývá <b>${kc(left)}</b>.` : 'Doprava Zásilkovnou je zdarma.';
@@ -311,17 +321,17 @@ function renderCart() {
     </div>`).join('');
   $('cartSubtotal').textContent = kc(getCartSubtotal());
   const canWrap = !onlyVouchers();
-  $('wrapBox').hidden = !canWrap;
+  $('wrapBox').hidden = !canWrap || !SHOP.giftWrapOn;
   $('f_wrap').checked = giftWrap;
   $('wrapMsgWrap').hidden = !(canWrap && giftWrap);
   $('wrapPriceLabel').textContent = '+ ' + kc(GIFT_WRAP.price);
   // totéž ve shrnutí objednávky (krok 4)
-  $('wrapReview').hidden = !canWrap;
+  $('wrapReview').hidden = !canWrap || !SHOP.giftWrapOn;
   $('f_wrap2').checked = giftWrap;
   $('wrapMsgWrap2').hidden = !(canWrap && giftWrap);
   $('wrapPriceLabel2').textContent = '+ ' + kc(GIFT_WRAP.price);
   $('cartFreeShip').innerHTML = freeShipHtml();
-  $('cartFreeShip').hidden = !canWrap;
+  $('cartFreeShip').hidden = !canWrap || !freeShipOn();
   $('cartShipRow').hidden = !canWrap;
   $('cartTotalLabel').textContent = canWrap ? 'Celkem bez dopravy' : 'Celkem';
   $('cartTotal').textContent = kc(getCartSubtotal() + wrapPrice());
@@ -362,12 +372,13 @@ const v = id => $(id).value.trim();
 const shipPriceFor = key => {
   const s = SHIPPING[key];
   if (!s) return 0;
-  return s.freeFrom && freeShipLeft() === 0 ? 0 : s.price;
+  return s.freeFrom && freeShipOn() && freeShipLeft() === 0 ? 0 : s.price;
 };
 const shipPrice = () => selectedShipping ? shipPriceFor(selectedShipping) : 0;
 
 function startCheckout() {
   if (!cartLines().length) return;
+  if (SHOP.vacation.on && SHOP.vacation.block) { showNotification(SHOP.vacation.message || 'Obchod je teď zavřený.'); return; }
   toggleCart();
   $('checkoutModal').classList.add('open');
   goToStep(1);
@@ -556,7 +567,7 @@ function showNotification(msg) {
 function renderShipGrid() {
   $('shipGrid').innerHTML = Object.entries(SHIPPING).filter(([, s]) => !s.voucherOnly).map(([key, s]) => `
     <div class="ship-card"><div class="ship-flag">${s.country === 'SK' ? 'Slovensko' : 'Česká republika'}</div>
-    <h3>${esc(s.name)}</h3><p>${esc(SHIP_META[key]?.desc || '')}</p><span class="ship-price">${kc(s.price)}${s.freeFrom ? ` <small>zdarma od ${kc(FREE_SHIPPING_FROM)}</small>` : ''}</span></div>`).join('');
+    <h3>${esc(s.name)}</h3><p>${esc(SHIP_META[key]?.desc || '')}</p><span class="ship-price">${kc(s.price)}${s.freeFrom && freeShipOn() ? ` <small>zdarma od ${kc(FREE_SHIPPING_FROM)}</small>` : ''}</span></div>`).join('');
 }
 
 // ═══════════════════════════════════════
@@ -643,6 +654,40 @@ document.addEventListener('keydown', e => {
   }
 })();
 
+// ─── PRAVIDLA OBCHODU V STRÁNCE (ceny, poukazy, platby, dovolená) ───
+function voucherCardHtml(v) {
+  const label = 'Dárkový poukaz ' + v.toLocaleString('cs-CZ') + ' Kč';
+  const card = BAKED_VOUCHERS.includes(v)
+    ? `<img src="/img/poukaz-${v}.jpg" width="1200" height="667" alt="${esc(label)}">`
+    : `<span class="vcard" role="img" aria-label="${esc(label)}"><i class="vc-brand">SÁGA ART</i><b class="vc-title">Dárkový poukaz</b><em class="vc-sub">Na šperk podle vlastního výběru</em><i class="vc-lbl">HODNOTA POUKAZU</i><b class="vc-val">${esc(v.toLocaleString('cs-CZ'))} <small>Kč</small></b><i class="vc-l1">Kód poukazu</i><i class="vc-l2">Platí do</i><i class="vc-foot">Uplatnění v pokladně na sagaart.cz</i></span>`;
+  return `<button type="button" class="voucher-card" data-action="addToCart" data-arg="voucher-${v}">${card}<span class="voucher-add">Do košíku</span></button>`;
+}
+function applyRules() {
+  // poukazy
+  const sec = $('poukazy');
+  if (sec) {
+    sec.hidden = !SHOP.vouchers.on;
+    const grid = sec.querySelector('.vouchers-grid');
+    if (grid && SHOP.vouchers.on) grid.innerHTML = SHOP.vouchers.values.map(voucherCardHtml).join('');
+  }
+  // platby
+  ['card', 'transfer'].forEach(k => { const el = $('pay_' + k); if (el) el.hidden = SHOP.payments[k] === false; });
+  if (selectedPayment && SHOP.payments[selectedPayment] === false) selectedPayment = null;
+  // čísla v textech (zůstanou v pořádku, když se změní v administraci)
+  const free = FREE_SHIPPING_FROM > 0;
+  const minShip = Math.min(...Object.values(SHIPPING).filter(x => !x.voucherOnly).map(x => x.price));
+  document.querySelectorAll('[data-rule]').forEach(el => {
+    const k = el.dataset.rule;
+    if (k === 'free-from') el.textContent = FREE_SHIPPING_FROM.toLocaleString('cs-CZ');
+    if (k === 'ship-min' && Number.isFinite(minShip)) el.textContent = String(minShip);
+    if (k === 'v-months') el.textContent = monthsText(SHOP.vouchers.months);
+  });
+  document.querySelectorAll('[data-rule-block="free"]').forEach(el => { el.hidden = !free; });
+  // dovolená: pruh nahoře
+  const bar = $('vacationBar');
+  if (bar) { bar.hidden = !SHOP.vacation.on; bar.textContent = SHOP.vacation.on ? SHOP.vacation.message : ''; }
+}
+
 // ─── NAČTENÍ KATALOGU ───
 async function loadCatalog() {
   try {
@@ -651,14 +696,19 @@ async function loadCatalog() {
     const data = await res.json();
     PRODUCTS = Array.isArray(data.products) ? data.products : [];
     if (data.shipping && typeof data.shipping === 'object') SHIPPING = data.shipping;
-    if (data.giftWrap && Number.isInteger(data.giftWrap.price)) GIFT_WRAP = data.giftWrap;
-    if (Number.isInteger(data.freeShippingFrom) && data.freeShippingFrom > 0) FREE_SHIPPING_FROM = data.freeShippingFrom;
+    if (data.giftWrap && Number.isInteger(data.giftWrap.price)) { GIFT_WRAP = data.giftWrap; SHOP.giftWrapOn = data.giftWrap.on !== false; }
+    if (Number.isInteger(data.freeShippingFrom) && data.freeShippingFrom >= 0) FREE_SHIPPING_FROM = data.freeShippingFrom;
+    if (data.vouchers && Array.isArray(data.vouchers.values)) SHOP.vouchers = data.vouchers;
+    if (data.payments) SHOP.payments = data.payments;
+    if (data.vacation) SHOP.vacation = data.vacation;
   } catch {
     // Lokální náhled bez serveru — ukázková data (objednat z nich nejde)
     const res = await fetch('/data/products.json').catch(() => null);
     PRODUCTS = res && res.ok ? await res.json() : [];
   }
   PRODUCTS = PRODUCTS.map(p => ({ ...p, id: safeId(p.id), price: Number(p.price) || 0 }));
+  buildVouchers();
+  applyRules();
   renderCollections();
   renderNavMenus();
   renderGrid();

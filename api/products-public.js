@@ -1,12 +1,13 @@
 const { getDb, fail, guard } = require('./_utils');
-const { SHIPPING, GIFT_WRAP, FREE_SHIPPING_FROM } = require('./_shop');
+const { refresh, publicRules } = require('./_rules');
 
 // GET /api/products-public — veřejný katalog + ceník dopravy (jen pro čtení).
 export default async function handler(req, res) {
   if (!guard(req, res, ['GET'])) return;
-  res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+  res.setHeader('Cache-Control', 'public, s-maxage=15, stale-while-revalidate=60');
 
   try {
+    await refresh();
     const snap = await getDb().collection('products').where('inStock', '==', true).get();
     const products = snap.docs
       .map(d => {
@@ -28,7 +29,7 @@ export default async function handler(req, res) {
       })
       .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
       .map(({ createdAt, ...p }) => p);
-    res.status(200).json({ products, shipping: SHIPPING, giftWrap: GIFT_WRAP, freeShippingFrom: FREE_SHIPPING_FROM });
+    res.status(200).json({ products, ...publicRules() });
   } catch (err) {
     console.error('products-public error:', err.message);
     fail(res, 500, 'Interní chyba serveru');

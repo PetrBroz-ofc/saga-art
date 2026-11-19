@@ -63,7 +63,9 @@
       const def = snapshot(el);
       const v = typeof texts[key] === 'string' ? texts[key] : null;
       if (key === 'announce-text') { setText(el, v ? nbsp(v) : ''); return; }
-      setText(el, v !== null ? nbsp(v) : def);
+      // bez úpravy se text nechá být (jsou v něm třeba čísla, která doplňuje obchod); vrací se jen po zrušení úpravy
+      if (v !== null) { setText(el, nbsp(v)); el.__cmsChanged = true; }
+      else if (el.__cmsChanged) { setText(el, def); el.__cmsChanged = false; }
     });
     const url = u => (typeof u === 'string' && (/^https:\/\//.test(u) || /^#[\w-]{1,60}$/.test(u)) ? u : '');
     document.querySelectorAll('[data-cms-link]').forEach(a => {

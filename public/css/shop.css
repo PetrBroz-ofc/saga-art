@@ -741,3 +741,24 @@ img { max-width:100%; display:block; }
 .announce a { color:inherit; text-decoration:underline; text-underline-offset:3px; }
 .announce[hidden] { display:none; }
 @media (max-width:760px) { .announce { padding:9px 16px; font-size:.82rem; } }
+
+/* ── Pruh o dovolené ── */
+.vacation { background:var(--lilac); color:var(--ink); text-align:center; font-size:.9rem; line-height:1.4; padding:10px 48px; border-bottom:1px solid var(--line); }
+.vacation[hidden] { display:none; }
+@media (max-width:760px) { .vacation { padding:10px 16px; font-size:.84rem; } }
+
+/* ── Poukaz složený z pozadí a textu (pro hodnoty bez hotového obrázku), text roste s kartou ── */
+.vcard { position:relative; display:block; container-type:inline-size; aspect-ratio:1200 / 667; border-radius:10px; overflow:hidden;
+  background:url(/img/poukaz-base.jpg) center / 100% 100% no-repeat; box-shadow:0 8px 22px rgba(106,80,137,.14); color:#263558; text-align:left; }
+.vcard > * { position:absolute; left:6.9cqw; margin:0; font-style:normal; font-weight:400; line-height:1; white-space:nowrap; }
+.vc-brand { top:12.6%; font:400 1.78cqw/1 Arial, Helvetica, sans-serif; letter-spacing:.78cqw; }
+.vc-title { top:25.6%; font:400 6.44cqw/1 Georgia, 'Times New Roman', serif; }
+.vc-sub { top:38.4%; font:italic 400 2.28cqw/1 Georgia, 'Times New Roman', serif; }
+.vc-lbl { top:51.6%; font:400 1.28cqw/1 Arial, Helvetica, sans-serif; letter-spacing:.28cqw; }
+.vc-val { top:56.5%; font:400 8.4cqw/1 Georgia, 'Times New Roman', serif; }
+.vc-val small { font-size:3.6cqw; margin-left:1.2cqw; }
+.vc-l1, .vc-l2 { top:72.4%; font:400 1.5cqw/1 Arial, Helvetica, sans-serif; }
+.vc-l2 { left:36.4cqw; }
+.vc-foot { top:88.6%; font:400 1.45cqw/1 Arial, Helvetica, sans-serif; }
+.vc-l1::after, .vc-l2::after { content:""; position:absolute; top:5.6cqw; left:0; height:1px; background:#263558; width:24.4cqw; }
+.vc-l2::after { width:19.5cqw; }

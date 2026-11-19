@@ -6,8 +6,7 @@ const { getDb, sha256, jwtSecret } = require('./_utils');
 // V databázi je dokument pod OTISKEM kódu (sha256), takže kdo by viděl databázi, kód nezjistí.
 // Celý kód je navíc zašifrovaný (AES-256-GCM) u objednávky, aby šel e-mail poslat znovu.
 
-const VOUCHER_VALUES = [500, 1000, 1500];
-const VALID_MONTHS = 12;
+const { RULES } = require('./_rules');
 const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // 31 znaků, každý jen jednou
 const VOUCHER_ID_RE = /^voucher-(\d{3,5})$/;
 
@@ -15,7 +14,7 @@ const isVoucherId = id => VOUCHER_ID_RE.test(String(id));
 function voucherValue(id) {
   const m = VOUCHER_ID_RE.exec(String(id));
   const v = m ? Number(m[1]) : 0;
-  return VOUCHER_VALUES.includes(v) ? v : 0;
+  return RULES.voucherValues.includes(v) ? v : 0;
 }
 const voucherName = v => `Dárkový poukaz ${v.toLocaleString('cs-CZ')} Kč`;
 
@@ -110,11 +109,12 @@ async function issueForOrder(orderNumber) {
     const o = snap.data();
     if (o.status !== 'paid' || o.vouchersIssued) return null;
     const values = [];
-    (o.lines || []).forEach(l => { const v = voucherValue(l.id); for (let i = 0; i < (l.qty || 0) && v; i++) values.push(v); });
+    // hodnota z řádku objednávky (platila v den nákupu), i kdyby se nabídka poukazů mezitím změnila
+    (o.lines || []).forEach(l => { const v = isVoucherId(l.id) ? Number(l.price) || 0 : 0; for (let i = 0; i < (l.qty || 0) && v; i++) values.push(v); });
     if (!values.length) return null;
 
     const now = new Date();
-    const expiresAt = new Date(now); expiresAt.setMonth(expiresAt.getMonth() + VALID_MONTHS);
+    const expiresAt = new Date(now); expiresAt.setMonth(expiresAt.getMonth() + RULES.voucherMonths);
     const issued = values.map(value => {
       const code = newCode();
       const norm = normCode(code);
@@ -142,6 +142,6 @@ async function disableForOrder(orderNumber) {
 
 module.exports = {
   disableForOrder,
-  VOUCHER_VALUES, VALID_MONTHS, isVoucherId, voucherValue, voucherName, normCode,
+  isVoucherId, voucherValue, voucherName, normCode,
   checkVoucher, reserveInTx, releaseForOrder, issueForOrder, decrypt,
 };

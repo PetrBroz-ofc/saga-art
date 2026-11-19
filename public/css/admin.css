@@ -584,3 +584,25 @@ a.btn { text-decoration:none; }
   .theme-panel, .theme-preview { position:static; max-height:none; }
   .theme-frame { height:70vh; }
 }
+
+/* ── Obchod ── */
+.shop-card { background:var(--paper); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow); max-width:760px; }
+.shop-pane { padding:22px 24px 26px; }
+.sh-h { font-family:var(--serif); font-size:1.35rem; font-weight:400; margin-bottom:6px; }
+.sh-lead { margin-bottom:14px; }
+.sh-rows { border:1px solid var(--line); border-radius:var(--r-sm); margin:6px 0 18px; }
+.sh-row { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:12px 14px; border-bottom:1px solid var(--line); }
+.sh-row:last-child { border-bottom:0; }
+.sh-row .th-switch { margin:0; }
+.th-switch small { display:block; color:var(--ink-3); font-size:.78rem; font-weight:400; }
+.sh-price { display:inline-flex; align-items:center; gap:8px; flex-shrink:0; }
+.sh-price input { width:96px; padding:9px 10px; border:1px solid var(--line-2); border-radius:8px; text-align:right; background:var(--paper); }
+.sh-price b { font-weight:400; color:var(--ink-3); font-size:.85rem; }
+.sh-field > span:first-child { margin-bottom:2px; }
+.sh-chips { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:6px 0 16px; }
+.sh-chip { display:inline-flex; align-items:center; gap:6px; padding:7px 8px 7px 13px; background:var(--accent-bg); border-radius:99px; font-size:.9rem; }
+.sh-chip button { width:22px; height:22px; border-radius:50%; font-size:1rem; line-height:1; color:var(--ink-2); }
+.sh-chip button:hover { background:var(--paper); }
+.sh-add { display:inline-flex; gap:6px; align-items:center; }
+.sh-add input { width:130px; padding:8px 10px; border:1px solid var(--line-2); border-radius:8px; background:var(--paper); }
+.btn-sm { padding:8px 12px; font-size:.85rem; }

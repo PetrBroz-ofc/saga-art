@@ -4,22 +4,8 @@ const V = require('./_vouchers');
 const Mail = require('./_mail');
 const Invoices = require('./_invoice');
 
-// Ceník dopravy — JEDINÝ zdroj pravdy. Frontend si ho jen zobrazuje (GET /api/config).
-const SHIPPING = {
-  zasilkovna: { name: 'Zásilkovna, výdejní místo nebo Z-BOX', price: 89,  country: 'CZ', freeFrom: true },
-  zasilkovna_adresa: { name: 'Zásilkovna, doručení na adresu', price: 119, country: 'CZ', freeFrom: true },
-  balikovna:  { name: 'Česká pošta, Balíkovna',            price: 109, country: 'CZ' },
-  posta:      { name: 'Česká pošta na adresu',            price: 130, country: 'CZ' },
-  packeta_sk: { name: 'Packeta na Slovensko',                price: 130, country: 'SK' },
-  email:      { name: 'E-mailem (jen dárkový poukaz)',       price: 0,   country: '*', voucherOnly: true },
-};
-
-// Dárkové zabalení na přání (navíc ke krabičce, kterou dostane každý šperk).
-// CENU UPŘESNÍ MAJITELKA, zatím provizorní.
-const GIFT_WRAP = { name: 'Dárkové zabalení', price: 59 };
-// Doprava zdarma (jen Zásilkovna, viz freeFrom): od této částky za zboží a balení PO odečtení poukazu.
-// Dopravu poukazem platit nejde, proto se limit neposuzuje v kruhu z ceny s dopravou.
-const FREE_SHIPPING_FROM = 1490;
+// Ceník dopravy, zabalení a pravidla (doprava zdarma, poukazy, platby) jsou v _rules.js a upravují se v administraci.
+const { SHIPPING, GIFT_WRAP, RULES, refresh: refreshRules } = require('./_rules');
 const COUNTRIES = { CZ: 'Česká republika', SK: 'Slovensko' };
 const PAYMENTS = { card: 'Platební karta online', transfer: 'Bankovní převod předem', voucher: 'Dárkový poukaz' };
 
@@ -57,7 +43,7 @@ function validateCustomer(c, shipping) {
   if (!COUNTRIES[d.zeme]) return { error: 'Doručujeme jen do ČR a na Slovensko' };
   if (!/^\d{3} ?\d{2}$/.test(d.psc)) return { error: 'Neplatné PSČ' };
   const s = SHIPPING[shipping];
-  if (!s || (!s.voucherOnly && s.country !== d.zeme)) return { error: 'Neplatná doprava' };
+  if (!s || s.off || (!s.voucherOnly && s.country !== d.zeme)) return { error: 'Neplatná doprava' };
   return { data: d };
 }
 
@@ -80,7 +66,7 @@ async function priceCart(items) {
   const lines = [];
   for (const [id, qty] of merged) {
     if (!V.isVoucherId(id)) continue;
-    const value = V.voucherValue(id);
+    const value = RULES.vouchersOn ? V.voucherValue(id) : 0;
     if (!value) return { error: 'Neplatný dárkový poukaz' };
     lines.push({ id, name: V.voucherName(value), price: value, qty, voucher: true });
   }
@@ -128,7 +114,7 @@ async function createOrder(data, voucherCode, discountBase) {
         order.discount = v.amount;
       }
       const discount = order.discount || 0;
-      if (SHIPPING[order.shipping]?.freeFrom && discountBase - discount >= FREE_SHIPPING_FROM) order.shippingPrice = 0;
+      if (SHIPPING[order.shipping]?.freeFrom && RULES.freeFrom > 0 && discountBase - discount >= RULES.freeFrom) order.shippingPrice = 0;
       order.total = Math.max(0, (order.subtotal || 0) + (order.shippingPrice || 0) + (order.giftWrapPrice || 0) - discount);
       if (voucherCode && order.total === 0) { order.status = 'paid'; order.payment = 'voucher'; order.paidAt = new Date(); }
       tx.create(ref, order);
@@ -185,6 +171,7 @@ async function sendOrderEmails(order) {
 // Po zaplacení: vystaví a pošle dárkové poukazy z objednávky (bezpečné volat opakovaně).
 async function afterPaid(orderNumber) {
   try {
+    await refreshRules(); // platnost poukazu (měsíce) z nastavení
     const res = await V.issueForOrder(orderNumber);
     if (!res || !res.email) return;
     const exp = res.expiresAt.toLocaleDateString('cs-CZ', { timeZone: 'Europe/Prague' });
@@ -196,6 +183,6 @@ async function afterPaid(orderNumber) {
 }
 
 module.exports = {
-  SHIPPING, FREE_SHIPPING_FROM, COUNTRIES, PAYMENTS, GIFT_WRAP, ID_RE, clean, validateCustomer, priceCart,
+  SHIPPING, RULES, refreshRules, COUNTRIES, PAYMENTS, GIFT_WRAP, ID_RE, clean, validateCustomer, priceCart,
   createOrder, sendOrderEmails, bankInfo, afterPaid,
 };

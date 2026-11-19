@@ -288,7 +288,7 @@ function renderSkeletons() {
 }
 
 // ═══ NAVIGACE ═══
-const VIEWS = ['prehled', 'objednavky', 'sperky', 'faktury', 'vzhled'];
+const VIEWS = ['prehled', 'objednavky', 'sperky', 'faktury', 'obchod', 'vzhled'];
 function setView(v, { push = true } = {}) {
   if (!VIEWS.includes(v)) v = 'prehled';
   state.view = v;
@@ -299,6 +299,7 @@ function setView(v, { push = true } = {}) {
     if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
   });
   if (v === 'vzhled') window.ThemeEditor?.show();
+  if (v === 'obchod') window.ShopEditor?.show();
   if (push && location.hash !== '#' + v) history.pushState(null, '', location.pathname + location.search + '#' + v);
   scrollTo(0, 0);
 }

@@ -2,7 +2,7 @@ const Stripe = require('stripe');
 const { releaseForOrder } = require('./_vouchers');
 const { getDb, SITE_URL, noStore, clientIp, fail, guard, limitOrReject } = require('./_utils');
 const {
-  SHIPPING, PAYMENTS, GIFT_WRAP, clean, validateCustomer, priceCart, createOrder, sendOrderEmails, bankInfo, afterPaid,
+  SHIPPING, PAYMENTS, GIFT_WRAP, RULES, refreshRules, clean, validateCustomer, priceCart, createOrder, sendOrderEmails, bankInfo, afterPaid,
 } = require('./_shop');
 
 // POST /api/order — vytvoří objednávku. Ceny, doprava, balení, sleva z poukazu i číslo objednávky
@@ -19,7 +19,11 @@ export default async function handler(req, res) {
   // Honeypot — skryté pole, které vyplní jen bot. Tváříme se, že je vše OK.
   if (website) return res.status(200).json({ ok: true });
 
+  await refreshRules(); // ceny, zapnuté dopravy a platby z nastavení v administraci
+
   if (payment !== 'card' && payment !== 'transfer') return fail(res, 400, 'Neplatný způsob platby');
+  if (!RULES.payments[payment]) return fail(res, 400, 'Tuhle platbu teď nenabízím, zvolte prosím jinou.');
+  if (RULES.vacation.on && RULES.vacation.block) return fail(res, 503, RULES.vacation.message || 'Obchod je teď zavřený.');
   const cust = validateCustomer(customer, shipping);
   if (cust.error) return fail(res, 400, cust.error);
   if (voucherCode !== undefined && voucherCode !== '' && typeof voucherCode !== 'string') return fail(res, 400, 'Neplatný kód poukazu');
@@ -37,7 +41,7 @@ export default async function handler(req, res) {
       return fail(res, 400, cart.onlyVouchers ? 'Dárkový poukaz posílám e-mailem, zvolte prosím tuto možnost.' : 'Zvolte prosím dopravu pro šperky.');
     }
 
-    const wrap = giftWrap === true && !cart.onlyVouchers;
+    const wrap = giftWrap === true && !cart.onlyVouchers && RULES.giftWrapOn;
     const wrapPrice = wrap ? GIFT_WRAP.price : 0;
     const message = wrap ? clean(giftMessage, 200, true) : '';
     const shippingPrice = ship.price;

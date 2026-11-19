@@ -106,6 +106,10 @@
     {
       "source": "/api/site-settings",
       "destination": "/api/admin?r=site"
+    },
+    {
+      "source": "/api/shop-settings",
+      "destination": "/api/admin?r=shop"
     }
   ]
 }
