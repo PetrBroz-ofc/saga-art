@@ -9,13 +9,50 @@
 //
 // Do HTML jde všechno přes esc(). Předměty obsahují jen číslo objednávky, žádné údaje od zákazníků.
 
-const { SITE_URL } = require('./_utils');
+const { SITE_URL, getDb } = require('./_utils');
+const { RULES } = require('./_rules');
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const kc = n => `${Number(n || 0).toLocaleString('cs-CZ')} Kč`;
 const oneLine = s => String(s ?? '').replace(/[\r\n]+/g, ' ');
 
-const SIGN = 'Petra, Sága Art';
+// Texty e-mailů, které si majitelka upravuje v administraci (Obchod, E-maily). V textech jde použít {cislo} (číslo
+// objednávky) a {jmeno}. Výchozí znění je tady, upravené v databázi (settings/mail).
+const DEFAULT_TEXTS = {
+  orderIntro: 'děkuji za vaši objednávku č. {cislo}. Tady je její shrnutí.',
+  transferNote: 'Platbu čekám do 7 dnů, jinak objednávku zruším. Jakmile peníze dorazí, začnu balit.',
+  paidNote: 'Platbu jsem přijala, děkuji.',
+  shipNote: 'Zásilku odesílám nejpozději do 5 pracovních dnů od přijetí platby.',
+  returnNote: 'Vrátit zboží do 14 dnů můžete podle obchodních podmínek. Kdyby cokoli nesedělo, stačí odpovědět na tento e-mail.',
+  voucherIntro: 'děkuji za nákup. Tady je váš dárkový poukaz:',
+  voucherIntroMany: 'děkuji za nákup. Tady jsou vaše dárkové poukazy:',
+  sign: 'Petra, Sága Art',
+};
+const TEXT_KEYS = Object.keys(DEFAULT_TEXTS);
+const TEXTS = { ...DEFAULT_TEXTS };
+const fill = (t, v = {}) => String(t).replace(/\{(cislo|jmeno)\}/g, (_, k) => (v[k] ?? ''));
+const clean1 = t => String(t ?? '').normalize('NFC').replace(/[\u0000-\u001F\u007F\u200B-\u200F\u202A-\u202E]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 400);
+
+function validateTexts(b) {
+  if (!b || typeof b !== 'object') return { error: 'Chybí data' };
+  const out = {};
+  for (const k of TEXT_KEYS) {
+    const v = b[k] === undefined ? '' : clean1(b[k]);
+    if (v && v !== DEFAULT_TEXTS[k]) out[k] = v;
+  }
+  if (out.orderIntro && !out.orderIntro.includes('{cislo}')) return { error: 'Úvod e-mailu k objednávce musí obsahovat {cislo} (číslo objednávky).' };
+  return { data: out };
+}
+function applyTexts(doc) { for (const k of TEXT_KEYS) TEXTS[k] = typeof doc?.[k] === 'string' && doc[k] ? doc[k] : DEFAULT_TEXTS[k]; }
+let loadedAt = 0;
+async function refresh(force = false) {
+  if (!force && Date.now() - loadedAt < 20000) return;
+  try {
+    const snap = await getDb().collection('settings').doc('mail').get();
+    applyTexts(snap.exists ? snap.data() : null); loadedAt = Date.now();
+  } catch (err) { console.error('Texty e-mailů se nenačetly:', err.message); }
+}
+const SIGN = () => TEXTS.sign;
 const FOOTER = 'Sága Art · Petra Miklušáková · IČO 47055723 · Městečko 212, 270 23 Křivoklát';
 
 // ── odeslání ──
@@ -100,14 +137,14 @@ function voucherMail({ issued, expires }) {
   const subject = many ? 'Vaše dárkové poukazy Sága Art' : 'Váš dárkový poukaz Sága Art';
   const rules = `Platí do ${expires}. Kód stačí zadat v pokladně na sagaart.cz a jeho hodnota se odečte od ceny zboží. ${many ? 'Každý poukaz jde využít jednou' : 'Poukaz jde využít jednou'} a nelze jím platit dopravu. Nevyčerpaná část hodnoty se nevrací.`;
   const text = [
-    'Dobrý den,', `děkuji za nákup. Tady ${many ? 'jsou vaše dárkové poukazy' : 'je váš dárkový poukaz'}:`,
+    'Dobrý den,', many ? TEXTS.voucherIntroMany : TEXTS.voucherIntro,
     issued.map(i => `Dárkový poukaz ${Number(i.value).toLocaleString('cs-CZ')} Kč\nKód: ${i.code}`).join('\n\n'),
-    rules, SIGN, FOOTER,
+    rules, SIGN(), FOOTER,
   ].join('\n\n');
   const html = layout(subject,
-    para(`Dobrý den,\nděkuji za nákup. Tady ${many ? 'jsou vaše dárkové poukazy' : 'je váš dárkový poukaz'}:`) +
+    para(`Dobrý den,\n${many ? TEXTS.voucherIntroMany : TEXTS.voucherIntro}`) +
     issued.map(i => voucherCard({ value: i.value, code: i.code, expires })).join('') +
-    para(rules) + para(SIGN));
+    para(rules) + para(SIGN()));
   return { subject, text, html };
 }
 
@@ -127,33 +164,34 @@ function loginCode({ code, device, time, validMinutes }) {
 function orderCustomer(v) {
   const subject = `Děkuji za objednávku č. ${v.number}`;
   const transfer = v.payment === 'transfer';
+  const vars = { cislo: v.number, jmeno: v.name };
   const pay = transfer
-    ? `Prosím o úhradu ${v.total} Kč na účet ${v.bank.account || '(číslo účtu doplním)'}${v.bank.iban ? ' (IBAN ' + v.bank.iban + ')' : ''}, variabilní symbol ${v.number}. Platbu čekám do 7 dnů, jinak objednávku zruším. Jakmile peníze dorazí, začnu balit.`
-    : 'Platbu jsem přijala, děkuji.';
-  const ship = 'Zásilku odesílám nejpozději do 5 pracovních dnů od přijetí platby.';
+    ? `Prosím o úhradu ${v.total} Kč na účet ${v.bank.account || '(číslo účtu doplním)'}${v.bank.iban ? ' (IBAN ' + v.bank.iban + ')' : ''}, variabilní symbol ${v.number}. ${fill(TEXTS.transferNote, vars)}`
+    : fill(TEXTS.paidNote, vars);
+  const ship = fill(TEXTS.shipNote, vars) + (RULES.vacation.on && RULES.vacation.message ? ' ' + RULES.vacation.message : '');
   const lines = v.lines.map(([a, b]) => `${a}: ${b}`).join('\n');
   const text = [
     `Dobrý den, ${v.name},`, '',
-    `děkuji za vaši objednávku č. ${v.number}. Tady je její shrnutí.`, '',
+    fill(TEXTS.orderIntro, vars), '',
     lines, `Celkem: ${v.total} Kč`, '',
     `Doprava: ${v.shippingLabel}`, `Platba: ${v.paymentLabel}`, `Doručovací údaje: ${v.address}`,
     ...(v.giftMessage ? ['', `Vzkaz na kartičku: ${v.giftMessage}`] : []),
     '', pay, ship, '',
     ...(v.invoiceNumber ? [`Fakturu č. ${v.invoiceNumber} najdete v příloze tohoto e-mailu.`, ''] : []),
-    `Vrátit zboží do 14 dnů můžete podle obchodních podmínek (${SITE_URL}/obchodni-podminky). Kdyby cokoli nesedělo, stačí odpovědět na tento e-mail.`, '',
-    SIGN,
+    `${fill(TEXTS.returnNote, vars)} Obchodní podmínky: ${SITE_URL}/obchodni-podminky`, '',
+    SIGN(),
   ].join('\n');
   const html = layout(subject,
     h2(`Děkuji za objednávku č. ${v.number}`) +
-    para(`Dobrý den, ${v.name},\nděkuji za vaši objednávku. Tady je její shrnutí.`) +
+    para(`Dobrý den, ${v.name},\n${fill(TEXTS.orderIntro, vars)}`) +
     rowsTable(v.lines, `${v.total} Kč`) +
     para(`Doprava: ${v.shippingLabel}\nPlatba: ${v.paymentLabel}\nDoručovací údaje: ${v.address}`) +
     (v.giftMessage ? para(`Vzkaz na kartičku: ${v.giftMessage}`) : '') +
     (transfer ? `<div style="margin:0 0 14px;padding:14px 16px;background:#f1ebf7;border-radius:8px;line-height:1.65">${esc(pay)}</div>` : para(pay)) +
     para(ship) +
     (v.invoiceNumber ? para(`Fakturu č. ${v.invoiceNumber} najdete v příloze tohoto e-mailu.`) : '') +
-    para(`Vrátit zboží do 14 dnů můžete podle obchodních podmínek. Kdyby cokoli nesedělo, stačí odpovědět na tento e-mail.`) +
-    para(SIGN));
+    para(fill(TEXTS.returnNote, vars)) +
+    para(SIGN()));
   return { subject, text, html };
 }
 
@@ -179,4 +217,4 @@ function orderOwner(v) {
   return { subject, text, html };
 }
 
-module.exports = { sendMail, notice, voucherMail, loginCode, orderCustomer, orderOwner, kc, esc };
+module.exports = { refresh, validateTexts, applyTexts, DEFAULT_TEXTS, TEXTS, TEXT_KEYS, sendMail, notice, voucherMail, loginCode, orderCustomer, orderOwner, kc, esc };

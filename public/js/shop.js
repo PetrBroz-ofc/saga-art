@@ -52,7 +52,7 @@ const SHIP_META = {
 
 // Kolekce — barvy placeholderů odpovídají kamenům
 // Pořadí = pořadí na webu. cover = titulní fotka (šperk na těle působí víc než stojánek).
-const COLLECTIONS = {
+let COLLECTIONS = {
   Charlotte: { cover:'/img/produkty/charlotte-nahrdelnik/1.jpg', desc:'Jemný amazonit, pravé říční perly a čtyřlístek pro štěstí.', ph1:'#e3f1ec', ph2:'#a7cfc1', gem:'#9cc9b9' },
   Euforie:   { cover:'/img/produkty/euforie-gold-long/1.jpg', desc:'Drobné říční perly a zlatá ocel. Šperky na každý den, které se krásně vrství.', ph1:'#fbf3e4', ph2:'#e6cf9f', gem:'' },
   'Moře':    { cover:'/img/produkty/more-kvet-nahrdelnik/1.jpg', desc:'Světle modrý akvamarín a říční perly v barvách mořské hladiny.', ph1:'#e5f0f5', ph2:'#a9c8d8', gem:'#a3c8da' },
@@ -701,6 +701,10 @@ async function loadCatalog() {
     if (data.vouchers && Array.isArray(data.vouchers.values)) SHOP.vouchers = data.vouchers;
     if (data.payments) SHOP.payments = data.payments;
     if (data.vacation) SHOP.vacation = data.vacation;
+    if (Array.isArray(data.collections) && data.collections.length) {
+      const old = COLLECTIONS;
+      COLLECTIONS = Object.fromEntries(data.collections.map(c => [c.name, { cover: c.cover || '', desc: c.desc || '', ph1: old[c.name]?.ph1 || '#f4f1f1', ph2: old[c.name]?.ph2 || '#d6cdcf', gem: old[c.name]?.gem || '' }]));
+    }
   } catch {
     // Lokální náhled bez serveru — ukázková data (objednat z nich nejde)
     const res = await fetch('/data/products.json').catch(() => null);
@@ -708,6 +712,7 @@ async function loadCatalog() {
   }
   PRODUCTS = PRODUCTS.map(p => ({ ...p, id: safeId(p.id), price: Number(p.price) || 0 }));
   buildVouchers();
+  [...new Set(PRODUCTS.map(p => p.collection).filter(Boolean))].forEach(n => { if (!COLLECTIONS[n]) COLLECTIONS[n] = { cover:'', desc:'', ph1:'#f4f1f1', ph2:'#d6cdcf', gem:'' }; });
   applyRules();
   renderCollections();
   renderNavMenus();

@@ -97,6 +97,8 @@ async function releaseForOrder(orderNumber) {
     if (vs.exists) tx.update(vRef, { balance: (vs.data().balance || 0) + (v.consumed || v.amount) });
     tx.update(oRef, { 'voucher.released': true });
   });
+  // slevový kód z téže objednávky se vrací stejně (vlastní modul, aby se moduly neprocházely do kruhu)
+  await require('./_coupons').releaseForOrder(orderNumber);
 }
 
 // Zaplacená objednávka s poukazy: vytvoří kódy (jen jednou) a vrátí je pro e-mail.

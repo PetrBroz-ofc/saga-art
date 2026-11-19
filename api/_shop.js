@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const { getDb } = require('./_utils');
 const V = require('./_vouchers');
+const Coupons = require('./_coupons');
 const Mail = require('./_mail');
 const Invoices = require('./_invoice');
 
@@ -98,7 +99,7 @@ function newOrderNumber() {
 // (buď proběhne obojí, nebo nic). discountBase = z čeho smí poukaz platit (jen zboží a balení,
 // ne doprava a ne jiné poukazy). Poukaz je jednorázový: čerpá se z něj, co jde, zbytek propadá.
 // Doprava zdarma se posuzuje z částky za zboží a balení po slevě. Vrací { number, order } nebo { error }.
-async function createOrder(data, voucherCode, discountBase) {
+async function createOrder(data, voucherCode, discountBase, couponCode = '', goods = 0) {
   const db = getDb();
   for (let attempt = 0; attempt < 8; attempt++) {
     const number = newOrderNumber();
@@ -107,16 +108,25 @@ async function createOrder(data, voucherCode, discountBase) {
       const exists = await tx.get(ref);
       if (exists.exists) return { retry: true };
       const order = { ...data, number, createdAt: new Date() };
+      // 1) slevový kód ze zboží, 2) poukaz ze zbytku (zboží po slevě + balení)
+      let base = discountBase;
+      if (couponCode) {
+        const c = await Coupons.reserveInTx(tx, couponCode, goods, number);
+        if (c.error) return { error: c.error };
+        order.coupon = { code: c.code, amount: c.amount, released: false };
+        order.couponDiscount = c.amount;
+        base = Math.max(0, base - c.amount);
+      }
       if (voucherCode) {
-        const v = await V.reserveInTx(tx, voucherCode, discountBase, number);
+        const v = await V.reserveInTx(tx, voucherCode, base, number);
         if (v.error) return { error: v.error };
         order.voucher = { docId: v.docId, last4: v.last4, amount: v.amount, consumed: v.consumed, released: false };
         order.discount = v.amount;
       }
-      const discount = order.discount || 0;
-      if (SHIPPING[order.shipping]?.freeFrom && RULES.freeFrom > 0 && discountBase - discount >= RULES.freeFrom) order.shippingPrice = 0;
-      order.total = Math.max(0, (order.subtotal || 0) + (order.shippingPrice || 0) + (order.giftWrapPrice || 0) - discount);
-      if (voucherCode && order.total === 0) { order.status = 'paid'; order.payment = 'voucher'; order.paidAt = new Date(); }
+      const discount = order.discount || 0, cDiscount = order.couponDiscount || 0;
+      if (SHIPPING[order.shipping]?.freeFrom && RULES.freeFrom > 0 && base - discount >= RULES.freeFrom) order.shippingPrice = 0;
+      order.total = Math.max(0, (order.subtotal || 0) + (order.shippingPrice || 0) + (order.giftWrapPrice || 0) - cDiscount - discount);
+      if ((voucherCode || couponCode) && order.total === 0) { order.status = 'paid'; order.payment = 'voucher'; order.paidAt = new Date(); }
       tx.create(ref, order);
       return { number, order };
     });
@@ -131,12 +141,14 @@ function bankInfo() {
 
 // Pošle potvrzení zákaznici a upozornění majitelce. Chyby jen loguje (bez osobních údajů).
 async function sendOrderEmails(order) {
+  await Promise.all([refreshRules(), Mail.refresh()]); // texty e-mailů a dovolená z nastavení
   const c = order.customer;
   const bank = bankInfo();
   const lines = [
     ...order.lines.map(l => [`${l.name} × ${l.qty}`, Mail.kc(l.price * l.qty)]),
     [`Doprava: ${SHIPPING[order.shipping].name}`, Mail.kc(order.shippingPrice)],
     ...(order.giftWrap ? [[GIFT_WRAP.name, Mail.kc(order.giftWrapPrice)]] : []),
+    ...(order.couponDiscount ? [[`Slevový kód ${order.coupon?.code || ''}`, '−' + Mail.kc(order.couponDiscount)]] : []),
     ...(order.discount ? [[`Dárkový poukaz …${order.voucher?.last4 || ''}`, '−' + Mail.kc(order.discount)]] : []),
   ];
   const view = {
@@ -171,7 +183,7 @@ async function sendOrderEmails(order) {
 // Po zaplacení: vystaví a pošle dárkové poukazy z objednávky (bezpečné volat opakovaně).
 async function afterPaid(orderNumber) {
   try {
-    await refreshRules(); // platnost poukazu (měsíce) z nastavení
+    await Promise.all([refreshRules(), Mail.refresh()]); // platnost poukazu a texty e-mailů z nastavení
     const res = await V.issueForOrder(orderNumber);
     if (!res || !res.email) return;
     const exp = res.expiresAt.toLocaleDateString('cs-CZ', { timeZone: 'Europe/Prague' });

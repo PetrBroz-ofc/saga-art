@@ -39,6 +39,8 @@ function publicOrder(id, o) {
     giftWrapPrice: Number(o.giftWrapPrice) || 0,
     giftMessage: String(o.giftMessage || ''),
     discount: Number(o.discount) || 0,
+    couponCode: String(o.coupon?.code || ''),
+    couponDiscount: Number(o.couponDiscount) || 0,
     voucherLast4: String(o.voucher?.last4 || ''),
     vouchers: (Array.isArray(o.vouchers) ? o.vouchers : []).map(v => ({ value: Number(v.value) || 0, last4: String(v.last4 || '') })),
     invoiceNumber: String(o.invoiceNumber || ''),

@@ -8,6 +8,9 @@ const HANDLERS = {
   account: require('./_h/account'),
   site: require('./_h/site'),
   shop: require('./_h/shop'),
+  subscribers: require('./_h/subscribers'),
+  mail: require('./_h/mailtexts'),
+  coupons: require('./_h/coupons'),
 };
 
 module.exports = async function handler(req, res) {

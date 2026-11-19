@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   // max. 5 objednávek / 10 min z jedné IP (proti spamu a zahlcení)
   if (!(await limitOrReject(res, 'order_ip', clientIp(req), 5, 10 * 60 * 1000))) return;
 
-  const { items, shipping, payment, customer, website, giftWrap, giftMessage, voucherCode } = req.body;
+  const { items, shipping, payment, customer, website, giftWrap, giftMessage, voucherCode, couponCode } = req.body;
 
   // Honeypot — skryté pole, které vyplní jen bot. Tváříme se, že je vše OK.
   if (website) return res.status(200).json({ ok: true });
@@ -27,6 +27,8 @@ export default async function handler(req, res) {
   const cust = validateCustomer(customer, shipping);
   if (cust.error) return fail(res, 400, cust.error);
   if (voucherCode !== undefined && voucherCode !== '' && typeof voucherCode !== 'string') return fail(res, 400, 'Neplatný kód poukazu');
+  if (couponCode !== undefined && couponCode !== '' && (typeof couponCode !== 'string' || couponCode.length > 40)) return fail(res, 400, 'Neplatný slevový kód');
+  if (couponCode && !(await limitOrReject(res, 'coupon_ip', clientIp(req), 15, 15 * 60 * 1000))) return;
   // kód poukazu zkouší útočník hádat → přísnější limit, jen když je vyplněný
   if (voucherCode && !(await limitOrReject(res, 'voucher_ip', clientIp(req), 10, 15 * 60 * 1000))) return;
 
@@ -59,7 +61,7 @@ export default async function handler(req, res) {
       emailsSent: false,
     };
     // poukazem jde platit jen zboží a balení, ne dopravu ani další poukazy
-    const created = await createOrder(order, voucherCode ? voucherCode : '', cart.goods + wrapPrice);
+    const created = await createOrder(order, voucherCode ? voucherCode : '', cart.goods + wrapPrice, couponCode ? couponCode : '', cart.goods);
     if (created.error) return fail(res, 400, created.error);
     number = created.number;
     Object.assign(order, created.order);
@@ -81,7 +83,7 @@ export default async function handler(req, res) {
 
     // ── Karta: Stripe Checkout. E-maily pošle až webhook po ověřené platbě. ──
     // Se slevou z poukazu jde do Stripe jedna souhrnná položka (Stripe nemá záporné řádky).
-    const lineItems = order.discount
+    const lineItems = (order.discount || order.couponDiscount)
       ? [{ price_data: { currency: 'czk', product_data: { name: `Objednávka ${number} (po odečtení poukazu)` }, unit_amount: order.total * 100 }, quantity: 1 }]
       : [
           ...cart.lines.map(l => ({

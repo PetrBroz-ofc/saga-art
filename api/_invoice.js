@@ -40,6 +40,7 @@ function fromOrder(order, shippingName, wrapName) {
   const add = (name, price) => items.push({ name, qty: 1, unit: 'ks', price, sum: price });
   if (order.shippingPrice) add('Doprava: ' + shippingName, Number(order.shippingPrice));
   if (order.giftWrap && order.giftWrapPrice) add(wrapName, Number(order.giftWrapPrice));
+  if (order.couponDiscount) add('Sleva (kód ' + (order.coupon?.code || '') + ')', -Number(order.couponDiscount));
   if (order.discount) add('Sleva dárkovým poukazem' + (order.voucher?.last4 ? ' …' + order.voucher.last4 : ''), -Number(order.discount));
   const total = items.reduce((s, i) => s + i.sum, 0);
   const paid = order.payment !== 'transfer'; // karta se potvrzuje až po zaplacení, poukaz je platba hned

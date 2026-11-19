@@ -8,6 +8,7 @@ const HANDLERS = {
   voucher: require('./_h/voucher'),
   withdrawal: require('./_h/withdrawal'),
   site: require('./_h/sitepub'),
+  coupon: require('./_h/coupon'),
 };
 
 module.exports = async function handler(req, res) {

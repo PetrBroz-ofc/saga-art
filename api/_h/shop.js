@@ -12,7 +12,7 @@ function view() {
     shipping, freeFrom: R.RULES.freeFrom,
     giftWrap: { price: R.GIFT_WRAP.price, on: R.RULES.giftWrapOn },
     vouchers: { values: R.RULES.voucherValues, months: R.RULES.voucherMonths, on: R.RULES.vouchersOn },
-    payments: R.RULES.payments, vacation: R.RULES.vacation,
+    payments: R.RULES.payments, vacation: R.RULES.vacation, collections: R.RULES.collections,
   };
 }
 
@@ -25,8 +25,10 @@ module.exports = async function handler(req, res) {
     }
     const v = R.validate(req.body);
     if (v.error) return fail(res, 400, v.error);
-    await getDb().collection('settings').doc('shop').set({ ...v.data, updatedAt: new Date() });
-    R.apply(v.data);
+    const cur = await R.load();
+    const doc = { ...(cur || {}), ...v.data, updatedAt: new Date() };
+    await getDb().collection('settings').doc('shop').set(doc);
+    R.apply(doc);
     R.markStale();
     return res.status(200).json(view());
   } catch (err) {

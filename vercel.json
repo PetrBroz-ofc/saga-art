@@ -110,6 +110,22 @@
     {
       "source": "/api/shop-settings",
       "destination": "/api/admin?r=shop"
+    },
+    {
+      "source": "/api/coupon",
+      "destination": "/api/public?r=coupon"
+    },
+    {
+      "source": "/api/coupons",
+      "destination": "/api/admin?r=coupons"
+    },
+    {
+      "source": "/api/subscribers",
+      "destination": "/api/admin?r=subscribers"
+    },
+    {
+      "source": "/api/mail-settings",
+      "destination": "/api/admin?r=mail"
     }
   ]
 }
