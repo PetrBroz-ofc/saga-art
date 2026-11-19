@@ -22,11 +22,11 @@
 <!-- ═══ ÚVODNÍ ANIMACE (js/intro.js) ═══ -->
 <div class="intro" id="intro" aria-hidden="true">
   <div class="intro-stack">
-    <div class="intro-card" data-rot="-4" data-target="main2"><img src="/img/produkty/more/1.jpg" alt="" width="750" height="1000"></div>
-    <div class="intro-card" data-rot="3" data-target="side2"><img src="/img/produkty/euforie-gold-set/1.jpg" alt="" width="1000" height="1000"></div>
-    <div class="intro-card" data-rot="-2" data-target="side"><img src="/img/produkty/duna-set/1.jpg" alt="" width="1000" height="1000"></div>
+    <div class="intro-card" data-rot="-4" data-target="main2"><img data-cms-img="hero-3" src="/img/produkty/more/1.jpg" alt="" width="750" height="1000"></div>
+    <div class="intro-card" data-rot="3" data-target="side2"><img data-cms-img="hero-4" src="/img/produkty/euforie-gold-set/1.jpg" alt="" width="1000" height="1000"></div>
+    <div class="intro-card" data-rot="-2" data-target="side"><img data-cms-img="hero-2" src="/img/produkty/duna-set/1.jpg" alt="" width="1000" height="1000"></div>
     <div class="intro-card" data-rot="2.5"><img src="/img/produkty/euforie-gold-nahrdelnik/1.jpg" alt="" width="1000" height="1000"></div>
-    <div class="intro-card" data-rot="0" data-target="main"><img src="/img/hero-charlotte.jpg" alt="" width="746" height="1000" fetchpriority="high"></div>
+    <div class="intro-card" data-rot="0" data-target="main"><img data-cms-img="hero-1" src="/img/hero-charlotte.jpg" alt="" width="746" height="1000" fetchpriority="high"></div>
   </div>
   <div class="intro-word"><span>S</span><span>á</span><span>g</span><span>a</span><span class="gap"> </span><em><span>A</span><span>r</span><span>t</span></em></div>
 </div>
@@ -42,7 +42,7 @@
     <button class="nav-burger" id="navBurger" aria-expanded="false" aria-controls="mobileMenu" aria-label="Otevřít menu">
       <span></span><span></span>
     </button>
-    <a href="#" class="nav-logo">Sága <em>Art</em></a>
+    <a href="#" class="nav-logo" data-cms-logo>Sága <em>Art</em></a>
     <ul class="nav-links" id="navLinks">
       <li><a class="nav-link" href="#o-saga-art" data-spy="o-saga-art">O Sága Art</a></li>
       <li><button class="nav-link" data-panel="panelKolekce" data-spy="kolekce" aria-expanded="false" aria-controls="panelKolekce">Kolekce<svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5"/></svg></button></li>
@@ -78,7 +78,7 @@
         <li><a href="#produkty" data-filter="vse"><span>Všechny šperky</span><small data-count="vse"></small></a></li>
       </ul>
       <a href="#produkty" class="panel-feature" data-filter="soupravy">
-        <img src="/img/produkty/euforie-gold-set/1.jpg" alt="" width="1000" height="1000" loading="lazy">
+        <img data-cms-img="hero-4" data-cms-label="Malá fotka vlevo" data-cms-group="Úvod" src="/img/produkty/euforie-gold-set/1.jpg" alt="" width="1000" height="1000" loading="lazy">
         <span class="caption">Sety: náhrdelník, náramek a náušnice, které k sobě ladí</span>
       </a>
       <a href="#produkty" class="panel-feature" data-filter="nausnice">
@@ -118,22 +118,22 @@
     </div>
   </div>
   <figure class="hero-media hero-media--left" aria-hidden="true">
-    <div class="hero-main" data-slot="main2"><img src="/img/produkty/more/1.jpg" alt="" width="750" height="1000" loading="lazy"></div>
+    <div class="hero-main" data-slot="main2"><img data-cms-img="hero-3" data-cms-label="Velká fotka vlevo" data-cms-group="Úvod" src="/img/produkty/more/1.jpg" alt="" width="750" height="1000" loading="lazy"></div>
     <div class="hero-side" data-slot="side2"><img src="/img/produkty/euforie-gold-set/1.jpg" alt="" width="1000" height="1000" loading="lazy"></div>
     <figcaption class="caption">Moře · akvamarín a říční perly</figcaption>
   </figure>
   <figure class="hero-media hero-media--right">
-    <div class="hero-main" data-slot="main"><img src="/img/hero-charlotte.jpg" alt="Set Charlotte s amazonitem a říčními perlami na krku a zápěstí" width="746" height="1000" fetchpriority="high"></div>
-    <div class="hero-side" data-slot="side"><img src="/img/produkty/duna-set/1.jpg" alt="Set Duna položený na písku" width="1000" height="1000" loading="lazy"></div>
+    <div class="hero-main" data-slot="main"><img data-cms-img="hero-1" data-cms-label="Velká fotka vpravo" data-cms-group="Úvod" src="/img/hero-charlotte.jpg" alt="Set Charlotte s amazonitem a říčními perlami na krku a zápěstí" width="746" height="1000" fetchpriority="high"></div>
+    <div class="hero-side" data-slot="side"><img data-cms-img="hero-2" data-cms-label="Malá fotka vpravo" data-cms-group="Úvod" src="/img/produkty/duna-set/1.jpg" alt="Set Duna položený na písku" width="1000" height="1000" loading="lazy"></div>
     <figcaption class="caption">Charlotte SET · amazonit a říční perly</figcaption>
   </figure>
 </section>
 
 
 <!-- ═══ O SÁGA ART ═══ -->
-<section class="section" id="o-saga-art">
+<section class="section" id="o-saga-art" data-section="about" data-section-label="O mně">
   <div class="wrap about">
-    <div class="about-img"><img src="/img/produkty/euforie-gold-nahrdelnik/1.jpg" alt="Náhrdelník Euforie Gold na zádech" width="1000" height="1000" loading="lazy"></div>
+    <div class="about-img"><img data-cms-img="about-photo" data-cms-label="Fotka u textu" data-cms-group="O mně" src="/img/produkty/euforie-gold-nahrdelnik/1.jpg" alt="Náhrdelník Euforie Gold na zádech" width="1000" height="1000" loading="lazy"></div>
     <div class="about-content">
       <h2 class="section-title about-title" data-cms="about-title" data-cms-label="Nadpis" data-cms-group="O mně">Šperky s&nbsp;příběhem</h2>
       <div class="about-text">
@@ -147,29 +147,29 @@
 </section>
 
 <!-- ═══ MATERIÁLY ═══ -->
-<section class="section materials">
+<section class="section materials" data-section="materials" data-section-label="Z čeho tvořím">
   <div class="wrap">
     <div class="section-head">
       <h2 class="section-title" data-cms="materials-title" data-cms-label="Nadpis" data-cms-group="Materiály">Z čeho tvořím</h2>
     </div>
     <div class="mat-grid">
       <div class="mat-card">
-        <div class="mat-photo"><img src="/img/produkty/pure-nausnice/1.jpg" alt="Náušnice Pure z nepravidelných říčních perel" width="750" height="1000" loading="lazy"></div>
+        <div class="mat-photo"><img data-cms-img="mat1-photo" data-cms-label="Karta 1" data-cms-group="Materiály" src="/img/produkty/pure-nausnice/1.jpg" alt="Náušnice Pure z nepravidelných říčních perel" width="750" height="1000" loading="lazy"></div>
         <h3 data-cms="mat1-title" data-cms-label="Karta 1: nadpis" data-cms-group="Materiály">Nepravidelné perly</h3>
         <p data-cms="mat1-text" data-cms-label="Karta 1: text" data-cms-group="Materiály">Každá perla má jiný tvar, takže dva stejné páry nenajdete.</p>
       </div>
       <div class="mat-card">
-        <div class="mat-photo"><img src="/img/produkty/more/1.jpg" alt="Náhrdelník Moře s akvamarínem na kameni" width="750" height="1000" loading="lazy"></div>
+        <div class="mat-photo"><img data-cms-img="mat2-photo" data-cms-label="Karta 2" data-cms-group="Materiály" src="/img/produkty/more/1.jpg" alt="Náhrdelník Moře s akvamarínem na kameni" width="750" height="1000" loading="lazy"></div>
         <h3 data-cms="mat2-title" data-cms-label="Karta 2: nadpis" data-cms-group="Materiály">Přírodní minerály</h3>
         <p data-cms="mat2-text" data-cms-label="Karta 2: text" data-cms-group="Materiály">Amazonit, akvamarín, růženín a jiné minerály v přirozených odstínech, většinou jako drobné zlomky kamene.</p>
       </div>
       <div class="mat-card">
-        <div class="mat-photo"><img src="/img/produkty/euforie-gold-nausnice/1.jpg" alt="Náušnice Euforie Gold z nerezové oceli s pozlaceným povrchem" width="1000" height="1000" loading="lazy"></div>
+        <div class="mat-photo"><img data-cms-img="mat3-photo" data-cms-label="Karta 3" data-cms-group="Materiály" src="/img/produkty/euforie-gold-nausnice/1.jpg" alt="Náušnice Euforie Gold z nerezové oceli s pozlaceným povrchem" width="1000" height="1000" loading="lazy"></div>
         <h3 data-cms="mat3-title" data-cms-label="Karta 3: nadpis" data-cms-group="Materiály">Nerezová ocel</h3>
         <p data-cms="mat3-text" data-cms-label="Karta 3: text" data-cms-group="Materiály">Řetízky, zapínání a další drobné díly jsou z nerezové oceli, stříbrné nebo pozlacené.</p>
       </div>
       <div class="mat-card">
-        <div class="mat-photo"><img src="/img/produkty/charlotte-nausnice-rose/1.jpg" alt="Náušnice Rose z pravých říčních perel na růžovém sáčku" width="1000" height="1000" loading="lazy"></div>
+        <div class="mat-photo"><img data-cms-img="mat4-photo" data-cms-label="Karta 4" data-cms-group="Materiály" src="/img/produkty/charlotte-nausnice-rose/1.jpg" alt="Náušnice Rose z pravých říčních perel na růžovém sáčku" width="1000" height="1000" loading="lazy"></div>
         <h3 data-cms="mat4-title" data-cms-label="Karta 4: nadpis" data-cms-group="Materiály">Dodavatelé perel</h3>
         <p data-cms="mat4-text" data-cms-label="Karta 4: text" data-cms-group="Materiály">Při výběru pravých říčních perel upřednostňuji ověřené české dodavatele.</p>
       </div>
@@ -177,10 +177,10 @@
   </div>
 </section>
 
-<blockquote class="quote-strip"><span data-cms="quote-strip" data-cms-label="Citát přes celou šířku" data-cms-group="Materiály">„Nejde o to, co chcete skrýt. Jde o to, co chcete ukázat.“</span><cite>Sága Art</cite></blockquote>
+<blockquote class="quote-strip" data-section="quote" data-section-label="Citát"><span data-cms="quote-strip" data-cms-label="Citát přes celou šířku" data-cms-group="Materiály">„Nejde o to, co chcete skrýt. Jde o to, co chcete ukázat.“</span><cite>Sága Art</cite></blockquote>
 
 <!-- ═══ KOLEKCE ═══ -->
-<section class="section" id="kolekce">
+<section class="section" id="kolekce" data-section="collections" data-section-label="Kolekce">
   <div class="wrap">
     <div class="carousel" data-carousel>
       <div class="section-head">
@@ -208,7 +208,7 @@
 </section>
 
 <!-- ═══ GALERIE NA MODELCE ═══ -->
-<section class="gallery-sec" id="galerie">
+<section class="gallery-sec" id="galerie" data-section="gallery" data-section-label="Šperky na modelce">
   <div class="footer-strip">
     <div class="footer-strip-head">
       <div>
@@ -228,7 +228,7 @@
 </section>
 
 <!-- ═══ PRODUKTY ═══ -->
-<section class="section products" id="produkty">
+<section class="section products" id="produkty" data-section="products" data-section-label="Šperky skladem">
   <div class="wrap">
     <div class="section-head">
       <h2 class="section-title" data-cms="products-title" data-cms-label="Nadpis" data-cms-group="Šperky">Šperky skladem</h2>
@@ -250,7 +250,7 @@
 </section>
 
 <!-- ═══ DOPRAVA ═══ -->
-<section class="section" id="doprava">
+<section class="section" id="doprava" data-section="shipping" data-section-label="Doprava a balení">
   <div class="wrap ship-layout">
     <div>
       <h2 class="section-title" data-cms="shipping-title" data-cms-label="Nadpis" data-cms-group="Doprava">Doprava a&nbsp;balení</h2>
@@ -261,7 +261,7 @@
 </section>
 
 <!-- ═══ DÁRKOVÉ POUKAZY ═══ -->
-<section class="section vouchers" id="poukazy">
+<section class="section vouchers" id="poukazy" data-section="vouchers" data-section-label="Dárkové poukazy">
   <div class="wrap vouchers-layout">
     <div>
       <h2 class="section-title" data-cms="vouchers-title" data-cms-label="Nadpis" data-cms-group="Dárkové poukazy">Dárkový poukaz</h2>
@@ -276,9 +276,9 @@
 </section>
 
 <!-- ═══ NA MÍRU ═══ -->
-<section class="section custom" id="na-miru">
+<section class="section custom" id="na-miru" data-section="custom" data-section-label="Šperk na míru">
   <div class="wrap custom-layout">
-    <div class="custom-photo"><img src="/img/produkty/duna-naramek/1.jpg" alt="Náramek Duna na zápěstí" width="790" height="1000" loading="lazy"></div>
+    <div class="custom-photo"><img data-cms-img="custom-photo" data-cms-label="Fotka u textu" data-cms-group="Šperk na míru" src="/img/produkty/duna-naramek/1.jpg" alt="Náramek Duna na zápěstí" width="790" height="1000" loading="lazy"></div>
     <div>
       <h2 class="section-title" data-cms="custom-title" data-cms-label="Nadpis" data-cms-group="Šperk na míru">Šperk na&nbsp;míru</h2>
       <p class="custom-lead" data-cms="custom-lead" data-cms-label="Úvodní text" data-cms-group="Šperk na míru">Skoro všechno, co tu vidíte, umím upravit. Délku řetízku, velikost náramku, zlatou nebo stříbrnou ocel, jiný kámen. A ráda vytvořím i úplně nový šperk podle vašeho nápadu, pro vás, pro partnera nebo pro dítě.</p>
@@ -294,7 +294,7 @@
 </section>
 
 <!-- ═══ NEWSLETTER ═══ -->
-<section class="section newsletter">
+<section class="section newsletter" data-section="newsletter" data-section-label="Novinky e-mailem">
   <div class="wrap">
     <div>
       <h2 class="section-title" data-cms="newsletter-title" data-cms-label="Nadpis" data-cms-group="Newsletter">Novinky e-mailem</h2>
@@ -314,7 +314,7 @@
 <footer class="site-footer" id="kontakt">
   <div class="footer-main">
     <div class="footer-brand">
-      <a href="#" class="nav-logo">Sága <em>Art</em></a>
+      <a href="#" class="nav-logo" data-cms-logo>Sága <em>Art</em></a>
       <p class="footer-desc" data-cms="footer-desc" data-cms-label="Krátký popis" data-cms-group="Patička">Ručně vyráběné šperky z pravých říčních perel, přírodních minerálů a nerezové oceli.</p>
       <p class="footer-meta" data-cms="footer-meta" data-cms-label="Platba a doprava (dva řádky)" data-cms-group="Patička" data-cms-multiline>Platba kartou nebo převodem předem<br>Doprava po Česku i na Slovensko od <span data-rule="ship-min">89</span> Kč<span data-rule-block="free">, nad <span data-rule="free-from">1 490</span> Kč zdarma</span></p>
     </div>
@@ -353,6 +353,7 @@
     </button>
   </div>
 </footer>
+<script src="/js/theme-layout.js"></script>
 
 <!-- ═══ KOŠÍK ═══ -->
 <div class="cart-overlay" id="cartOverlay" data-action="closeCartOutside">

@@ -155,10 +155,10 @@
   let siteDoc = null, siteHistory = [];
   function siteApi(method, body) {
     const view = () => ({ settings: siteDoc ? clone(siteDoc) : null, updatedAt: null,
-      history: siteHistory.map((h, i) => ({ i, at: h.at })).reverse(), options: { fonts: DEMO_FONTS, defaults: DEMO_DEFAULTS } });
+      history: siteHistory.map((h, i) => ({ i, at: h.at })).reverse(), options: { fonts: DEMO_FONTS, defaults: DEMO_DEFAULTS, sections: ['about', 'materials', 'quote', 'collections', 'gallery', 'products', 'shipping', 'vouchers', 'custom', 'newsletter'], lockedSections: ['products'] } });
     if (method === 'GET') return view();
     const push = () => { if (siteDoc) siteHistory.push({ at: new Date().toISOString(), data: clone(siteDoc) }); };
-    if (method === 'PUT') { push(); siteDoc = { theme: body.theme, texts: body.texts || {}, links: body.links || {}, flags: body.flags || {} }; return view(); }
+    if (method === 'PUT') { push(); siteDoc = { theme: body.theme, texts: body.texts || {}, links: body.links || {}, flags: body.flags || {}, images: body.images || {}, sections: body.sections || [], seo: body.seo || {} }; return view(); }
     if (body.reset) { push(); siteDoc = null; return view(); }
     if (Number.isInteger(body.restore)) { const h = siteHistory[body.restore]; if (!h) throw new Error('Tahle verze už není k dispozici'); siteDoc = clone(h.data); return view(); }
     throw new Error('Není co udělat');

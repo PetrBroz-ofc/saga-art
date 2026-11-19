@@ -98,13 +98,106 @@
     }
   }
 
-  function apply(s, { content = true } = {}) {
-    applyTheme(s && s.theme);
-    if (content) {
-      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => applyContent(s), { once: true });
-      else applyContent(s);
+  // ── Fotky, logo, ikona, SEO ──
+  const CLD = /^https:\/\/res\.cloudinary\.com\/[A-Za-z0-9_-]{2,60}\/image\/upload\/[^\s"'<>]{1,300}$/;
+  const optimize = (u, t) => (typeof u === 'string' && CLD.test(u) ? u.replace('/image/upload/', '/image/upload/' + t + '/') : '');
+
+  function applyImages(s) {
+    const imgs = (s && s.images) || {};
+    document.querySelectorAll('[data-cms-img]').forEach(el => {
+      if (el.__cmsSrc === undefined) el.__cmsSrc = el.getAttribute('src') || '';
+      const u = optimize(imgs[el.getAttribute('data-cms-img')], 'f_auto,q_auto,w_1400');
+      const want = u || el.__cmsSrc;
+      if (el.getAttribute('src') !== want) el.setAttribute('src', want);
+    });
+    document.querySelectorAll('[data-cms-logo]').forEach(a => {
+      if (a.__cmsLogo === undefined) a.__cmsLogo = a.innerHTML;
+      const u = optimize(imgs.logo, 'f_auto,q_auto,h_160');
+      if (u) {
+        if (!a.querySelector('img')) {
+          a.textContent = '';
+          const i = document.createElement('img'); i.className = 'nav-logo-img'; i.alt = 'Sága Art'; i.decoding = 'async';
+          a.appendChild(i);
+        }
+        const i = a.querySelector('img'); if (i.getAttribute('src') !== u) i.setAttribute('src', u);
+      } else if (a.querySelector('img')) a.innerHTML = a.__cmsLogo;
+    });
+    const fav = optimize(imgs.favicon, 'f_png,w_64,h_64,c_fill');
+    let own = document.getElementById('sa-favicon');
+    if (fav) {
+      if (!own) {
+        document.querySelectorAll('link[rel="icon"]').forEach(l => { l.__cmsRemoved = true; l.remove(); });
+        own = document.createElement('link'); own.id = 'sa-favicon'; own.rel = 'icon'; document.head.appendChild(own);
+      }
+      if (own.getAttribute('href') !== fav) own.setAttribute('href', fav);
     }
   }
+
+  function applySeo(s) {
+    const seo = (s && s.seo) || {};
+    if (document.__cmsTitle === undefined) {
+      document.__cmsTitle = document.title;
+      const d = document.querySelector('meta[name="description"]');
+      document.__cmsDesc = d ? d.getAttribute('content') : '';
+    }
+    document.title = seo.title || document.__cmsTitle;
+    const d = document.querySelector('meta[name="description"]');
+    if (d) d.setAttribute('content', seo.description || document.__cmsDesc);
+    const ogT = document.querySelector('meta[property="og:title"]'); if (ogT) ogT.setAttribute('content', seo.title || document.__cmsTitle);
+    const ogD = document.querySelector('meta[property="og:description"]'); if (ogD) ogD.setAttribute('content', seo.description || document.__cmsDesc);
+  }
+
+  // ── Pořadí a viditelnost sekcí ──
+  let current = null;
+  let origOrder = null;
+  let layoutKey = '';
+  function layout() {
+    const footer = document.getElementById('kontakt');
+    const els = [...document.querySelectorAll('[data-section]')];
+    if (!footer || !els.length) return false;
+    if (!origOrder) origOrder = els.slice();
+    const wanted = current && Array.isArray(current.sections) && current.sections.length ? current.sections : null;
+    const byId = id => els.find(e => e.getAttribute('data-section') === id);
+    const order = [];
+    if (wanted) wanted.forEach(x => { const e = byId(x.id); if (e && !order.includes(e)) order.push(e); });
+    origOrder.forEach(e => { if (!order.includes(e)) order.push(e); });
+    const key = JSON.stringify(order.map(e => e.getAttribute('data-section')).concat(wanted ? wanted.map(x => x.show) : []));
+    if (key === layoutKey) return false;
+    layoutKey = key;
+    order.forEach(e => footer.parentNode.insertBefore(e, footer));
+    const hiddenIds = new Set();
+    order.forEach(e => {
+      const id = e.getAttribute('data-section');
+      const show = wanted ? (wanted.find(x => x.id === id)?.show !== false) : true;
+      e.hidden = !show;
+      if (!show) hiddenIds.add(e.id);
+    });
+    // odkazy na skrytou sekci zmizí z menu
+    document.querySelectorAll('a[href^="#"]').forEach(a => {
+      const id = (a.getAttribute('href') || '').slice(1);
+      const li = a.closest('li');
+      if (id && li && li.closest('nav, .mobile-links, .footer-col')) li.hidden = hiddenIds.has(id);
+    });
+    return true;
+  }
+  const refreshLayoutEffects = () => {
+    try { window.ScrollTrigger && window.ScrollTrigger.refresh(); } catch {}
+    dispatchEvent(new Event('resize'));
+  };
+
+  function apply(s, { content = true } = {}) {
+    current = s;
+    applyTheme(s && s.theme);
+    const run = () => {
+      applyContent(s); applyImages(s); applySeo(s);
+      if (layout() && document.readyState === 'complete') refreshLayoutEffects();
+    };
+    if (content) {
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run, { once: true });
+      else run();
+    }
+  }
+  window.SaTheme = { layout, apply };
 
   // Okamžitě poslední známé nastavení (z minula), pak čerstvé ze serveru
   if (!PREVIEW) {

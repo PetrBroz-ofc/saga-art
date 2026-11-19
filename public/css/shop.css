@@ -762,3 +762,8 @@ img { max-width:100%; display:block; }
 .vc-foot { top:88.6%; font:400 1.45cqw/1 Arial, Helvetica, sans-serif; }
 .vc-l1::after, .vc-l2::after { content:""; position:absolute; top:5.6cqw; left:0; height:1px; background:#263558; width:24.4cqw; }
 .vc-l2::after { width:19.5cqw; }
+
+/* Logo z administrace místo textového */
+.nav-logo-img { display:block; height:34px; width:auto; max-width:min(240px, 52vw); object-fit:contain; }
+.site-header.scrolled .nav-logo-img { height:28px; }
+.site-footer .nav-logo-img { height:44px; }

@@ -606,3 +606,24 @@ a.btn { text-decoration:none; }
 .sh-add { display:inline-flex; gap:6px; align-items:center; }
 .sh-add input { width:130px; padding:8px 10px; border:1px solid var(--line-2); border-radius:8px; background:var(--paper); }
 .btn-sm { padding:8px 12px; font-size:.85rem; }
+
+/* Fotky, sekce a vyhledávače v administraci */
+.th-img { display:flex; gap:12px; align-items:center; padding:12px 14px; border-top:1px solid var(--line); }
+.th-img:first-of-type { border-top:0; }
+.th-img-pic { width:84px; height:64px; border-radius:8px; overflow:hidden; background:var(--sand); border:1px solid var(--line); flex-shrink:0; display:grid; place-items:center; font-size:.72rem; color:var(--ink-3); }
+.th-img-pic img { width:100%; height:100%; object-fit:cover; }
+.th-img-info { display:flex; flex-direction:column; gap:3px; min-width:0; font-size:.88rem; }
+.th-img-info small { color:var(--ink-3); font-size:.76rem; }
+.th-img-btns { display:flex; gap:12px; align-items:center; margin-top:3px; }
+.th-sections { border:1px solid var(--line); border-radius:var(--r-sm); }
+.th-sec { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border-bottom:1px solid var(--line); }
+.th-sec:last-child { border-bottom:0; }
+.th-sec .th-switch { margin:0; }
+.th-sec.is-off { background:var(--sand-2); color:var(--ink-3); }
+.th-sec-mv { display:flex; gap:4px; }
+.th-sec-mv .icon-btn { width:32px; height:32px; border:1px solid var(--line-2); border-radius:8px; font-size:1rem; }
+.th-sec-mv .icon-btn:disabled { opacity:.35; cursor:default; }
+.th-serp { padding:14px 16px; border:1px solid var(--line); border-radius:var(--r-sm); background:var(--paper); display:flex; flex-direction:column; gap:3px; font-family:Arial, sans-serif; }
+.th-serp small { color:#4d5156; font-size:.78rem; }
+.th-serp b { color:#1a0dab; font-weight:400; font-size:1.1rem; line-height:1.3; }
+.th-serp span { color:#4d5156; font-size:.85rem; line-height:1.45; }

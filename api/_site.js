@@ -40,6 +40,10 @@ const DEFAULT_THEME = {
   scale: 100,
 };
 const LINK_KEYS = ['instagram', 'facebook', 'fler', 'announce'];
+const SECTION_IDS = ['about', 'materials', 'quote', 'collections', 'gallery', 'products', 'shipping', 'vouchers', 'custom', 'newsletter'];
+const LOCKED_SECTIONS = ['products']; // bez nabídky šperků by e-shop nedával smysl
+const IMG_RE = /^https:\/\/res\.cloudinary\.com\/[A-Za-z0-9_-]{2,60}\/image\/upload\/[^\s"'<>]{1,300}$/;
+const MAX_IMAGES = 40;
 const MAX_TEXTS = 150;
 const HISTORY = 10;
 
@@ -119,7 +123,37 @@ function validate(b) {
   }
 
   const flags = { announce: b.flags?.announce === true };
-  return { data: { theme: { colors, fonts, radius, scale }, texts, links, flags } };
+
+  // fotky: jen z vlastního Cloudinary (jiné adresy CSP stejně nepustí)
+  const images = {};
+  const rawImages = b.images && typeof b.images === 'object' ? b.images : {};
+  for (const [k, v] of Object.entries(rawImages)) {
+    if (!v) continue;
+    if (!KEY_RE.test(k)) return { error: 'Neplatný klíč fotky' };
+    if (typeof v !== 'string' || !IMG_RE.test(v)) return { error: 'Fotka musí být nahraná přes administraci' };
+    images[k] = v;
+  }
+  if (Object.keys(images).length > MAX_IMAGES) return { error: 'Příliš mnoho upravených fotek' };
+
+  // pořadí a viditelnost sekcí
+  let sections = [];
+  if (Array.isArray(b.sections)) {
+    const seen = new Set();
+    for (const x of b.sections) {
+      if (!x || !SECTION_IDS.includes(x.id)) return { error: 'Neznámá sekce' };
+      if (seen.has(x.id)) continue;
+      seen.add(x.id);
+      sections.push({ id: x.id, show: LOCKED_SECTIONS.includes(x.id) ? true : x.show !== false });
+    }
+  }
+
+  const rawSeo = b.seo && typeof b.seo === 'object' ? b.seo : {};
+  const oneLine = t => cleanText(t, 200).split('\n').join(' ');
+  const seo = { title: oneLine(rawSeo.title).slice(0, 70), description: oneLine(rawSeo.description) };
+  if (!seo.title) delete seo.title;
+  if (!seo.description) delete seo.description;
+
+  return { data: { theme: { colors, fonts, radius, scale }, texts, links, flags, images, sections, seo } };
 }
 
 const fontsUrl = fonts => {
@@ -135,6 +169,7 @@ function publicView(doc) {
     theme: { colors: doc.theme.colors, radius: doc.theme.radius, scale: doc.theme.scale,
       fonts: { heading: FONTS[f.heading][2], body: FONTS[f.body][2] }, fontsUrl: fontsUrl(f) },
     texts: doc.texts || {}, links: doc.links || {}, flags: doc.flags || {},
+    images: doc.images || {}, sections: doc.sections || [], seo: doc.seo || {},
   };
 }
 
@@ -143,4 +178,4 @@ async function load() {
   return s.exists ? s.data() : null;
 }
 
-module.exports = { FONTS, COLOR_KEYS, DEFAULT_THEME, HISTORY, validate, publicView, load, contrast, cleanText };
+module.exports = { SECTION_IDS, LOCKED_SECTIONS, FONTS, COLOR_KEYS, DEFAULT_THEME, HISTORY, validate, publicView, load, contrast, cleanText };

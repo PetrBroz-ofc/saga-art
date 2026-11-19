@@ -8,7 +8,7 @@ const S = require('../_site');
 // POST /api/site-settings { reset: true } — vrátit původní vzhled (aktuální se uloží do historie)
 
 const iso = v => (v && typeof v.toDate === 'function' ? v.toDate() : v instanceof Date ? v : null)?.toISOString() || null;
-const snapshotOf = d => ({ theme: d.theme || null, texts: d.texts || {}, links: d.links || {}, flags: d.flags || {} });
+const snapshotOf = d => ({ theme: d.theme || null, texts: d.texts || {}, links: d.links || {}, flags: d.flags || {}, images: d.images || {}, sections: d.sections || [], seo: d.seo || {} });
 
 function adminView(doc) {
   return {
@@ -18,6 +18,7 @@ function adminView(doc) {
     options: {
       fonts: Object.entries(S.FONTS).map(([key, f]) => ({ key, label: f[0], kind: f[1], css: f[2], gf: f[3] })),
       defaults: S.DEFAULT_THEME,
+      sections: S.SECTION_IDS, lockedSections: S.LOCKED_SECTIONS,
     },
   };
 }
@@ -54,7 +55,7 @@ module.exports = async function handler(req, res) {
 
     // POST
     if (req.body?.reset === true) {
-      return writeNew(() => ({ doc: { theme: null, texts: {}, links: {}, flags: {} } }));
+      return writeNew(() => ({ doc: { theme: null, texts: {}, links: {}, flags: {}, images: {}, sections: [], seo: {} } }));
     }
     const n = req.body?.restore;
     if (Number.isInteger(n)) {

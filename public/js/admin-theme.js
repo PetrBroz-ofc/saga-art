@@ -44,7 +44,8 @@
     frameReady: false, timer: 0,
   };
 
-  const emptySettings = () => ({ theme: clone(T.defaults), texts: {}, links: {}, flags: { announce: false } });
+  const emptySettings = () => ({ theme: clone(T.defaults), texts: {}, links: {}, flags: { announce: false }, images: {}, sections: [], seo: {} });
+  const normalize = x => { x.images = x.images || {}; x.sections = x.sections || []; x.seo = x.seo || {}; x.flags = x.flags || { announce: false }; return x; };
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   const dirty = () => T.cur && T.saved && !same(T.cur, T.saved);
 
@@ -57,7 +58,7 @@
       theme: { colors: s.theme.colors, radius: s.theme.radius, scale: s.theme.scale,
         fonts: { heading: h.css, body: b.css },
         fontsUrl: 'https://fonts.googleapis.com/css2?' + keys.map(k => 'family=' + k.gf).join('&') + '&display=swap' },
-      texts: s.texts, links: s.links, flags: s.flags,
+      texts: s.texts, links: s.links, flags: s.flags, images: s.images, sections: s.sections, seo: s.seo,
     };
   }
   function pushPreview() {
@@ -76,12 +77,23 @@
   async function loadFields() {
     const html = await (await fetch('/', { headers: { Accept: 'text/html' } })).text();
     const doc = new DOMParser().parseFromString(html, 'text/html');
+    T.imgSlots = []; T.sectionDefs = [];
     T.fields = [...doc.querySelectorAll('[data-cms]')].map(el => {
       const multi = el.hasAttribute('data-cms-multiline');
       const def = multi ? [...el.childNodes].map(n => (n.nodeName === 'BR' ? '\n' : n.textContent)).join('') : el.textContent;
       return { key: el.getAttribute('data-cms'), label: el.getAttribute('data-cms-label') || el.getAttribute('data-cms'),
         group: el.getAttribute('data-cms-group') || 'Ostatní', def: def.replace(/ /g, ' ').trim(), multi };
     }).filter(f => f.key !== 'announce-text');
+    const slots = new Map();
+    doc.querySelectorAll('[data-cms-img]').forEach(el => {
+      const key = el.getAttribute('data-cms-img');
+      if (!slots.has(key) || el.getAttribute('data-cms-label')) {
+        slots.set(key, { key, label: el.getAttribute('data-cms-label') || slots.get(key)?.label || key,
+          group: el.getAttribute('data-cms-group') || slots.get(key)?.group || 'Ostatní', def: el.getAttribute('src') || '' });
+      }
+    });
+    T.imgSlots = [...slots.values()];
+    T.sectionDefs = [...doc.querySelectorAll('[data-section]')].map(el => ({ id: el.getAttribute('data-section'), label: el.getAttribute('data-section-label') || el.getAttribute('data-section') }));
   }
 
   // ── Vykreslení panelů ──
@@ -160,6 +172,54 @@
         ${LINK_FIELDS.map(([k, label, ph]) => `<label class="field"><span>${esc(label)}</span><input type="url" data-th-link="${k}" maxlength="300" value="${esc(l[k] || '')}" placeholder="${esc(ph)}"></label>`).join('')}
         <p class="muted">Sociální sítě bez odkazu se v patičce neukážou. Odkaz musí začínat https://.</p>`;
     }
+    if (T.tab === 'images') {
+      const groups = [];
+      const slots = [...T.imgSlots, { key: 'logo', label: 'Logo (místo textu Sága Art v hlavičce)', group: 'Značka', def: '' }, { key: 'favicon', label: 'Ikona webu (v záložce prohlížeče)', group: 'Značka', def: '' }];
+      slots.forEach(f => { let g = groups.find(x => x.name === f.group); if (!g) groups.push(g = { name: f.group, items: [] }); g.items.push(f); });
+      pane.innerHTML = `<p class="muted" style="margin-bottom:12px">Fotky se nahrávají do Cloudinary (JPG, PNG, WebP do 10 MB). Vložte co nejkvalitnější, web si je zmenší.</p>` + groups.map(g => `
+        <details class="th-group" ${g.name === 'Úvod' || g.name === 'Značka' ? 'open' : ''}><summary>${esc(g.name)}</summary>
+          ${g.items.map(f => {
+            const url = s.images[f.key] || '';
+            const shown = url || f.def;
+            return `<div class="th-img">
+              <span class="th-img-pic">${shown ? `<img src="${esc(shown)}" alt="">` : '<i>bez obrázku</i>'}</span>
+              <span class="th-img-info"><b>${esc(f.label)}</b>
+                <small>${url ? 'vlastní fotka' : (f.def ? 'původní fotka' : 'nenastaveno')}</small>
+                <span class="th-img-btns"><button type="button" class="btn btn-ghost btn-sm" data-action="thImgPick" data-arg="${esc(f.key)}">${url ? 'Změnit' : 'Nahrát'}</button>
+                ${url ? `<button type="button" class="th-undo" data-action="thImgReset" data-arg="${esc(f.key)}">původní</button>` : ''}</span>
+                <small class="th-img-status" id="thImgSt-${esc(f.key)}"></small></span></div>`;
+          }).join('')}
+        </details>`).join('');
+    }
+
+    if (T.tab === 'sections') {
+      const defs = T.sectionDefs.length ? T.sectionDefs : (T.sectionIds || []).map(id => ({ id, label: id }));
+      const list = s.sections.length ? s.sections.map(x => ({ ...x, label: defs.find(d => d.id === x.id)?.label || x.id }))
+        .concat(defs.filter(d => !s.sections.some(x => x.id === d.id)).map(d => ({ id: d.id, label: d.label, show: true })))
+        : defs.map(d => ({ id: d.id, label: d.label, show: true }));
+      const locked = T.locked || ['products'];
+      pane.innerHTML = `<p class="muted" style="margin-bottom:12px">Posouvejte sekce šipkami a skrývejte, co zrovna nechcete ukazovat. Úvodní fotky nahoře a patička zůstávají vždy.</p>
+        <div class="th-sections">${list.map((x, i) => `
+          <div class="th-sec ${x.show ? '' : 'is-off'}">
+            <label class="th-switch"><input type="checkbox" data-th-sec="${esc(x.id)}" ${x.show ? 'checked' : ''} ${locked.includes(x.id) ? 'disabled' : ''}><span>${esc(x.label)}${locked.includes(x.id) ? '<small>vždy zobrazená</small>' : ''}</span></label>
+            <span class="th-sec-mv"><button type="button" class="icon-btn" data-action="thSecMove" data-arg="${i}:-1" aria-label="Posunout nahoru" ${i === 0 ? 'disabled' : ''}>↑</button>
+            <button type="button" class="icon-btn" data-action="thSecMove" data-arg="${i}:1" aria-label="Posunout dolů" ${i === list.length - 1 ? 'disabled' : ''}>↓</button></span>
+          </div>`).join('')}</div>
+        <button type="button" class="th-undo" style="margin-top:10px" data-action="thSecReset">Vrátit původní pořadí</button>`;
+      T.secList = list;
+    }
+
+    if (T.tab === 'seo') {
+      const t = s.seo.title || '', d = s.seo.description || '';
+      const defT = 'Sága Art | Ručně vyráběné šperky z pravých perel';
+      pane.innerHTML = `
+        <p class="muted" style="margin-bottom:12px">Takhle se web ukáže ve vyhledávači. Prázdné pole znamená původní text.</p>
+        <label class="field"><span>Titulek stránky <b id="thSeoTc">${t.length} / 70</b></span><input type="text" data-th-seo="title" maxlength="70" value="${esc(t)}" placeholder="${esc(defT)}"></label>
+        <label class="field"><span>Popis ve vyhledávači <b id="thSeoDc">${d.length} / 200</b></span><textarea data-th-seo="description" rows="4" maxlength="200" placeholder="Krátký popis, co na webu najdou (zhruba 150 znaků)">${esc(d)}</textarea></label>
+        <div class="th-serp"><small>sagaart.cz</small><b id="thSerpT">${esc(t || defT)}</b><span id="thSerpD">${esc(d || 'Ručně vyráběné šperky z pravých říčních perel, přírodních minerálů a nerezové oceli…')}</span></div>
+        <p class="muted" style="margin-top:12px">Změna se ve vyhledávačích objeví, až web znovu projdou (dny až týdny). Náhled při sdílení na sociálních sítích zatím bere původní údaje.</p>`;
+    }
+
     document.querySelectorAll('.theme-tab').forEach(b => {
       const on = b.dataset.arg === T.tab;
       b.classList.toggle('is-on', on);
@@ -192,6 +252,16 @@
       const v = t.value.trim(); if (v) s.links[t.dataset.thLink] = v; else delete s.links[t.dataset.thLink];
     } else if (t.id === 'thAnnounceOn') {
       s.flags.announce = t.checked;
+    } else if (t.dataset.thSec) {
+      s.sections = (T.secList || []).map(x => ({ id: x.id, show: x.id === t.dataset.thSec ? t.checked : x.show }));
+      t.closest('.th-sec').classList.toggle('is-off', !t.checked);
+    } else if (t.dataset.thSeo) {
+      const v = t.value; if (v.trim()) s.seo[t.dataset.thSeo] = v; else delete s.seo[t.dataset.thSeo];
+      const tc = $('thSeoTc'), dc = $('thSeoDc');
+      if (tc) tc.textContent = (s.seo.title || '').length + ' / 70';
+      if (dc) dc.textContent = (s.seo.description || '').length + ' / 200';
+      if ($('thSerpT')) $('thSerpT').textContent = s.seo.title || 'Sága Art | Ručně vyráběné šperky z pravých perel';
+      if ($('thSerpD')) $('thSerpD').textContent = s.seo.description || 'Ručně vyráběné šperky z pravých říčních perel, přírodních minerálů a nerezové oceli…';
     } else return;
     schedule();
     if (T.tab === 'colors' && (t.dataset.thColor || t.dataset.thHex)) updateColorWarn();
@@ -209,8 +279,10 @@
     try {
       const [res] = await Promise.all([api('/api/site-settings'), loadFields().catch(() => { T.fields = []; })]);
       T.fonts = res.options.fonts; T.defaults = res.options.defaults; T.history = res.history;
+      T.sectionIds = res.options.sections; T.locked = res.options.lockedSections;
       T.saved = res.settings ? clone(res.settings) : emptySettings();
       T.saved.theme.colors = { ...T.defaults.colors, ...T.saved.theme.colors };
+      normalize(T.saved);
       T.cur = clone(T.saved);
       T.loaded = true;
       renderPane(); renderDirty();
@@ -227,7 +299,7 @@
     try {
       const res = await api('/api/site-settings', 'PUT', T.cur);
       T.history = res.history;
-      T.saved = res.settings ? clone(res.settings) : emptySettings();
+      T.saved = normalize(res.settings ? clone(res.settings) : emptySettings());
       T.cur = clone(T.saved);
       renderPane(); renderDirty();
       toast('Změny jsou na webu. Návštěvníci je uvidí při příštím načtení stránky.');
@@ -263,7 +335,7 @@
   async function restore(i) {
     try {
       const res = await api('/api/site-settings', 'POST', { restore: Number(i) });
-      T.history = res.history; T.saved = res.settings ? clone(res.settings) : emptySettings(); T.cur = clone(T.saved);
+      T.history = res.history; T.saved = normalize(res.settings ? clone(res.settings) : emptySettings()); T.cur = clone(T.saved);
       closeSheet(true); renderPane(); renderDirty(); pushPreview();
       toast('Verze je vrácená na web.');
     } catch (err) { if (err.message !== 'unauthorized') toast(err.message, { err: true }); }
@@ -274,12 +346,44 @@
     thTab: a => { T.tab = a; renderPane(); },
     thPreset: a => { if (!T.cur) return; T.cur.theme.colors = { ...PRESETS[Number(a)][1] }; renderPane(); schedule(); },
     thTextReset: a => { delete T.cur.texts[a]; renderPane(); schedule(); },
+    thSecMove: a => {
+      const [i, d] = a.split(':').map(Number); const l = (T.secList || []).slice();
+      const j = i + d; if (j < 0 || j >= l.length) return;
+      [l[i], l[j]] = [l[j], l[i]];
+      T.cur.sections = l.map(x => ({ id: x.id, show: x.show })); renderPane(); schedule();
+    },
+    thSecReset: () => { T.cur.sections = []; renderPane(); schedule(); },
+    thImgPick: a => { T.uploadKey = a; $('thFile').value = ''; $('thFile').click(); },
+    thImgReset: a => { delete T.cur.images[a]; renderPane(); schedule(); },
     thSave: save, thDiscard: discard, thReset: reset, thHistory: showHistory, thRestore: restore,
     thDevice: a => {
       $('thFrameWrap').classList.toggle('is-phone', a === 'phone');
       document.querySelectorAll('[data-action="thDevice"]').forEach(b => { const on = b.dataset.arg === a; b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
     },
   });
+  // nahrání fotky do Cloudinary (stejný postup jako u šperků)
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file'; fileInput.id = 'thFile'; fileInput.accept = 'image/jpeg,image/png,image/webp'; fileInput.hidden = true;
+  document.body.appendChild(fileInput);
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files[0]; const key = T.uploadKey; if (!file || !key) return;
+    const st = document.getElementById('thImgSt-' + key);
+    const say = (m, err) => { if (st) { st.textContent = m; st.style.color = err ? 'var(--bad)' : ''; } };
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024) return say('Povolené jsou JPG, PNG a WebP do 10 MB.', true);
+    say('Nahrávám…');
+    try {
+      const sig = await api('/api/upload-sign', 'POST', {});
+      const fd = new FormData();
+      fd.append('file', file); fd.append('api_key', sig.apiKey); fd.append('timestamp', sig.timestamp); fd.append('folder', sig.folder);
+      fd.append('allowed_formats', sig.allowed_formats); fd.append('signature', sig.signature); fd.append('signature_algorithm', sig.signatureAlgorithm);
+      const res = await fetch('https://api.cloudinary.com/v1_1/' + encodeURIComponent(sig.cloud) + '/image/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      const url = typeof data.secure_url === 'string' && /^https:\/\/res\.cloudinary\.com\//.test(data.secure_url) ? data.secure_url : '';
+      if (!url) throw new Error(data.error?.message || 'neznámá chyba');
+      T.cur.images[key] = url; renderPane(); schedule();
+    } catch (err) { if (err.message !== 'unauthorized') say('Fotka se nenahrála: ' + err.message, true); }
+  });
+
   const pane = $('thPane');
   pane.addEventListener('input', onInput);
   pane.addEventListener('change', onInput);
