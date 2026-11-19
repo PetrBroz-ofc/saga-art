@@ -389,6 +389,44 @@ img { max-width:100%; display:block; }
 .success-order-num span { color:var(--deep-rose); font-weight:500; }
 .bank-box { background:var(--petal); border:1px dashed var(--dusty-rose); border-radius:4px; padding:16px 20px; font-size:.86rem; line-height:1.8; text-align:left; max-width:380px; margin:0 auto 24px; }
 .bank-box strong { color:var(--mauve); }
+
+/* Dodávka na obrazovce po objednávce: přijede, naloží balíčky a odjede (čistě CSS, bez skriptu) */
+.van-scene { display:block; width:min(320px, 82%); height:auto; margin:0 auto 6px; overflow:hidden; }
+.van-scene .van-road { stroke:var(--dusty-rose); stroke-width:2; stroke-dasharray:10 8; stroke-linecap:round; animation:van-road 5.2s linear both; }
+.van-scene .van-bed { fill:var(--blush); stroke:var(--mauve); stroke-width:2; stroke-linejoin:round; }
+.van-scene .van-chassis, .van-scene .van-cab { fill:var(--mauve); }
+.van-scene .van-window { fill:var(--petal); }
+.van-scene .van-box rect { fill:var(--petal); stroke:var(--deep-rose); stroke-width:1.6; }
+.van-scene .van-box path { stroke:var(--deep-rose); stroke-width:1.6; fill:none; }
+.van-scene .van-wheel circle:first-child { fill:#3e3a52; }
+.van-scene .van-wheel .van-hub { fill:var(--petal); }
+.van-scene .van-wheel path { stroke:var(--petal); stroke-width:1.4; }
+.van-scene .van { animation:van-run 5.2s both; }
+.van-scene .van-wheel { transform-box:fill-box; transform-origin:center; animation:van-spin 5.2s both; }
+.van-scene .van-box { animation:van-drop .55s cubic-bezier(.3,1.5,.5,1) both; }
+.van-scene .van-box1 { animation-delay:1.1s; }
+.van-scene .van-box2 { animation-delay:1.6s; }
+.van-scene .van-box3 { animation-delay:2.1s; }
+.success-title, .success-sub, .success-order-num { animation:van-fade .7s ease-out .3s both; }
+@keyframes van-run {
+  0%   { transform:translateX(-250px); animation-timing-function:cubic-bezier(.2,.7,.3,1); }
+  18%  { transform:translateX(0); }
+  52%  { transform:translateX(0); animation-timing-function:cubic-bezier(.6,0,.9,.6); }
+  100% { transform:translateX(420px); }
+}
+@keyframes van-spin {
+  0%   { transform:rotate(0); animation-timing-function:cubic-bezier(.2,.7,.3,1); }
+  18%  { transform:rotate(540deg); }
+  52%  { transform:rotate(540deg); animation-timing-function:cubic-bezier(.6,0,.9,.6); }
+  100% { transform:rotate(2700deg); }
+}
+@keyframes van-drop { from { transform:translateY(-80px); opacity:0; } 30% { opacity:1; } to { transform:translateY(0); opacity:1; } }
+@keyframes van-road { from { stroke-dashoffset:0; } to { stroke-dashoffset:-260; } }
+@keyframes van-fade { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+@media (prefers-reduced-motion:reduce) {
+  .van-scene .van, .van-scene .van-wheel, .van-scene .van-box, .van-scene .van-road,
+  .success-title, .success-sub, .success-order-num { animation:none; }
+}
 .stripe-loading { text-align:center; padding:30px; }
 .spinner { width:32px; height:32px; border:3px solid var(--rose); border-top-color:var(--deep-rose); border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 12px; }
 @keyframes spin { to { transform:rotate(360deg); } }
