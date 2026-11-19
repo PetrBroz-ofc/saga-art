@@ -178,15 +178,7 @@ async function afterPaid(orderNumber) {
     const res = await V.issueForOrder(orderNumber);
     if (!res || !res.email) return;
     const exp = res.expiresAt.toLocaleDateString('cs-CZ', { timeZone: 'Europe/Prague' });
-    const list = res.issued.map(i => `${V.voucherName(i.value)}: ${i.code}`).join('\n');
-    const msg = [
-      'Dobrý den,',
-      'děkuji za nákup. Tady je váš dárkový poukaz:',
-      list,
-      `Platí do ${exp}. Kód stačí zadat v pokladně na sagaart.cz a jeho hodnota se odečte od ceny zboží. Poukaz jde využít jednou a nelze jím platit dopravu. Nevyčerpaná část hodnoty se nevrací.`,
-      'Petra, Sága Art',
-    ].join('\n\n');
-    await Mail.sendMail({ to: res.email, ...Mail.notice('Váš dárkový poukaz Sága Art', msg) });
+    await Mail.sendMail({ to: res.email, ...Mail.voucherMail({ issued: res.issued, expires: exp }) });
     await getDb().collection('orders').doc(orderNumber).update({ vouchersEmailedAt: new Date() });
   } catch (err) {
     console.error('Poukazy k objednávce', orderNumber, 'selhaly:', err.message);

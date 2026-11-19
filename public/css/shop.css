@@ -667,6 +667,12 @@ img { max-width:100%; display:block; }
 .voucher-card:hover, .voucher-card:focus-visible { transform:translateY(-4px); box-shadow:0 14px 30px rgba(106,80,137,.16); }
 .voucher-value { font-family:var(--serif); font-size:clamp(1.6rem,2.6vw,2.2rem); color:var(--accent-dk); align-self:flex-end; }
 .voucher-add { font-size:.92rem; color:var(--ink); border-bottom:1px solid currentColor; }
+/* poukaz jako karta podle návrhu: obrázek, pod ním popisek s tlačítkem */
+.voucher-card { display:block; aspect-ratio:auto; padding:0; border:0; background:none; border-radius:10px; overflow:visible; text-align:left; cursor:pointer; }
+.voucher-card img { display:block; width:100%; height:auto; border-radius:10px; box-shadow:0 8px 22px rgba(106,80,137,.14); }
+.voucher-card .voucher-add { display:inline-block; margin-top:10px; }
+.vouchers-grid .voucher-card:last-child { grid-column:1 / -1; max-width:calc(50% - 8px); }
+@media (max-width:760px) { .vouchers-grid { grid-template-columns:1fr; } .vouchers-grid .voucher-card:last-child { max-width:none; } }
 .wrap-box { padding:0 0 14px; margin-bottom:12px; border-bottom:1px solid var(--line); }
 .wrap-check { display:flex; align-items:center; gap:10px; cursor:pointer; font-size:.95rem; }
 .wrap-check input { width:18px; height:18px; accent-color:var(--accent-dk); }

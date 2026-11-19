@@ -26,7 +26,7 @@ let FREE_SHIPPING_FROM = 1490;
 // Dárkové poukazy jako zvláštní položky košíku (cenu stejně ověří server)
 const VOUCHERS = [500, 1000, 1500].map(v => ({
   id:'voucher-' + v, name:'Dárkový poukaz ' + v.toLocaleString('cs-CZ') + ' Kč', price:v,
-  imgs:['/img/poukaz.svg'], voucher:true, collection:'', cat:'', material:'Elektronický, platí 12 měsíců',
+  imgs:['/img/poukaz-' + v + '.jpg'], voucher:true, collection:'', cat:'', material:'Elektronický, platí 12 měsíců',
 }));
 const findItem = id => PRODUCTS.find(p => p.id === id) || VOUCHERS.find(p => p.id === id);
 const HEART = '<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10Z"/></svg>';

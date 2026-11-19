@@ -64,6 +64,46 @@ function notice(subject, message) {
   };
 }
 
+// Dárkový poukaz v podobě karty podle návrhu: pozadí je obrázek (poukaz-base.jpg), text je HTML,
+// takže kód a datum jdou vyplnit u každého poukazu zvlášť. Bez obrázků zůstane světle modré pozadí.
+// issued = [{ value, code }], expires = "31. 12. 2026"
+function voucherCard({ value, code, expires }) {
+  const bg = `${SITE_URL}/img/poukaz-base.jpg`;
+  const navy = '#263558', serif = "Georgia,'Times New Roman',serif", sans = 'Arial,Helvetica,sans-serif';
+  const label = t => `<div style="font-family:${sans};font-size:10px;color:${navy};padding:0 0 3px">${esc(t)}</div>`;
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" background="${esc(bg)}" bgcolor="#b9c0de" style="margin:0 0 16px;background-color:#b9c0de;background-image:url('${esc(bg)}');background-size:100% 100%;background-repeat:no-repeat;border-radius:12px">
+<tr><td valign="top" style="padding:7% 4% 6% 7%">
+<table role="presentation" width="64%" cellpadding="0" cellspacing="0"><tr><td>
+<div style="font-family:${sans};font-size:11px;letter-spacing:4px;color:${navy};padding:0 0 8px;border-bottom:1px solid #ffffff">SÁGA ART</div>
+<div style="font-family:${serif};font-size:27px;line-height:1.1;color:${navy};padding:14px 0 0">Dárkový poukaz</div>
+<div style="font-family:${serif};font-style:italic;font-size:12px;color:${navy};padding:4px 0 14px">Na šperk podle vlastního výběru</div>
+<div style="font-family:${sans};font-size:8px;letter-spacing:2px;color:${navy}">HODNOTA POUKAZU</div>
+<div style="font-family:${serif};font-size:40px;line-height:1.1;color:${navy};padding:2px 0 12px">${esc(Number(value).toLocaleString('cs-CZ'))} <span style="font-size:20px">Kč</span></div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+<td width="58%" valign="bottom" style="padding-right:10px">${label('Kód poukazu')}<div style="font-family:'Courier New',monospace;font-weight:bold;font-size:13px;letter-spacing:1px;color:${navy};border-bottom:1px solid ${navy};padding:0 0 3px;white-space:nowrap">${esc(code)}</div></td>
+<td width="42%" valign="bottom">${label('Platí do')}<div style="font-family:${sans};font-weight:bold;font-size:13px;color:${navy};border-bottom:1px solid ${navy};padding:0 0 3px;white-space:nowrap">${esc(expires)}</div></td>
+</tr></table>
+<div style="font-family:${sans};font-size:10px;color:${navy};padding:10px 0 0">Uplatnění v pokladně na sagaart.cz</div>
+</td></tr></table>
+</td></tr></table>`;
+}
+
+function voucherMail({ issued, expires }) {
+  const many = issued.length > 1;
+  const subject = many ? 'Vaše dárkové poukazy Sága Art' : 'Váš dárkový poukaz Sága Art';
+  const rules = `Platí do ${expires}. Kód stačí zadat v pokladně na sagaart.cz a jeho hodnota se odečte od ceny zboží. ${many ? 'Každý poukaz jde využít jednou' : 'Poukaz jde využít jednou'} a nelze jím platit dopravu. Nevyčerpaná část hodnoty se nevrací.`;
+  const text = [
+    'Dobrý den,', `děkuji za nákup. Tady ${many ? 'jsou vaše dárkové poukazy' : 'je váš dárkový poukaz'}:`,
+    issued.map(i => `Dárkový poukaz ${Number(i.value).toLocaleString('cs-CZ')} Kč\nKód: ${i.code}`).join('\n\n'),
+    rules, SIGN, FOOTER,
+  ].join('\n\n');
+  const html = layout(subject,
+    para(`Dobrý den,\nděkuji za nákup. Tady ${many ? 'jsou vaše dárkové poukazy' : 'je váš dárkový poukaz'}:`) +
+    issued.map(i => voucherCard({ value: i.value, code: i.code, expires })).join('') +
+    para(rules) + para(SIGN));
+  return { subject, text, html };
+}
+
 function loginCode({ code, device, time, validMinutes }) {
   const subject = `Kód pro přihlášení do administrace: ${code}`;
   const text = `Váš kód pro přihlášení do administrace Sága Art je:\n\n${code}\n\nPlatí ${validMinutes} minut.\nZařízení: ${device}\nČas: ${time}\n\nPokud jste se nepřihlašoval(a), nikomu kód neříkejte a změňte si heslo.`;
@@ -130,4 +170,4 @@ function orderOwner(v) {
   return { subject, text, html };
 }
 
-module.exports = { sendMail, notice, loginCode, orderCustomer, orderOwner, kc, esc };
+module.exports = { sendMail, notice, voucherMail, loginCode, orderCustomer, orderOwner, kc, esc };
