@@ -718,3 +718,19 @@ a.btn { text-decoration:none; }
 }
 #reviewSheet .sheet-body { padding:22px 22px 28px; }
 #reviewSheet .od-top { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:16px; }
+
+/* Opravy rozložení: tlačítka u faktur a záložky ve Vzhledu se nesmí ořezávat ani mít posuvník */
+.inv-list-row { grid-template-columns:minmax(110px, .8fr) minmax(140px, 1.3fr) 100px 120px 130px minmax(300px, auto); }
+.row-tools { flex-wrap:wrap; }
+.theme-tabs { flex-wrap:wrap; overflow:visible; }
+@media (max-width:820px) { .theme-tabs { flex-wrap:nowrap; overflow-x:auto; } }
+/* Řádky faktur mají hodně tlačítek: už od 1500 px se skládají do dvou řádků, aby nic nepřetékalo */
+@media (max-width:1500px) {
+  .inv-list-row { grid-template-columns:1fr auto; grid-template-areas:"num total" "cust status" "tools tools"; row-gap:8px; }
+  .inv-list-row > :nth-child(1) { grid-area:num; }
+  .inv-list-row > :nth-child(2) { grid-area:cust; }
+  .inv-list-row > :nth-child(3) { display:none; }
+  .inv-list-row > :nth-child(4) { grid-area:status; align-self:end; justify-self:end; }
+  .inv-list-row > :nth-child(5) { grid-area:total; }
+  .inv-list-row > :nth-child(6) { grid-area:tools; justify-content:flex-start; }
+}
