@@ -54,7 +54,8 @@
           <span class="sh-add"><input type="number" min="100" max="20000" step="50" id="shVoucherNew" placeholder="Nová částka"><button type="button" class="btn btn-ghost btn-sm" data-action="shVoucherAdd">Přidat</button></span>
         </div>
         <label class="field sh-field"><span>Platnost poukazu</span>
-          <span class="sh-price"><input type="number" min="1" max="36" step="1" id="shMonths" value="${esc(c.vouchers.months)}"><b>měsíců</b></span></label>
+          <span class="sh-price"><input type="number" min="1" max="36" step="1" id="shMonths" value="${esc(c.vouchers.months)}"><b>měsíců</b></span>
+          <small class="muted">Platí pro poukazy koupené od teď. Už vydané poukazy si ponechají platnost, která je na nich napsaná. Změnu uložíte tlačítkem Uložit nahoře.</small></label>
         <p class="muted">Poukaz je jednorázový, platí jen na zboží (ne na dopravu), nevyčerpaná část propadá. Pravidla v obchodních podmínkách upravte podle potřeby.</p>
 
         <h2 class="sh-h" style="margin-top:28px">Recenze</h2>
