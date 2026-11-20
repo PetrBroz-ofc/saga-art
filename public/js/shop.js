@@ -255,7 +255,7 @@ function openProduct(id) {
   slideCount = imgs.length; currentSlide = 0;
   const slides = $('pdetailSlides');
   slides.style.transition = 'none'; slides.style.transform = 'translateX(0)';
-  slides.innerHTML = imgs.map((src, i) => '<div class="pdetail-slide">'
+  slides.innerHTML = imgs.map((src, i) => '<div class="pdetail-slide"' + (src ? ' data-action="openZoom" title="Zvětšit fotku"' : '') + '>'
     + (src ? '<img src="' + esc(src) + '" alt="' + esc(p.name) + (i ? ' (fotka ' + (i+1) + ')' : '') + '" ' + (i ? 'loading="lazy" ' : '') + 'referrerpolicy="no-referrer"/>' : phHtml(p.collection))
     + '</div>').join('');
   $('pdetailDots').innerHTML = slideCount > 1
@@ -277,7 +277,8 @@ function openProduct(id) {
     '<p class="pdetail-desc">' + esc(p.desc) + '</p>' +
     '<hr class="pdetail-divider"/>' +
     '<div class="pdetail-props">' + propsHtml + '</div>' +
-    '<button class="pdetail-add-btn" data-action="addToCart" data-arg="' + safeId(p.id) + '">Přidat do košíku</button>' +
+    '<div class="pdetail-buy"><span class="pdetail-buy-price">' + kc(p.price) + '</span>' +
+    '<button class="pdetail-add-btn" data-action="addToCart" data-arg="' + safeId(p.id) + '">Přidat do košíku</button></div>' +
     '<p class="pdetail-page"><a href="/sperk/' + encodeURIComponent(safeId(p.id)) + '">Stránka tohoto šperku</a></p>' +
     '<div id="pdReviews"></div>';
   $('pdetailOverlay').dataset.pid = safeId(p.id);
@@ -285,8 +286,18 @@ function openProduct(id) {
   $('pdetailOverlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
-function closePdetail() { $('pdetailOverlay').classList.remove('open'); document.body.style.overflow = ''; }
+function closePdetail() { closeZoom(); $('pdetailOverlay').classList.remove('open'); document.body.style.overflow = ''; }
 function slideGallery(dir) { currentSlide = (currentSlide + dir + slideCount) % slideCount; updateGallery(); }
+// Zvětšená fotka přes celou obrazovku (klik na fotku v detailu)
+function zoomSrc() { return document.querySelectorAll('#pdetailSlides .pdetail-slide img')[currentSlide]?.getAttribute('src') || ''; }
+function openZoom() {
+  const src = zoomSrc(); if (!src) return;
+  const z = $('pzoom'); $('pzoomImg').src = src; $('pzoomImg').alt = document.querySelector('.pdetail-name')?.textContent || '';
+  z.querySelectorAll('.pzoom-nav').forEach(b => { b.hidden = slideCount < 2; });
+  z.hidden = false; requestAnimationFrame(() => z.classList.add('open'));
+}
+function closeZoom() { const z = $('pzoom'); if (!z || z.hidden) return false; z.classList.remove('open'); z.hidden = true; return true; }
+function zoomSlide(dir) { slideGallery(dir); const src = zoomSrc(); if (src) $('pzoomImg').src = src; }
 function goToSlide(i) { currentSlide = i; updateGallery(); }
 function updateGallery() {
   const slides = $('pdetailSlides');
@@ -685,6 +696,8 @@ const ACTIONS = {
   closeCartOutside: (arg, el, e) => { if (e.target === el) toggleCart(); },
   closePdetailOutside: (arg, el, e) => { if (e.target === el) closePdetail(); },
   slideGallery: arg => slideGallery(Number(arg)),
+  openZoom, closeZoom,
+  zoomSlide: (arg, el, e) => { e.stopPropagation(); zoomSlide(Number(arg)); },
   goToSlide: arg => goToSlide(Number(arg)),
   goToStep: arg => goToStep(Number(arg)),
   selectPayment: arg => selectPayment(arg),
@@ -736,7 +749,9 @@ $('newsletterForm').addEventListener('submit', async e => {
 });
 document.addEventListener('keydown', e => {
   const detailOpen = $('pdetailOverlay').classList.contains('open');
-  if (e.key === 'Escape') { closePdetail(); closeCheckout(); $('cartOverlay').classList.remove('open'); }
+  const zoomOpen = !$('pzoom').hidden;
+  if (e.key === 'Escape') { if (closeZoom()) return; closePdetail(); closeCheckout(); $('cartOverlay').classList.remove('open'); }
+  if (zoomOpen && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) { zoomSlide(e.key === 'ArrowRight' ? 1 : -1); return; }
   if (detailOpen && e.key === 'ArrowRight') slideGallery(1);
   if (detailOpen && e.key === 'ArrowLeft') slideGallery(-1);
 });

@@ -831,3 +831,36 @@ img { max-width:100%; display:block; }
 .bank-qr { margin-top:14px; display:flex; flex-direction:column; align-items:center; gap:6px; text-align:center; }
 .bank-qr img { width:180px; height:180px; background:#fff; border-radius:6px; padding:6px; }
 .bank-qr span { font-size:.8rem; line-height:1.5; color:var(--mauve); }
+
+/* ── Detail šperku: větší fotky, celé (neořezané), tlačítko do košíku vždy vidět ── */
+.pdetail-box { max-width:1080px; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); height:min(90vh, 760px); }
+.pdetail-media { min-height:0; }
+.pdetail-gallery { aspect-ratio:auto; flex:1 1 auto; min-height:0; background:#f6f4f2; }
+.pdetail-slide { display:flex; align-items:center; justify-content:center; cursor:zoom-in; }
+.pdetail-slide img { object-fit:contain; }
+.pdetail-thumbs { flex:0 0 auto; gap:10px; padding:12px 14px 14px; }
+.pdetail-thumb { flex-basis:76px; width:76px; height:76px; }
+.pdetail-info { padding-bottom:0; }
+.pdetail-buy { position:sticky; bottom:0; z-index:2; margin:auto -32px 0; padding:14px 32px 18px; background:var(--paper); border-top:1px solid var(--rose); display:flex; align-items:center; gap:16px; }
+.pdetail-buy-price { font-family:var(--serif); font-size:1.35rem; color:var(--deep-rose); white-space:nowrap; }
+.pdetail-buy .pdetail-add-btn { margin-top:0; flex:1; }
+.pdetail-page { margin-bottom:20px; }
+@media(max-width:1100px) {
+  .pdetail-box { height:auto; grid-template-columns:1fr; max-width:560px; }
+  .pdetail-gallery { aspect-ratio:1; flex:none; }
+  .pdetail-info { overflow:visible; }
+}
+@media(max-width:860px) {
+  .pdetail-buy { margin:auto -20px 0; padding:12px 20px calc(14px + env(safe-area-inset-bottom)); }
+  .pdetail-thumb { flex-basis:64px; width:64px; height:64px; }
+}
+/* zvětšená fotka */
+.pzoom { position:fixed; inset:0; z-index:400; background:rgba(20,18,26,.94); display:flex; align-items:center; justify-content:center; padding:24px; opacity:0; transition:opacity .2s; cursor:zoom-out; }
+.pzoom.open { opacity:1; }
+.pzoom[hidden] { display:none; }
+.pzoom img { max-width:100%; max-height:100%; object-fit:contain; border-radius:4px; }
+.pzoom-nav, .pzoom-close { position:absolute; width:44px; height:44px; border:none; border-radius:50%; background:rgba(255,255,255,.92); color:#2b2836; font-size:1.5rem; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+.pzoom-nav[hidden] { display:none; }
+.pzoom-prev { left:18px; top:50%; transform:translateY(-50%); }
+.pzoom-next { right:18px; top:50%; transform:translateY(-50%); }
+.pzoom-close { top:18px; right:18px; }
