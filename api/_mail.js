@@ -68,6 +68,8 @@ async function sendMail({ to, subject, text, html, replyTo, attachments }) {
     body.attachments = attachments.map(a => ({
       filename: String(a.filename).replace(/[^\w.-]/g, '_'),
       content: Buffer.isBuffer(a.content) ? a.content.toString('base64') : String(a.content),
+      // vložený obrázek v těle e-mailu (<img src="cid:...">)
+      ...(a.contentId ? { content_id: String(a.contentId).replace(/[^\w.-]/g, '') } : {}),
     }));
   }
   const r = await fetch('https://api.resend.com/emails', {
@@ -176,7 +178,7 @@ function orderCustomer(v) {
     lines, `Celkem: ${v.total} Kč`, '',
     `Doprava: ${v.shippingLabel}`, `Platba: ${v.paymentLabel}`, `Doručovací údaje: ${v.address}`,
     ...(v.giftMessage ? ['', `Vzkaz na kartičku: ${v.giftMessage}`] : []),
-    '', pay, ship, '',
+    '', pay, ...(transfer && v.qrCid ? ['QR kód pro platbu najdete v HTML verzi e-mailu i na faktuře v příloze.'] : []), ship, '',
     ...(v.invoiceNumber ? [`Fakturu č. ${v.invoiceNumber} najdete v příloze tohoto e-mailu.`, ''] : []),
     `${fill(TEXTS.returnNote, vars)} Obchodní podmínky: ${SITE_URL}/obchodni-podminky`, '',
     SIGN(),
@@ -187,7 +189,9 @@ function orderCustomer(v) {
     rowsTable(v.lines, `${v.total} Kč`) +
     para(`Doprava: ${v.shippingLabel}\nPlatba: ${v.paymentLabel}\nDoručovací údaje: ${v.address}`) +
     (v.giftMessage ? para(`Vzkaz na kartičku: ${v.giftMessage}`) : '') +
-    (transfer ? `<div style="margin:0 0 14px;padding:14px 16px;background:#f1ebf7;border-radius:8px;line-height:1.65">${esc(pay)}</div>` : para(pay)) +
+    (transfer ? `<div style="margin:0 0 14px;padding:14px 16px;background:#f1ebf7;border-radius:8px;line-height:1.65">${esc(pay)}${v.qrCid
+      ? `<div style="margin-top:14px;text-align:center"><img src="cid:${esc(v.qrCid)}" width="180" height="180" alt="QR platba" style="display:inline-block;width:180px;height:180px;border:0;background:#ffffff;border-radius:6px"><br><span style="font-size:13px;color:#6c6782">QR platba: naskenujte kód v aplikaci své banky, údaje se vyplní samy.</span></div>`
+      : ''}</div>` : para(pay)) +
     para(ship) +
     (v.invoiceNumber ? para(`Fakturu č. ${v.invoiceNumber} najdete v příloze tohoto e-mailu.`) : '') +
     para(fill(TEXTS.returnNote, vars)) +

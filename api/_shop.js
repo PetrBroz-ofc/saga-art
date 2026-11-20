@@ -4,6 +4,7 @@ const V = require('./_vouchers');
 const Coupons = require('./_coupons');
 const Mail = require('./_mail');
 const Invoices = require('./_invoice');
+const QR = require('./_qr');
 
 // Ceník dopravy, zabalení a pravidla (doprava zdarma, poukazy, platby) jsou v _rules.js a upravují se v administraci.
 const { SHIPPING, GIFT_WRAP, RULES, refresh: refreshRules } = require('./_rules');
@@ -136,7 +137,7 @@ async function createOrder(data, voucherCode, discountBase, couponCode = '', goo
 }
 
 function bankInfo() {
-  return { account: process.env.BANK_ACCOUNT || '', iban: process.env.BANK_IBAN || '' };
+  return require('./_business').bank();
 }
 
 // Pošle potvrzení zákaznici a upozornění majitelce. Chyby jen loguje (bez osobních údajů).
@@ -171,8 +172,21 @@ async function sendOrderEmails(order) {
   } catch (err) {
     console.error('Faktura k objednávce', order.number, 'selhala:', err.message);
   }
+  // QR platba do e-mailu zákaznici (vložený obrázek) při platbě převodem
+  let custAttachments = attachments;
+  if (order.payment === 'transfer') {
+    try {
+      const qr = await QR.forOrder({ iban: bank.iban, total: order.total, number: order.number });
+      if (qr) {
+        view.qrCid = 'qrplatba';
+        custAttachments = [...(attachments || []), { filename: 'qr-platba.png', content: qr.png, contentId: view.qrCid }];
+      }
+    } catch (err) {
+      console.error('QR platba k objednávce', order.number, 'selhala:', err.message);
+    }
+  }
   const results = await Promise.allSettled([
-    Mail.sendMail({ to: c.email, attachments, ...Mail.orderCustomer(view) }),
+    Mail.sendMail({ to: c.email, attachments: custAttachments, ...Mail.orderCustomer(view) }),
     Mail.sendMail({ to: process.env.OWNER_EMAIL, replyTo: c.email, attachments, ...Mail.orderOwner(view) }),
   ]);
   const failed = results.filter(r => r.status === 'rejected');

@@ -25,7 +25,7 @@ let GIFT_WRAP = { name:'Dárkové zabalení', price:59 };
 let FREE_SHIPPING_FROM = 1490;
 // Dárkové poukazy jako zvláštní položky košíku (cenu stejně ověří server)
 // Pravidla z nastavení v administraci (přijdou z /api/products-public, jinak platí tyto výchozí)
-let SHOP = { vouchers:{ on:true, values:[500, 1000, 1500], months:12 }, payments:{ card:true, transfer:true }, vacation:{ on:false, block:false, message:'' }, giftWrapOn:true };
+let SHOP = { vouchers:{ on:true, values:[500, 1000, 1500], months:12 }, payments:{ card:false, transfer:true }, vacation:{ on:false, block:false, message:'' }, giftWrapOn:true };
 const BAKED_VOUCHERS = [500, 1000, 1500]; // k těmto hodnotám jsou hotové obrázky karty, ostatní se skládají z pozadí a textu
 const monthsText = n => n + (n === 1 ? ' měsíc' : n >= 2 && n <= 4 ? ' měsíce' : ' měsíců');
 let VOUCHERS = [];
@@ -546,6 +546,9 @@ function goToStep3() {
   if (!selectedShipping) return;
   goToStep(3);
   renderOrderSummary('orderSummaryStep3');
+  // když zbývá jediná platba, rovnou ji vybereme
+  const onlyPay = ['card', 'transfer'].filter(k => SHOP.payments[k] !== false);
+  if (onlyPay.length === 1 && !selectedPayment && $('pay_' + onlyPay[0])) selectPayment(onlyPay[0]);
 }
 function selectPayment(type) {
   if (type !== 'card' && type !== 'transfer') return;
@@ -641,7 +644,9 @@ function showSuccess(data) {
   if (data.paidByVoucher) {
     $('successText').textContent = 'Objednávku jste celou zaplatili dárkovým poukazem. Potvrzení přijde na váš e-mail a brzy se ozvu ohledně odeslání.';
   } else if (data.bank) {
-    bankBox.innerHTML = `<strong>Platební údaje</strong><br>Číslo účtu: ${esc(data.bank.account)}<br>IBAN: ${esc(data.bank.iban)}<br>Variabilní symbol: ${esc(num)}<br>Částka: ${kc(data.total)}`;
+    const qr = /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(data.bank.qr || '') ? data.bank.qr : '';
+    bankBox.innerHTML = `<strong>Platební údaje</strong><br>Číslo účtu: ${esc(data.bank.account)}<br>IBAN: ${esc(data.bank.iban)}<br>Variabilní symbol: ${esc(num)}<br>Částka: ${kc(data.total)}`
+      + (qr ? `<div class="bank-qr"><img src="${qr}" width="180" height="180" alt="QR kód pro platbu"><span>Naskenujte QR kód v aplikaci své banky, údaje se vyplní samy.</span></div>` : '');
     $('successText').textContent = 'Šperk odešlu, jakmile platba dorazí na účet. Platební údaje najdete i v potvrzovacím e-mailu.';
   } else {
     $('successText').textContent = 'Platba proběhla v pořádku. Potvrzení přijde na váš e-mail a brzy se ozvu ohledně odeslání.';

@@ -41,7 +41,7 @@
         <h2 class="sh-h" style="margin-top:28px">Platby</h2>
         <label class="th-switch"><input type="checkbox" id="shPayCard" ${c.payments.card ? 'checked' : ''}><span>Platební karta online (Stripe)</span></label>
         <label class="th-switch"><input type="checkbox" id="shPayTransfer" ${c.payments.transfer ? 'checked' : ''}><span>Bankovní převod předem</span></label>
-        <p class="muted">Aspoň jedna platba musí zůstat zapnutá. Číslo účtu pro převody se nastavuje ve Vercelu (BANK_ACCOUNT).</p>`;
+        <p class="muted">${c.cardReady === false ? 'Platba kartou je zatím vypnutá, dokud nebude dokončené napojení na Stripe. Zákazníci teď platí převodem a v e-mailu i na faktuře dostanou QR kód pro platbu. ' : ''}Aspoň jedna platba musí zůstat zapnutá. Platby převodem chodí na účet 6922675319/0800.</p>`;
     }
 
     if (S.tab === 'extras') {

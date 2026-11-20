@@ -130,15 +130,24 @@ async function refresh(force = false) {
 const markStale = () => { loadedAt = 0; };
 
 // Co dostane veřejný web (jen to, co se zobrazuje; vypnuté dopravy se vůbec nepošlou)
+// Platba kartou se nabízí jen tehdy, když je Stripe opravdu připravený: ve Vercelu musí být STRIPE_SECRET_KEY
+// a zároveň CARD_PAYMENTS=on. Do té doby jde platit jen převodem (s QR kódem), i kdyby byla karta
+// v administraci zapnutá. Převod se zapne vždy, když by jinak nezbyla žádná platba.
+const cardReady = () => !!process.env.STRIPE_SECRET_KEY && process.env.CARD_PAYMENTS === 'on';
+function payments() {
+  const card = RULES.payments.card && cardReady();
+  return { card, transfer: RULES.payments.transfer || !card };
+}
+
 function publicRules() {
   const shipping = {};
   for (const [k, s] of Object.entries(SHIPPING)) if (!s.off) shipping[k] = s;
   return {
     shipping, giftWrap: { ...GIFT_WRAP, on: RULES.giftWrapOn }, freeShippingFrom: RULES.freeFrom,
     vouchers: { on: RULES.vouchersOn, values: RULES.voucherValues, months: RULES.voucherMonths },
-    payments: RULES.payments, vacation: RULES.vacation, reviews: { on: RULES.reviewsShow },
+    payments: payments(), vacation: RULES.vacation, reviews: { on: RULES.reviewsShow },
     collections: RULES.collections.filter(c => !c.hidden).map(c => ({ name: c.name, desc: c.desc, cover: c.cover })),
   };
 }
 
-module.exports = { SHIPPING, GIFT_WRAP, RULES, DEFAULTS, SHIP_KEYS, validate, apply, load, refresh, markStale, publicRules };
+module.exports = { SHIPPING, GIFT_WRAP, RULES, DEFAULTS, SHIP_KEYS, validate, apply, load, refresh, markStale, publicRules, payments, cardReady };

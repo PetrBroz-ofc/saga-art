@@ -1,5 +1,7 @@
 const Stripe = require('stripe');
 const { releaseForOrder } = require('./_vouchers');
+const QR = require('./_qr');
+const { payments: activePayments } = require('./_rules');
 const { getDb, SITE_URL, noStore, clientIp, fail, guard, limitOrReject } = require('./_utils');
 const {
   SHIPPING, PAYMENTS, GIFT_WRAP, RULES, refreshRules, clean, validateCustomer, priceCart, createOrder, sendOrderEmails, bankInfo, afterPaid,
@@ -22,7 +24,7 @@ export default async function handler(req, res) {
   await refreshRules(); // ceny, zapnuté dopravy a platby z nastavení v administraci
 
   if (payment !== 'card' && payment !== 'transfer') return fail(res, 400, 'Neplatný způsob platby');
-  if (!RULES.payments[payment]) return fail(res, 400, 'Tuhle platbu teď nenabízím, zvolte prosím jinou.');
+  if (!activePayments()[payment]) return fail(res, 400, 'Tuhle platbu teď nenabízím, zvolte prosím jinou.');
   if (RULES.vacation.on && RULES.vacation.block) return fail(res, 503, RULES.vacation.message || 'Obchod je teď zavřený.');
   const cust = validateCustomer(customer, shipping);
   if (cust.error) return fail(res, 400, cust.error);
@@ -78,7 +80,13 @@ export default async function handler(req, res) {
     if (payment === 'transfer') {
       const sent = await sendOrderEmails(order);
       await getDb().collection('orders').doc(number).update({ emailsSent: sent });
-      return res.status(200).json({ orderNumber: number, total: order.total, bank: bankInfo() });
+      const bank = bankInfo();
+      let qr = '';
+      try {
+        const text = QR.spayd({ iban: bank.iban, amount: order.total, vs: number, msg: 'Saga Art objednavka ' + QR.vsOf(number) });
+        if (text) qr = await QR.dataUrl(text);
+      } catch (err) { console.error('QR platba', number, 'selhala:', err.message); }
+      return res.status(200).json({ orderNumber: number, total: order.total, bank: { ...bank, qr } });
     }
 
     // ── Karta: Stripe Checkout. E-maily pošle až webhook po ověřené platbě. ──

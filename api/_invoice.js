@@ -112,10 +112,25 @@ const INK = '#3e3a52', MUTED = '#6c6782', ACCENT = '#83639f', LINE = '#e7e2ef';
 const kc = n => (Math.round(Number(n) * 100) / 100).toLocaleString('cs-CZ', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).replace(/ /g, ' ') + ' Kč';
 const czDate = day => day ? day.split('-').reverse().map((p, i) => (i < 2 ? String(Number(p)) : p)).join('. ') : '';
 
-function pdf(invoice) {
+async function pdf(invoice) {
+  const inv0 = publicInvoice(invoice);
+  // QR platba jen u nezaplacené faktury placené převodem (a jen když je známý IBAN)
+  let qrPng = null;
+  if (!inv0.paid && !inv0.storno && inv0.payment === 'prevod') {
+    try {
+      const QR = require('./_qr');
+      const text = QR.spayd({ iban: inv0.bank?.iban, amount: inv0.total, vs: inv0.vs, msg: 'Saga Art faktura ' + QR.vsOf(inv0.number) });
+      if (text) qrPng = await QR.png(text);
+    } catch (err) {
+      console.error('QR na fakturu', inv0.number, 'selhal:', err.message);
+    }
+  }
+  return render(inv0, qrPng);
+}
+
+function render(inv, qrPng) {
   const PDFDocument = require('pdfkit');
   return new Promise((resolve, reject) => {
-    const inv = publicInvoice(invoice);
     const doc = new PDFDocument({ size: 'A4', margin: 50, font: FONT, info: { Title: 'Faktura ' + inv.number, Author: SELLER.brand } });
     doc.registerFont('b', FONT_B);
     const chunks = [];
@@ -205,6 +220,20 @@ function pdf(invoice) {
     if (inv.paid) {
       doc.font(FONT).fontSize(10).fillColor('#2f6b4f').text('Uhrazeno' + (inv.paidAt ? ' dne ' + czDate(inv.paidAt.slice(0, 10)) : '') + '. K úhradě nezbývá nic.', L, y, { width: W, align: 'right' });
       y += 20;
+    }
+    if (qrPng) {
+      const Q = 104;
+      if (y + Q + 20 > 760) { doc.addPage(); y = 50; }
+      doc.roundedRect(L, y, W, Q + 16, 8).fill('#f8f6fb');
+      doc.image(qrPng, L + 10, y + 8, { width: Q, height: Q });
+      const tx = L + Q + 28;
+      doc.font('b').fontSize(12).fillColor(INK).text('QR platba', tx, y + 18);
+      doc.font(FONT).fontSize(10).fillColor(INK).text(
+        'Naskenujte QR kód v aplikaci své banky. Číslo účtu, částka i variabilní symbol se vyplní samy.', tx, y + 38, { width: R - tx - 12 });
+      const b2 = inv.bank || {};
+      doc.font(FONT).fontSize(9.5).fillColor(MUTED).text(
+        [b2.account ? 'Účet ' + b2.account : '', 'VS ' + inv.vs, kc(inv.total)].filter(Boolean).join(' · '), tx, doc.y + 6, { width: R - tx - 12 });
+      y += Q + 30;
     }
     if (inv.note) {
       doc.font(FONT).fontSize(9.5).fillColor(MUTED).text(inv.note, L, y + 6, { width: W });

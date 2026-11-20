@@ -12,7 +12,7 @@ function view() {
     shipping, freeFrom: R.RULES.freeFrom,
     giftWrap: { price: R.GIFT_WRAP.price, on: R.RULES.giftWrapOn },
     vouchers: { values: R.RULES.voucherValues, months: R.RULES.voucherMonths, on: R.RULES.vouchersOn },
-    payments: R.RULES.payments, vacation: R.RULES.vacation, collections: R.RULES.collections, reviews: { show: R.RULES.reviewsShow },
+    payments: R.RULES.payments, cardReady: R.cardReady(), vacation: R.RULES.vacation, collections: R.RULES.collections, reviews: { show: R.RULES.reviewsShow },
   };
 }
 
