@@ -288,7 +288,7 @@ function renderSkeletons() {
 }
 
 // ═══ NAVIGACE ═══
-const VIEWS = ['prehled', 'objednavky', 'sperky', 'faktury', 'slevy', 'newsletter', 'obchod', 'vzhled'];
+const VIEWS = ['prehled', 'objednavky', 'sperky', 'faktury', 'slevy', 'recenze', 'newsletter', 'obchod', 'vzhled'];
 function setView(v, { push = true } = {}) {
   if (!VIEWS.includes(v)) v = 'prehled';
   state.view = v;
@@ -300,7 +300,7 @@ function setView(v, { push = true } = {}) {
   });
   if (v === 'vzhled') window.ThemeEditor?.show();
   if (v === 'obchod') window.ShopEditor?.show();
-  if (v === 'slevy' || v === 'newsletter') window.ExtraViews?.show(v);
+  if (v === 'slevy' || v === 'newsletter' || v === 'recenze') window.ExtraViews?.show(v);
   if (push && location.hash !== '#' + v) history.pushState(null, '', location.pathname + location.search + '#' + v);
   scrollTo(0, 0);
 }

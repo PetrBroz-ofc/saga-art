@@ -1,0 +1,41 @@
+/* Stránka šperku (/sperk/<id>), generuje ji server pro vyhledávače a sdílení. Barvy a písma z css/shop.css. */
+body { background:var(--bg); }
+.pp-head { display:flex; align-items:center; justify-content:space-between; gap:16px; max-width:1180px; margin:0 auto; padding:22px 24px; }
+.pp-head .nav-logo { position:static; transform:none; }
+.pp-back { color:var(--ink-2); text-decoration:none; font-size:.95rem; }
+.pp-back:hover { color:var(--accent-dk); }
+.pp { display:grid; grid-template-columns:minmax(0, 1.1fr) minmax(0, 1fr); gap:48px; max-width:1180px; margin:0 auto; padding:8px 24px 72px; align-items:start; }
+.pp-media { display:grid; gap:12px; }
+.pp-media img { width:100%; height:auto; border-radius:var(--radius); background:var(--sand); }
+.pp-info { position:sticky; top:24px; }
+.pp-crumbs { font-size:.82rem; color:var(--ink-3); margin-bottom:14px; }
+.pp-crumbs a { color:inherit; text-decoration:none; }
+.pp-crumbs a:hover { color:var(--accent-dk); text-decoration:underline; }
+.pp h1 { font-family:var(--serif); font-weight:400; font-size:clamp(1.9rem, 3.4vw, 2.7rem); line-height:1.15; margin:0 0 8px; }
+.pp-rating { color:var(--ink-2); margin:0 0 8px; }
+.pp-stars { color:#c79a3a; letter-spacing:.08em; }
+.pp-rating small { color:var(--ink-3); }
+.pp-material { color:var(--ink-2); margin:0 0 14px; }
+.pp-price { font-family:var(--serif); font-size:1.9rem; margin:0 0 16px; }
+.pp-desc { line-height:1.75; color:var(--ink); margin:0 0 18px; }
+.pp-props { margin:0 0 22px; border-top:1px solid var(--line); }
+.pp-props > div { display:flex; justify-content:space-between; gap:16px; padding:10px 0; border-bottom:1px solid var(--line); font-size:.94rem; }
+.pp-props dt { color:var(--ink-3); }
+.pp-props dd { margin:0; text-align:right; }
+.pp-info .btn-primary { display:inline-block; text-decoration:none; }
+.pp-ship { margin-top:18px; font-size:.88rem; color:var(--ink-2); }
+.pp-sold { padding:12px 14px; background:var(--lilac); border-radius:var(--radius); }
+.pp-reviews { grid-column:1 / -1; border-top:1px solid var(--line); padding-top:32px; }
+.pp-reviews h2 { font-family:var(--serif); font-weight:400; font-size:1.6rem; margin:0 0 16px; }
+.pp-review { padding:16px 0; border-bottom:1px solid var(--line); max-width:720px; }
+.pp-review h3 { font-size:1rem; font-weight:500; margin:2px 0 4px; }
+.pp-review p { margin:0 0 6px; line-height:1.65; }
+.pp-review small { color:var(--ink-3); }
+.pp-foot { text-align:center; padding:28px 16px 40px; font-size:.86rem; color:var(--ink-3); border-top:1px solid var(--line); }
+.pp-foot a { color:inherit; }
+.pp-empty { display:block; text-align:center; padding:96px 24px; max-width:560px; }
+@media (max-width:860px) {
+  .pp { grid-template-columns:1fr; gap:24px; padding:0 16px 56px; }
+  .pp-head { padding:16px; }
+  .pp-info { position:static; }
+}

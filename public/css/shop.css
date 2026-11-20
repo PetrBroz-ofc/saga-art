@@ -808,3 +808,23 @@ img { max-width:100%; display:block; }
   #stepsHead { padding-right:34px; }
   .steps-labels span { font-size:.6rem; letter-spacing:.03em; }
 }
+
+/* ── Recenze ── */
+.product-rating { font-size:.84rem; color:var(--ink-2); margin:2px 0 4px; }
+.product-rating span { color:#c79a3a; letter-spacing:.06em; }
+.product-rating small { color:var(--ink-3); }
+.pdetail-page { margin-top:12px; font-size:.86rem; }
+.pdetail-page a { color:var(--ink-3); }
+.pd-reviews { padding-top:4px; }
+.pd-rev-h { font-family:var(--serif); font-weight:400; font-size:1.25rem; margin:0 0 10px; }
+.pd-rev-sum { font-family:var(--sans); font-size:.9rem; color:var(--ink-2); margin-left:8px; }
+.pd-rev-sum span, .pd-rev-stars { color:#c79a3a; letter-spacing:.06em; }
+.pd-rev-sum small { color:var(--ink-3); }
+.pd-rev { padding:12px 0; border-top:1px solid var(--line); }
+.pd-rev h4 { font-size:.96rem; font-weight:500; margin:2px 0 3px; }
+.pd-rev p { margin:0 0 5px; font-size:.92rem; line-height:1.6; }
+.pd-rev small { color:var(--ink-3); }
+.pd-rev-empty { color:var(--ink-3); font-size:.9rem; }
+.pd-rev-write { margin-top:12px; padding:12px 14px; background:var(--lilac); border-radius:var(--radius); font-size:.86rem; color:var(--ink-2); }
+.pd-rev-write p { margin:0 0 10px; }
+.pd-rev-write .btn-back:disabled { opacity:.55; cursor:not-allowed; }

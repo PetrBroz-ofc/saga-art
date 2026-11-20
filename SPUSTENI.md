@@ -105,3 +105,10 @@ Texty e-mailů (potvrzení objednávky, upozornění pro Petru, kód pro přihl�
 - **Obchod:** ceny dopravy, doprava zdarma, dárkové zabalení, hodnoty a platnost poukazů, platby, dovolená, kolekce, texty e-mailů (se zkušebním odesláním).
 - **Slevové kódy** a **Newsletter** (seznam, export CSV).
 - Právní texty (obchodní podmínky, ochrana údajů) a čísla v nich (např. „12 měsíců“, „1 490 Kč“) se nemění samy, po změně pravidel je třeba je zkontrolovat.
+
+## Vyhledávače (SEO), po spuštění
+- [ ] Google Search Console: přidat web `https://sagaart.cz` (ověření DNS záznamem TXT ve Forpsi) a odeslat `https://sagaart.cz/sitemap.xml`.
+- [ ] Seznam Webmaster (webmaster.seznam.cz): totéž, pro české vyhledávání se vyplatí.
+- [ ] Google Business Profile (firmy.google.com) a vyplnit Instagram a Facebook ve Vzhledu webu (odkazy jdou do strukturovaných dat později).
+- [ ] Zkontrolovat náhled sdílení: https://developers.facebook.com/tools/debug/ s adresou webu.
+- Titulek a popis úvodní stránky: Vzhled webu → Vyhledávače. Každý šperk má vlastní stránku `/sperk/<id>` s popisem, cenou a recenzemi, popis šperku se bere z jeho detailu v administraci (čím delší a konkrétnější, tím líp).

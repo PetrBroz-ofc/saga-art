@@ -9,6 +9,9 @@ const HANDLERS = {
   withdrawal: require('./_h/withdrawal'),
   site: require('./_h/sitepub'),
   coupon: require('./_h/coupon'),
+  reviews: require('./_h/reviews'),
+  product: require('./_h/productpage'),
+  sitemap: require('./_h/sitemap'),
 };
 
 module.exports = async function handler(req, res) {

@@ -29,6 +29,7 @@ const RULES = {
   collections: DEFAULT_COLLECTIONS.map(c => ({ ...c, hidden: false })),
   freeFrom: 1490,                      // doprava zdarma od této částky (Zásilkovna), 0 = vypnuto
   giftWrapOn: true,
+  reviewsShow: true,                    // recenze na webu (schválené)
   vouchersOn: true,
   voucherValues: [500, 1000, 1500],
   voucherMonths: 12,
@@ -92,7 +93,9 @@ function validate(b) {
     if (collections.length > 30) return { error: 'Nejvýš 30 kolekcí' };
   }
 
-  return { data: { ...(collections ? { collections } : {}), shipping, freeFrom, giftWrap: { price: gwPrice, on: gw.on !== false }, vouchers: { values, months, on: v.on !== false }, payments, vacation } };
+  const reviewsShow = b.reviews?.show !== false;
+
+  return { data: { ...(collections ? { collections } : {}), reviews: { show: reviewsShow }, shipping, freeFrom, giftWrap: { price: gwPrice, on: gw.on !== false }, vouchers: { values, months, on: v.on !== false }, payments, vacation } };
 }
 
 // Přenese uložené nastavení do sdílených objektů
@@ -105,6 +108,7 @@ function apply(doc) {
   RULES.collections = Array.isArray(doc?.collections) ? doc.collections.map(c => ({ name: c.name, desc: c.desc || '', cover: c.cover || '', hidden: c.hidden === true })) : DEFAULTS.RULES.collections.map(c => ({ ...c }));
   GIFT_WRAP.price = Number.isInteger(doc?.giftWrap?.price) ? doc.giftWrap.price : DEFAULTS.GIFT_WRAP.price;
   RULES.giftWrapOn = doc?.giftWrap ? doc.giftWrap.on !== false : true;
+  RULES.reviewsShow = doc?.reviews ? doc.reviews.show !== false : true;
   RULES.freeFrom = Number.isInteger(doc?.freeFrom) ? doc.freeFrom : DEFAULTS.RULES.freeFrom;
   RULES.vouchersOn = doc?.vouchers ? doc.vouchers.on !== false : true;
   RULES.voucherValues = Array.isArray(doc?.vouchers?.values) && doc.vouchers.values.length ? doc.vouchers.values.slice() : DEFAULTS.RULES.voucherValues.slice();
@@ -132,7 +136,7 @@ function publicRules() {
   return {
     shipping, giftWrap: { ...GIFT_WRAP, on: RULES.giftWrapOn }, freeShippingFrom: RULES.freeFrom,
     vouchers: { on: RULES.vouchersOn, values: RULES.voucherValues, months: RULES.voucherMonths },
-    payments: RULES.payments, vacation: RULES.vacation,
+    payments: RULES.payments, vacation: RULES.vacation, reviews: { on: RULES.reviewsShow },
     collections: RULES.collections.filter(c => !c.hidden).map(c => ({ name: c.name, desc: c.desc, cover: c.cover })),
   };
 }

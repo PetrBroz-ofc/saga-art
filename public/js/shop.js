@@ -65,6 +65,44 @@ const CAT_LABELS = { nahrdelniky:'Náhrdelníky', nausnice:'Náušnice', naramky
 
 let PRODUCTS = [];
 
+// ─── RECENZE ───
+let REVIEW_SUMMARY = {};
+const stars = n => '★'.repeat(n) + '☆'.repeat(5 - n);
+const avgText = a => String(a).replace('.', ',');
+function ratingHtml(id) {
+  const r = REVIEW_SUMMARY[id];
+  if (!r || !r.count) return '';
+  return '<p class="product-rating" aria-label="Hodnocení ' + avgText(r.avg) + ' z 5, ' + r.count + ' recenzí"><span aria-hidden="true">' + stars(Math.round(r.avg)) + '</span> ' + avgText(r.avg) + ' <small>(' + r.count + ')</small></p>';
+}
+async function loadReviewSummary() {
+  try {
+    const res = await fetch('/api/reviews');
+    if (!res.ok) return;
+    const j = await res.json();
+    REVIEW_SUMMARY = j.on && j.summary ? j.summary : {};
+    renderGrid();
+  } catch {}
+}
+// Recenze v detailu šperku. Psát je smí jen přihlášená zákaznice, která šperk koupila (účty připravujeme).
+async function loadProductReviews(id) {
+  const box = $('pdReviews');
+  if (!box) return;
+  box.innerHTML = '';
+  try {
+    const res = await fetch('/api/reviews?product=' + encodeURIComponent(id));
+    const j = await res.json();
+    if (!res.ok || !j.on) return;
+    if ($('pdetailOverlay').dataset.pid !== id) return; // mezitím se otevřel jiný šperk
+    const list = Array.isArray(j.reviews) ? j.reviews : [];
+    box.innerHTML = '<hr class="pdetail-divider"/><div class="pd-reviews"><h3 class="pd-rev-h">Recenze'
+      + (j.summary && j.summary.count ? ' <span class="pd-rev-sum"><span aria-hidden="true">' + stars(Math.round(j.summary.avg)) + '</span> ' + avgText(j.summary.avg) + ' <small>(' + j.summary.count + ')</small></span>' : '') + '</h3>'
+      + (list.length ? list.map(r => '<article class="pd-rev"><p class="pd-rev-stars" aria-label="' + r.rating + ' z 5">' + stars(r.rating) + '</p>'
+          + (r.title ? '<h4>' + esc(r.title) + '</h4>' : '') + '<p>' + esc(r.text) + '</p><small>' + esc(r.name) + (r.verified ? ' · ověřený nákup' : '') + '</small></article>').join('')
+        : '<p class="pd-rev-empty">Zatím tu není žádná recenze.</p>')
+      + '<div class="pd-rev-write"><p>Recenzi mohou napsat přihlášené zákaznice, které šperk koupily. Přihlášení k účtu připravujeme.</p><button type="button" class="btn-back" disabled>Napsat recenzi</button></div></div>';
+  } catch {}
+}
+
 // ═══════════════════════════════
 // PLACEHOLDER (dokud nejsou fotky)
 // ═══════════════════════════════
@@ -145,6 +183,7 @@ function renderGrid() {
         + '</div><div class="product-info">'
         + (p.collection ? '<p class="product-collection">' + esc(p.collection) + '</p>' : '')
         + '<h3 class="product-name">' + esc(p.name) + '</h3>'
+        + ratingHtml(id)
         + '<p class="product-material">' + esc(p.material) + '</p>'
         + '<div class="product-bottom"><span class="product-price">' + kc(p.price) + '</span>'
         + '<button class="product-add" data-action="addToCart" data-arg="' + id + '" aria-label="Přidat ' + esc(p.name) + ' do košíku">' + BAG + '<span>Do košíku</span></button>'
@@ -215,7 +254,11 @@ function openProduct(id) {
     '<p class="pdetail-desc">' + esc(p.desc) + '</p>' +
     '<hr class="pdetail-divider"/>' +
     '<div class="pdetail-props">' + propsHtml + '</div>' +
-    '<button class="pdetail-add-btn" data-action="addToCart" data-arg="' + safeId(p.id) + '">Přidat do košíku</button>';
+    '<button class="pdetail-add-btn" data-action="addToCart" data-arg="' + safeId(p.id) + '">Přidat do košíku</button>' +
+    '<p class="pdetail-page"><a href="/sperk/' + encodeURIComponent(safeId(p.id)) + '">Stránka tohoto šperku</a></p>' +
+    '<div id="pdReviews"></div>';
+  $('pdetailOverlay').dataset.pid = safeId(p.id);
+  loadProductReviews(safeId(p.id));
   $('pdetailOverlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -754,6 +797,9 @@ async function loadCatalog() {
   renderGrid();
   renderCart();
   renderShipGrid();
+  loadReviewSummary();
+  const wanted = new URLSearchParams(location.search).get('produkt');
+  if (wanted) { history.replaceState(null, '', location.pathname); openProduct(safeId(wanted)); }
 }
 
 renderShipGrid();

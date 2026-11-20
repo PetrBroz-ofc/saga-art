@@ -57,6 +57,9 @@
           <span class="sh-price"><input type="number" min="1" max="36" step="1" id="shMonths" value="${esc(c.vouchers.months)}"><b>měsíců</b></span></label>
         <p class="muted">Poukaz je jednorázový, platí jen na zboží (ne na dopravu), nevyčerpaná část propadá. Pravidla v obchodních podmínkách upravte podle potřeby.</p>
 
+        <h2 class="sh-h" style="margin-top:28px">Recenze</h2>
+        <label class="th-switch"><input type="checkbox" id="shReviewsOn" ${c.reviews.show ? 'checked' : ''}><span>Ukazovat schválené recenze na webu<small>Hvězdičky se ukazují i u šperků v nabídce a ve vyhledávačích.</small></span></label>
+
         <h2 class="sh-h" style="margin-top:28px">Dárkové zabalení</h2>
         <label class="th-switch"><input type="checkbox" id="shWrapOn" ${c.giftWrap.on ? 'checked' : ''}><span>Nabízet dárkové zabalení</span></label>
         <label class="field sh-field"><span>Cena zabalení</span>
@@ -117,6 +120,7 @@
     else if (t.id === 'shVouchersOn') c.vouchers.on = t.checked;
     else if (t.id === 'shMonths') c.vouchers.months = num(t.value);
     else if (t.id === 'shWrapOn') c.giftWrap.on = t.checked;
+    else if (t.id === 'shReviewsOn') c.reviews.show = t.checked;
     else if (t.id === 'shWrapPrice') c.giftWrap.price = num(t.value);
     else if (t.id === 'shVacOn') c.vacation.on = t.checked;
     else if (t.id === 'shVacMsg') c.vacation.message = t.value;
@@ -138,7 +142,7 @@
   const toBody = c => ({
     shipping: Object.fromEntries(Object.entries(c.shipping).map(([k, s]) => [k, { price: s.price, on: s.on }])),
     freeFrom: c.freeFrom, giftWrap: c.giftWrap, vouchers: c.vouchers, payments: c.payments, vacation: c.vacation,
-    collections: c.collections,
+    collections: c.collections, reviews: c.reviews,
   });
 
   async function save() {

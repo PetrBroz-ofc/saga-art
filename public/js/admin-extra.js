@@ -90,6 +90,70 @@
     finally { btn.disabled = false; }
   }
 
+  // ═══ RECENZE ═══
+  const V = { list: [], loaded: false, filter: 'pending', editing: '' };
+  const STARS = n => '★'.repeat(n) + '☆'.repeat(5 - n);
+  const REV_FILTERS = [['pending', 'Čekající'], ['approved', 'Schválené'], ['hidden', 'Skryté'], ['all', 'Vše']];
+  const REV_STATUS = { pending: ['Čeká na schválení', 'warn'], approved: ['Zveřejněná', 'ok'], hidden: ['Skrytá', 'mute'] };
+
+  function renderReviews() {
+    const waiting = V.list.filter(r => r.status === 'pending').length;
+    const nav = $('navReviewCount'); if (nav) { nav.hidden = !waiting; nav.textContent = waiting; }
+    $('reviewChips').innerHTML = REV_FILTERS.map(([k, label]) => {
+      const n = k === 'all' ? V.list.length : V.list.filter(r => r.status === k).length;
+      return `<button type="button" class="chip ${V.filter === k ? 'is-on' : ''}" data-action="reviewFilter" data-arg="${k}">${label} <b>${n}</b></button>`;
+    }).join('');
+    const box = $('reviewList');
+    if (!V.loaded) { box.innerHTML = '<div class="skel" style="height:200px;border-radius:0"></div>'; return; }
+    const list = V.list.filter(r => V.filter === 'all' || r.status === V.filter);
+    if (!list.length) {
+      box.innerHTML = `<div class="list-empty"><p class="big">${V.list.length ? 'Tady nic není' : 'Zatím žádná recenze'}</p><p>${V.list.length ? 'Zkuste jiný filtr.' : 'Jakmile zákaznice napíšou recenzi, objeví se tady ke schválení. Teď můžete přidat vlastní skutečné recenze tlačítkem nahoře.'}</p></div>`;
+      return;
+    }
+    box.innerHTML = list.map((r, k) => {
+      const [label, tone] = REV_STATUS[r.status] || ['', 'mute'];
+      return `<div class="order-row review-row" style="animation-delay:${Math.min(k, 12) * 25}ms">
+        <span class="who"><b>${esc(r.product)}</b><small class="rev-stars">${STARS(r.rating)}</small></span>
+        <span class="who rev-body"><b>${esc(r.title || r.name)}</b><small>${esc(r.text)}</small><small>${esc(r.name)}${r.verified ? ' · ověřený nákup' : ''} · ${r.source === 'manual' ? 'přidala jste ručně' : 'od zákaznice'} · ${esc(czDate(r.createdAt))}</small></span>
+        <span class="status"><span class="pill ${tone}">${esc(label)}</span></span>
+        <span class="row-tools">
+          ${r.status !== 'approved' ? `<button class="btn btn-ghost btn-sm" data-action="reviewSet" data-arg="${esc(r.id)}:approved">Schválit</button>` : ''}
+          ${r.status !== 'hidden' ? `<button class="btn btn-ghost btn-sm" data-action="reviewSet" data-arg="${esc(r.id)}:hidden">Skrýt</button>` : ''}
+          <button class="btn btn-ghost btn-sm" data-action="reviewEdit" data-arg="${esc(r.id)}">Upravit</button>
+          <button class="btn btn-ghost btn-sm danger" data-action="reviewDelete" data-arg="${esc(r.id)}">Smazat</button>
+        </span></div>`;
+    }).join('');
+  }
+  async function loadReviews() {
+    try { V.list = await api('/api/reviews-admin'); V.loaded = true; renderReviews(); }
+    catch (err) { if (err.message !== 'unauthorized') toast(err.message || 'Recenze se nepodařilo načíst', { err: true }); }
+  }
+  function openReviewEditor(id) {
+    const r = id ? V.list.find(x => x.id === id) : null;
+    V.editing = id || '';
+    const products = (typeof state !== 'undefined' ? state.products : []).slice().sort((a, b) => String(a.name).localeCompare(String(b.name), 'cs'));
+    $('rvProduct').innerHTML = products.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
+    $('rvTitle').textContent = r ? 'Upravit recenzi' : 'Nová recenze';
+    $('rvProduct').value = r ? r.productId : (products[0]?.id || '');
+    $('rvProduct').disabled = !!r;
+    $('rvName').value = r ? r.name : ''; $('rvRating').value = r ? String(r.rating) : '5';
+    $('rvHead').value = r ? r.title : ''; $('rvText').value = r ? r.text : '';
+    $('rvVerified').checked = r ? r.verified : false;
+    openSheet('reviewSheet');
+    setTimeout(() => $(r ? 'rvText' : 'rvName').focus({ preventScroll: true }), 90);
+  }
+  async function saveReview(e) {
+    e.preventDefault();
+    const body = { productId: $('rvProduct').value, name: $('rvName').value.trim(), rating: Number($('rvRating').value), title: $('rvHead').value.trim(), text: $('rvText').value.trim(), verified: $('rvVerified').checked };
+    const btn = $('rvSave'); btn.disabled = true;
+    try {
+      if (V.editing) await api('/api/reviews-admin', 'PATCH', { id: V.editing, ...body });
+      else await api('/api/reviews-admin', 'POST', body);
+      closeSheet(true); await loadReviews(); toast(V.editing ? 'Recenze je uložená.' : 'Recenze je na webu.');
+    } catch (err) { if (err.message !== 'unauthorized') toast(err.message, { err: true }); }
+    finally { btn.disabled = false; }
+  }
+
   // ═══ ODBĚRATELÉ ═══
   const N = { list: [], loaded: false, q: '' };
   function renderSubs() {
@@ -206,12 +270,26 @@
       catch (err) { if (err.message !== 'unauthorized') toast(err.message, { err: true }); }
     },
     exportSubs,
+    newReview: () => openReviewEditor(''),
+    reviewEdit: a => openReviewEditor(a),
+    reviewFilter: a => { V.filter = a; renderReviews(); },
+    reviewSet: async a => {
+      const [id, status] = a.split(':');
+      try { await api('/api/reviews-admin', 'PATCH', { id, status }); const r = V.list.find(x => x.id === id); if (r) r.status = status; renderReviews(); toast(status === 'approved' ? 'Recenze je na webu.' : 'Recenze je skrytá.'); }
+      catch (err) { if (err.message !== 'unauthorized') toast(err.message, { err: true }); }
+    },
+    reviewDelete: async a => {
+      if (!(await ask({ title: 'Smazat recenzi?', text: 'Zmizí z webu i z administrace a nejde ji vrátit. Chcete-li ji jen schovat, použijte Skrýt.', yes: 'Smazat', danger: true }))) return;
+      try { await api('/api/reviews-admin', 'DELETE', { id: a }); V.list = V.list.filter(x => x.id !== a); renderReviews(); toast('Recenze je smazaná.'); }
+      catch (err) { if (err.message !== 'unauthorized') toast(err.message, { err: true }); }
+    },
     mailSave: saveMail,
     mailTest: testMail,
     mailReset: a => { const t = document.querySelector(`[data-mail="${a}"]`); if (t && M.defaults) { t.value = M.defaults[a]; } },
     openMore: () => openSheet('moreSheet'),
   });
   $('couponForm').addEventListener('submit', saveCoupon);
+  $('reviewForm').addEventListener('submit', saveReview);
   $('cpType').addEventListener('change', updateValueUnit);
   $('subSearch').addEventListener('input', e => { N.q = e.target.value.trim(); renderSubs(); });
 
@@ -219,8 +297,9 @@
     show(v) {
       if (v === 'slevy') { if (!C.loaded) loadCoupons(); else renderCoupons(); }
       if (v === 'newsletter') { if (!N.loaded) loadSubs(); else renderSubs(); }
+      if (v === 'recenze') { if (!V.loaded) loadReviews(); else renderReviews(); }
     },
   };
   const v = document.querySelector('.view:not([hidden])')?.dataset.view;
-  if (v === 'slevy' || v === 'newsletter') window.ExtraViews.show(v);
+  if (v === 'slevy' || v === 'newsletter' || v === 'recenze') window.ExtraViews.show(v);
 })();

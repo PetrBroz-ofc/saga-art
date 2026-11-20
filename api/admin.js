@@ -11,6 +11,7 @@ const HANDLERS = {
   subscribers: require('./_h/subscribers'),
   mail: require('./_h/mailtexts'),
   coupons: require('./_h/coupons'),
+  reviews: require('./_h/reviewsadmin'),
 };
 
 module.exports = async function handler(req, res) {

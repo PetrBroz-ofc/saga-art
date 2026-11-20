@@ -145,14 +145,27 @@
   let shopDoc = { shipping: { zasilkovna: { name: 'Zásilkovna, výdejní místo nebo Z-BOX', price: 89, on: true, freeFrom: true, country: 'CZ' }, zasilkovna_adresa: { name: 'Zásilkovna, doručení na adresu', price: 119, on: true, freeFrom: true, country: 'CZ' },
     balikovna: { name: 'Česká pošta, Balíkovna', price: 109, on: true, freeFrom: false, country: 'CZ' }, posta: { name: 'Česká pošta na adresu', price: 130, on: true, freeFrom: false, country: 'CZ' }, packeta_sk: { name: 'Packeta na Slovensko', price: 130, on: true, freeFrom: false, country: 'SK' } },
     collections: [{ name: 'Charlotte', desc: 'Jemný amazonit, pravé říční perly a čtyřlístek pro štěstí.', cover: '/img/produkty/charlotte-nahrdelnik/1.jpg', hidden: false }, { name: 'Euforie', desc: 'Drobné říční perly a zlatá ocel.', cover: '/img/produkty/euforie-gold-long/1.jpg', hidden: false }, { name: 'Moře', desc: 'Akvamarín a říční perly.', cover: '/img/produkty/more-kvet-nahrdelnik/1.jpg', hidden: false }],
+    reviews: { show: true },
     freeFrom: 1490, giftWrap: { price: 59, on: true }, vouchers: { values: [500, 1000, 1500], months: 12, on: true }, payments: { card: true, transfer: true }, vacation: { on: false, block: false, message: '' } };
   function shopApi(method, body) {
     if (method === 'PUT') {
       Object.entries(body.shipping).forEach(([k, s]) => { shopDoc.shipping[k].price = s.price; shopDoc.shipping[k].on = s.on; });
       if (body.collections) shopDoc.collections = body.collections;
+      if (body.reviews) shopDoc.reviews = body.reviews;
       Object.assign(shopDoc, { freeFrom: body.freeFrom, giftWrap: body.giftWrap, vouchers: body.vouchers, payments: body.payments, vacation: body.vacation });
     }
     return clone(shopDoc);
+  }
+  let reviews = [
+    { id: 'a'.repeat(20), productId: 'charlotte-set', product: 'Charlotte SET', name: 'Jana K.', rating: 5, title: 'Krásný set', text: 'Set je ještě hezčí než na fotkách, perly jsou pravé a všechno sedí.', status: 'pending', verified: false, source: 'customer', createdAt: new Date().toISOString() },
+    { id: 'b'.repeat(20), productId: 'duna-nahrdelnik', product: 'Duna náhrdelník', name: 'Eva V.', rating: 4, title: '', text: 'Pěkný náhrdelník, přišel zabalený v krabičce jako dárek.', status: 'approved', verified: true, source: 'manual', createdAt: new Date(Date.now() - 864e5 * 4).toISOString() },
+  ];
+  function reviewsApi(method, body) {
+    if (method === 'GET') return clone(reviews);
+    if (method === 'POST') { reviews.unshift({ id: Math.random().toString(16).slice(2, 22).padEnd(20, '0'), ...body, product: (products.find(p => p.id === body.productId) || {}).name || body.productId, status: 'approved', source: 'manual', createdAt: new Date().toISOString() }); return { ok: true }; }
+    const r = reviews.find(x => x.id === body.id); if (!r) throw new Error('Recenze neexistuje');
+    if (method === 'DELETE') { reviews = reviews.filter(x => x !== r); return { ok: true }; }
+    Object.assign(r, Object.fromEntries(Object.entries(body).filter(([k]) => ['status', 'name', 'rating', 'title', 'text', 'verified'].includes(k)))); return { ok: true };
   }
   let coupons = [
     { code: 'JARO10', type: 'percent', value: 10, minGoods: 0, validFrom: '', validTo: '', maxUses: 0, used: 4, enabled: true, note: 'Instagram', createdAt: new Date().toISOString() },
@@ -257,6 +270,7 @@
     if (path === '/api/site-settings') return siteApi(method, body);
     if (path === '/api/shop-settings') return shopApi(method, body);
     if (path === '/api/coupons') return couponsApi(method, body);
+    if (path === '/api/reviews-admin') return reviewsApi(method, body);
     if (path === '/api/subscribers') return subsApi(method, body);
     if (path === '/api/mail-settings') return mailApi(method, body);
     if (path === '/api/account') {

@@ -84,3 +84,8 @@ Secrety ukládej na Vercelu jako **Sensitive**, nikdy do repozitáře (je veřej
 - Texty e-mailů se vkládají do HTML jen přes escapování, předměty obsahují jen číslo objednávky. Zkušební e-mail jde jen na adresu majitelky a jen ve dvou pevných variantách (6 za hodinu).
 - Odběratelé: seznam a export jen po přihlášení, smazání na žádost o výmaz.
 - Fotky kolekcí a stránky jen z vlastního Cloudinary nebo z `/img/produkty/`.
+
+## Recenze a stránky šperků (SEO)
+- Recenze se veřejně ukazují jen schválené. Psát je smí jen přihlášená zákaznice, která šperk koupila (`api/_customer.js`, zákaznické účty zatím nejsou, endpoint proto vrací 401). Nová recenze čeká na schválení, jedna zákaznice = jedna recenze k šperku, jméno se zkracuje.
+- Hvězdičky ve strukturovaných datech (schema.org) se počítají jen ze skutečných schválených recenzí. Nic se nevymýšlí.
+- `/sperk/<id>` a `sitemap.xml` generuje server. Všechno z databáze se do HTML vkládá escapované, JSON-LD má `<` nahrazené, fotky jen z Cloudinary nebo `/img/produkty/`.

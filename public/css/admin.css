@@ -706,3 +706,15 @@ a.btn { text-decoration:none; }
   .th-presets { grid-template-columns:1fr 1fr; }
   .th-color { flex-wrap:wrap; }
 }
+.review-row { grid-template-columns:minmax(120px, .8fr) minmax(220px, 2.4fr) 150px auto; align-items:start; }
+.rev-stars { color:#c79a3a; letter-spacing:.06em; font-size:.95rem !important; }
+.rev-body small { display:block; white-space:normal; }
+@media (max-width:820px) {
+  .review-row { grid-template-columns:1fr auto; grid-template-areas:"prod status" "body body" "tools tools"; row-gap:8px; }
+  .review-row > :nth-child(1) { grid-area:prod; }
+  .review-row > :nth-child(2) { grid-area:body; }
+  .review-row > :nth-child(3) { grid-area:status; justify-self:end; }
+  .review-row > :nth-child(4) { grid-area:tools; justify-content:flex-start; flex-wrap:wrap; }
+}
+#reviewSheet .sheet-body { padding:22px 22px 28px; }
+#reviewSheet .od-top { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:16px; }

@@ -112,6 +112,22 @@
       "destination": "/api/admin?r=shop"
     },
     {
+      "source": "/api/reviews",
+      "destination": "/api/public?r=reviews"
+    },
+    {
+      "source": "/api/reviews-admin",
+      "destination": "/api/admin?r=reviews"
+    },
+    {
+      "source": "/sperk/:id",
+      "destination": "/api/public?r=product&id=:id"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/public?r=sitemap"
+    },
+    {
       "source": "/api/coupon",
       "destination": "/api/public?r=coupon"
     },
