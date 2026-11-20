@@ -78,6 +78,14 @@
       ]
     }
   ],
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "saga-art.vercel.app" }],
+      "destination": "https://sagaart.cz/$1",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/newsletter",

@@ -59,8 +59,24 @@ async function api(path, method = 'GET', body) {
     throw new Error('unauthorized');
   }
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw Object.assign(new Error(data.error || 'Chyba ' + res.status), { data });
+  if (!res.ok) {
+    // srozumitelnější hlášky na nejčastější potíže
+    const msg = res.status === 403 && /původ/i.test(data.error || '')
+      ? 'Otevřete administraci na adrese ' + 'https://sagaart.cz/admin. Z jiné adresy se nic uložit nedá.'
+      : res.status === 429 ? 'Moc pokusů za sebou. Chvíli počkejte a zkuste to znovu.'
+      : res.status >= 500 ? (data.error || 'Na serveru se něco pokazilo. Zkuste to prosím za chvíli, změny zůstaly na obrazovce.')
+      : (data.error || 'Chyba ' + res.status);
+    throw Object.assign(new Error(msg), { data, status: res.status });
+  }
   return data;
+}
+
+// Přihlášení vyprší po 2 hodinách nečinnosti. Dokud je administrace otevřená, každých 10 minut se prodlouží.
+if (!DEMO) {
+  setInterval(() => {
+    if (document.hidden || $('adminScreen').hidden) return;
+    fetch('/api/auth?keepalive=1', { credentials: 'same-origin' }).catch(() => {});
+  }, 10 * 60 * 1000);
 }
 
 // ═══ PŘIHLÁŠENÍ ═══

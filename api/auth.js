@@ -186,6 +186,8 @@ export default async function handler(req, res) {
         if (!current) return fail(res, 401, 'Neautorizováno');
         return await listDevices(req, res, current, s.who);
       }
+      // dokud je administrace otevřená a někdo v ní pracuje, přihlášení se prodlužuje (klouzavé 2 hodiny)
+      if (current && req.query?.keepalive) setSessionCookie(res, current);
       return res.status(200).json({ authenticated: !!current, who: s?.who || null });
     }
 
