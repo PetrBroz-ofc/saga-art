@@ -74,13 +74,21 @@ function ratingHtml(id) {
   if (!r || !r.count) return '';
   return '<p class="product-rating" aria-label="Hodnocení ' + avgText(r.avg) + ' z 5, ' + r.count + ' recenzí"><span aria-hidden="true">' + stars(Math.round(r.avg)) + '</span> ' + avgText(r.avg) + ' <small>(' + r.count + ')</small></p>';
 }
+function updateRatings() {
+  document.querySelectorAll('#productsGrid .product-card').forEach(card => {
+    const id = card.dataset.arg, name = card.querySelector('.product-name');
+    if (!name) return;
+    card.querySelector('.product-rating')?.remove();
+    name.insertAdjacentHTML('afterend', ratingHtml(id));
+  });
+}
 async function loadReviewSummary() {
   try {
     const res = await fetch('/api/reviews');
     if (!res.ok) return;
     const j = await res.json();
     REVIEW_SUMMARY = j.on && j.summary ? j.summary : {};
-    renderGrid();
+    updateRatings();
   } catch {}
 }
 // Recenze v detailu šperku. Psát je smí jen přihlášená zákaznice, která šperk koupila (účty připravujeme).
@@ -166,30 +174,37 @@ function renderNavMenus() {
 const filteredProducts = () => PRODUCTS.filter(p =>
   (filter.cat === 'vse' || p.cat === filter.cat) && (!filter.collection || p.collection === filter.collection));
 
+function productCardHtml(p) {
+  const id = safeId(p.id), fav = wishlist.includes(id);
+  const photos = (Array.isArray(p.imgs) ? p.imgs : []).map(safeUrl).filter(Boolean);
+  return '<div class="product-card" data-action="openProduct" data-arg="' + id + '">'
+    + '<div class="product-img">' + imgHtml(p, firstImg(p))
+    + (photos[1] ? '<img class="alt" src="' + esc(photos[1]) + '" alt="" loading="lazy" referrerpolicy="no-referrer"/>' : '')
+    + (p.badge ? '<div class="product-badge">' + esc(p.badge) + '</div>' : '')
+    + '<button class="product-wishlist' + (fav ? ' on' : '') + '" data-action="toggleWish" data-arg="' + id + '" aria-label="Uložit do oblíbených" aria-pressed="' + fav + '">' + HEART + '</button>'
+    + '</div><div class="product-info">'
+    + (p.collection ? '<p class="product-collection">' + esc(p.collection) + '</p>' : '')
+    + '<h3 class="product-name">' + esc(p.name) + '</h3>'
+    + ratingHtml(id)
+    + '<p class="product-material">' + esc(p.material) + '</p>'
+    + '<div class="product-bottom"><span class="product-price">' + kc(p.price) + '</span>'
+    + '<button class="product-add" data-action="addToCart" data-arg="' + id + '" aria-label="Přidat ' + esc(p.name) + ' do košíku">' + BAG + '<span>Do košíku</span></button>'
+    + '</div></div></div>';
+}
+
 function renderGrid() {
   const grid = $('productsGrid');
   const list = filteredProducts();
   if (!list.length) {
     grid.innerHTML = '<p class="grid-empty">Žádné šperky k zobrazení.</p>';
   } else {
-    grid.innerHTML = list.slice(0, visibleCount).map(p => {
-      const id = safeId(p.id), fav = wishlist.includes(id);
-      const photos = (Array.isArray(p.imgs) ? p.imgs : []).map(safeUrl).filter(Boolean);
-      return '<div class="product-card" data-action="openProduct" data-arg="' + id + '">'
-        + '<div class="product-img">' + imgHtml(p, firstImg(p))
-        + (photos[1] ? '<img class="alt" src="' + esc(photos[1]) + '" alt="" loading="lazy" referrerpolicy="no-referrer"/>' : '')
-        + (p.badge ? '<div class="product-badge">' + esc(p.badge) + '</div>' : '')
-        + '<button class="product-wishlist' + (fav ? ' on' : '') + '" data-action="toggleWish" data-arg="' + id + '" aria-label="Uložit do oblíbených" aria-pressed="' + fav + '">' + HEART + '</button>'
-        + '</div><div class="product-info">'
-        + (p.collection ? '<p class="product-collection">' + esc(p.collection) + '</p>' : '')
-        + '<h3 class="product-name">' + esc(p.name) + '</h3>'
-        + ratingHtml(id)
-        + '<p class="product-material">' + esc(p.material) + '</p>'
-        + '<div class="product-bottom"><span class="product-price">' + kc(p.price) + '</span>'
-        + '<button class="product-add" data-action="addToCart" data-arg="' + id + '" aria-label="Přidat ' + esc(p.name) + ' do košíku">' + BAG + '<span>Do košíku</span></button>'
-        + '</div></div></div>';
-    }).join('');
+    grid.innerHTML = list.slice(0, visibleCount).map(productCardHtml).join('');
   }
+  updateGridControls(list);
+}
+
+// tlačítka, informace o filtru a záložky (zvlášť, ať jde „Zobrazit další“ doplnit bez překreslení celé mřížky)
+function updateGridControls(list) {
   $('btnLoadMore').style.display = list.length > visibleCount ? 'inline-block' : 'none';
   $('btnCollapse').style.display = visibleCount > PAGE_SIZE && list.length > PAGE_SIZE ? 'inline-block' : 'none';
 
@@ -204,7 +219,15 @@ function filterByCollection(name) {
   filter = { cat:'vse', collection:name || '' }; visibleCount = PAGE_SIZE; renderGrid();
   $('produkty').scrollIntoView({ behavior:'smooth' });
 }
-function loadMore() { visibleCount += PAGE_SIZE; renderGrid(); }
+function loadMore() {
+  // přidají se jen nové kartičky, ty stávající zůstanou na místě (jinak se celá mřížka překreslí a stránka poskočí)
+  const grid = $('productsGrid'), list = filteredProducts();
+  const have = grid.querySelectorAll('.product-card').length;
+  visibleCount += PAGE_SIZE;
+  if (!have) return renderGrid();
+  grid.insertAdjacentHTML('beforeend', list.slice(have, visibleCount).map(productCardHtml).join(''));
+  updateGridControls(list);
+}
 function collapseProducts() { visibleCount = PAGE_SIZE; renderGrid(); $('produkty').scrollIntoView({ behavior:'smooth' }); }
 
 // ── Úložiště v prohlížeči (jen košík a oblíbené — nic citlivého) ──

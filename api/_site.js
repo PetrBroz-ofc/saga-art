@@ -39,7 +39,7 @@ const DEFAULT_THEME = {
   radius: 3,
   scale: 100,
 };
-const LINK_KEYS = ['instagram', 'facebook', 'fler', 'announce'];
+const LINK_KEYS = ['instagram', 'facebook', 'announce'];
 const SECTION_IDS = ['about', 'materials', 'quote', 'collections', 'gallery', 'products', 'shipping', 'vouchers', 'custom', 'newsletter'];
 const LOCKED_SECTIONS = ['products']; // bez nabídky šperků by e-shop nedával smysl
 const IMG_RE = /^https:\/\/res\.cloudinary\.com\/[A-Za-z0-9_-]{2,60}\/image\/upload\/[^\s"'<>]{1,300}$/;

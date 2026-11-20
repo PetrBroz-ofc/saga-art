@@ -27,7 +27,6 @@
   const LINK_FIELDS = [
     ['instagram', 'Instagram', 'https://www.instagram.com/vase-stranka'],
     ['facebook', 'Facebook', 'https://www.facebook.com/vase-stranka'],
-    ['fler', 'Fler', 'https://www.fler.cz/sagaart'],
   ];
 
   const $ = id => document.getElementById(id);
