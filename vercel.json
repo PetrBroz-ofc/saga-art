@@ -136,6 +136,14 @@
       "destination": "/api/public?r=sitemap"
     },
     {
+      "source": "/media/:f",
+      "destination": "/api/public?r=media&f=:f"
+    },
+    {
+      "source": "/api/upload",
+      "destination": "/api/admin?r=upload"
+    },
+    {
       "source": "/api/coupon",
       "destination": "/api/public?r=coupon"
     },

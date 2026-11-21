@@ -7,7 +7,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
   ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 const safeId = s => String(s ?? '').replace(/[^A-Za-z0-9_-]/g, '');
 // Cloudinary nebo fotky uložené přímo na webu (/img/produkty/...)
-const safeUrl = u => /^(https:\/\/res\.cloudinary\.com\/[^\s"'<>]+|\/img\/produkty\/[a-z0-9-]+\/\d+\.jpg)$/.test(String(u || '')) ? String(u) : '';
+const safeUrl = u => /^(https:\/\/res\.cloudinary\.com\/[^\s"'<>]+|\/img\/produkty\/[a-z0-9-]+\/\d+\.jpg|\/media\/[a-f0-9]{24}\.(jpg|png|webp))$/.test(String(u || '')) ? String(u) : '';
 const $ = id => document.getElementById(id);
 const icon = name => `<svg class="i"><use href="#i-${name}"/></svg>`;
 const kc = n => (Number(n) || 0).toLocaleString('cs-CZ') + ' Kč';
@@ -77,6 +77,26 @@ if (!DEMO) {
     if (document.hidden || $('adminScreen').hidden) return;
     fetch('/api/auth?keepalive=1', { credentials: 'same-origin' }).catch(() => {});
   }, 10 * 60 * 1000);
+}
+
+// ── Nahrání fotky: zmenší se v prohlížeči a uloží přímo do administrace (žádná cizí služba) ──
+// keepAlpha: PNG s průhledností (logo, ikona), jinak se z fotky udělá JPEG.
+async function uploadImage(file, { keepAlpha = false, max = keepAlpha ? 900 : 2000 } = {}) {
+  if (DEMO) return '/img/produkty/more/1.jpg';
+  let bmp;
+  try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
+  catch { throw new Error('Tuhle fotku se nepodařilo přečíst. Zkuste jiný soubor (JPG, PNG nebo WebP).'); }
+  const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(bmp.width * k)); c.height = Math.max(1, Math.round(bmp.height * k));
+  const ctx = c.getContext('2d');
+  if (!keepAlpha) { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, c.width, c.height); }
+  ctx.drawImage(bmp, 0, 0, c.width, c.height);
+  const blob = await new Promise(r => c.toBlob(r, keepAlpha ? 'image/png' : 'image/jpeg', 0.86));
+  if (!blob) throw new Error('Fotku se nepodařilo zmenšit.');
+  const data = await new Promise((ok, no) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(',')[1] || ''); fr.onerror = no; fr.readAsDataURL(blob); });
+  const res = await api('/api/upload', 'POST', { data });
+  return res.url;
 }
 
 // ═══ PŘIHLÁŠENÍ ═══
@@ -917,19 +937,8 @@ async function uploadFiles(files) {
     ed.uploading++;
     renderPhotos();
     try {
-      const sig = await api('/api/upload-sign', 'POST', {});
-      const fd = new FormData();
-      fd.append('file', file);
-      fd.append('api_key', sig.apiKey);
-      fd.append('timestamp', sig.timestamp);
-      fd.append('folder', sig.folder);
-      fd.append('allowed_formats', sig.allowed_formats);
-      fd.append('signature', sig.signature);
-      fd.append('signature_algorithm', sig.signatureAlgorithm);
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(sig.cloud)}/image/upload`, { method: 'POST', body: fd });
-      const data = await res.json();
-      const url = safeUrl(data.secure_url);
-      if (!url) throw new Error(data.error?.message || 'neznámá chyba');
+      const url = safeUrl(await uploadImage(file));
+      if (!url) throw new Error('neznámá chyba');
       ed.imgs.push(url);
     } catch (err) {
       ed.uploading--;

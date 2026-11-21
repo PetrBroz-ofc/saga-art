@@ -269,6 +269,7 @@
     if (path === '/api/invoices') return invoicesApi(method, body);
     if (path === '/api/site-settings') return siteApi(method, body);
     if (path === '/api/shop-settings') return shopApi(method, body);
+    if (path === '/api/upload') return { url: '/img/produkty/more/1.jpg' };
     if (path === '/api/coupons') return couponsApi(method, body);
     if (path === '/api/reviews-admin') return reviewsApi(method, body);
     if (path === '/api/subscribers') return subsApi(method, body);

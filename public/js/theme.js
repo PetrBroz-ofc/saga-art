@@ -100,7 +100,8 @@
 
   // ── Fotky, logo, ikona, SEO ──
   const CLD = /^https:\/\/res\.cloudinary\.com\/[A-Za-z0-9_-]{2,60}\/image\/upload\/[^\s"'<>]{1,300}$/;
-  const optimize = (u, t) => (typeof u === 'string' && CLD.test(u) ? u.replace('/image/upload/', '/image/upload/' + t + '/') : '');
+  const MEDIA = /^\/media\/[a-f0-9]{24}\.(jpg|png|webp)$/;
+  const optimize = (u, t) => (typeof u === 'string' && CLD.test(u) ? u.replace('/image/upload/', '/image/upload/' + t + '/') : (typeof u === 'string' && MEDIA.test(u) ? u : ''));
 
   function applyImages(s) {
     const imgs = (s && s.images) || {};

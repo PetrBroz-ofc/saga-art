@@ -175,7 +175,7 @@
       const groups = [];
       const slots = [...T.imgSlots, { key: 'logo', label: 'Logo (místo textu Sága Art v hlavičce)', group: 'Značka', def: '' }, { key: 'favicon', label: 'Ikona webu (v záložce prohlížeče)', group: 'Značka', def: '' }];
       slots.forEach(f => { let g = groups.find(x => x.name === f.group); if (!g) groups.push(g = { name: f.group, items: [] }); g.items.push(f); });
-      pane.innerHTML = `<p class="muted" style="margin-bottom:12px">Fotky se nahrávají do Cloudinary (JPG, PNG, WebP do 10 MB). Vložte co nejkvalitnější, web si je zmenší.</p>` + groups.map(g => `
+      pane.innerHTML = `<p class="muted" style="margin-bottom:12px">Nahrajte fotku (JPG, PNG nebo WebP do 10 MB). Web ji sám zmenší, vložte klidně tu největší.</p>` + groups.map(g => `
         <details class="th-group" ${g.name === 'Úvod' || g.name === 'Značka' ? 'open' : ''}><summary>${esc(g.name)}</summary>
           ${g.items.map(f => {
             const url = s.images[f.key] || '';
@@ -372,14 +372,7 @@
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024) return say('Povolené jsou JPG, PNG a WebP do 10 MB.', true);
     say('Nahrávám…');
     try {
-      const sig = await api('/api/upload-sign', 'POST', {});
-      const fd = new FormData();
-      fd.append('file', file); fd.append('api_key', sig.apiKey); fd.append('timestamp', sig.timestamp); fd.append('folder', sig.folder);
-      fd.append('allowed_formats', sig.allowed_formats); fd.append('signature', sig.signature); fd.append('signature_algorithm', sig.signatureAlgorithm);
-      const res = await fetch('https://api.cloudinary.com/v1_1/' + encodeURIComponent(sig.cloud) + '/image/upload', { method: 'POST', body: fd });
-      const data = await res.json();
-      const url = typeof data.secure_url === 'string' && /^https:\/\/res\.cloudinary\.com\//.test(data.secure_url) ? data.secure_url : '';
-      if (!url) throw new Error(data.error?.message || 'neznámá chyba');
+      const url = await uploadImage(file, { keepAlpha: key === 'logo' || key === 'favicon' });
       T.cur.images[key] = url; renderPane(); schedule();
     } catch (err) { if (err.message !== 'unauthorized') say('Fotka se nenahrála: ' + err.message, true); }
   });

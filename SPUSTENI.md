@@ -80,9 +80,11 @@ Texty e-mailů (potvrzení objednávky, upozornění pro Petru, kód pro přihl�
 | `ADMIN_EMAIL` | kam chodí přihlašovací kódy hlavního účtu |
 | `MAIL_REPLY_TO` | nepovinné, kam zákazníci odpovídají (jinak `OWNER_EMAIL`) |
 
-## 6. Fotky (Cloudinary)
+## 6. Fotky
 
-- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` (Dashboard → API Keys).
+Fotky se nahrávají přímo v administraci, žádná cizí služba ani nastavení. Prohlížeč fotku zmenší (nejdéle strana 2 000 px, JPEG), server ověří, že jde opravdu o JPG, PNG nebo WebP, a uloží ji do databáze. Z webu se vydává z adresy `/media/…`. Starší fotky z Cloudinary (kdyby nějaké byly) fungují dál.
+
+Pozor na velikost databáze: jedna zmenšená fotka je zhruba 0,3 až 0,8 MB. Bezplatný Neon má 0,5 GB, to je stovky fotek. Velikost je vidět v Neonu (Storage).
 
 ## 7. Obsah, který ještě dodá Petra
 

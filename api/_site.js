@@ -42,7 +42,7 @@ const DEFAULT_THEME = {
 const LINK_KEYS = ['instagram', 'facebook', 'announce'];
 const SECTION_IDS = ['about', 'materials', 'quote', 'collections', 'gallery', 'products', 'shipping', 'vouchers', 'custom', 'newsletter'];
 const LOCKED_SECTIONS = ['products']; // bez nabídky šperků by e-shop nedával smysl
-const IMG_RE = /^https:\/\/res\.cloudinary\.com\/[A-Za-z0-9_-]{2,60}\/image\/upload\/[^\s"'<>]{1,300}$/;
+const IMG_RE = /^(https:\/\/res\.cloudinary\.com\/[A-Za-z0-9_-]{2,60}\/image\/upload\/[^\s"'<>]{1,300}|\/media\/[a-f0-9]{24}\.(?:jpg|png|webp))$/;
 const MAX_IMAGES = 40;
 const MAX_TEXTS = 150;
 const HISTORY = 10;
@@ -124,7 +124,7 @@ function validate(b) {
 
   const flags = { announce: b.flags?.announce === true };
 
-  // fotky: jen z vlastního Cloudinary (jiné adresy CSP stejně nepustí)
+  // fotky: jen nahrané přes administraci (/media) nebo z Cloudinary (jiné adresy CSP stejně nepustí)
   const images = {};
   const rawImages = b.images && typeof b.images === 'object' ? b.images : {};
   for (const [k, v] of Object.entries(rawImages)) {

@@ -3,9 +3,9 @@ const { ID_RE, clean } = require('./_shop');
 
 const CATEGORIES = ['nahrdelniky', 'nausnice', 'naramky', 'soupravy'];
 
-// Fotky smí být JEN z vlastního Cloudinary účtu nebo ze složky webu /img/produkty
-// (žádné cizí servery / sledovací pixely).
-const LOCAL_IMG = /^\/img\/produkty\/[a-z0-9-]+\/\d+\.jpg$/;
+// Fotky smí být JEN nahrané přes administraci (/media), ze složky webu /img/produkty nebo (starší) z vlastního
+// Cloudinary účtu. Žádné cizí servery ani sledovací pixely.
+const LOCAL_IMG = /^(\/img\/produkty\/[a-z0-9-]+\/\d+\.jpg|\/media\/[a-f0-9]{24}\.(jpg|png|webp))$/;
 function allowedImg(url) {
   if (LOCAL_IMG.test(url)) return true;
   const cloud = process.env.CLOUDINARY_CLOUD_NAME;
@@ -31,7 +31,7 @@ function sanitizeProduct(body) {
 
   const imgs = (Array.isArray(body.imgs) ? body.imgs : []).map(u => clean(u, 500)).filter(Boolean);
   if (imgs.length > 10) return { error: 'Maximálně 10 fotek' };
-  if (!imgs.every(allowedImg)) return { error: 'Fotky musí být nahrané přes admin (Cloudinary)' };
+  if (!imgs.every(allowedImg)) return { error: 'Fotky musí být nahrané přes administraci' };
 
   return {
     data: {

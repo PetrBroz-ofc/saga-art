@@ -8,6 +8,7 @@ const HANDLERS = {
   voucher: require('./_h/voucher'),
   withdrawal: require('./_h/withdrawal'),
   site: require('./_h/sitepub'),
+  media: require('./_h/media'),
   coupon: require('./_h/coupon'),
   reviews: require('./_h/reviews'),
   product: require('./_h/productpage'),

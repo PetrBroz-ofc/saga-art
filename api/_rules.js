@@ -37,7 +37,7 @@ const RULES = {
   vacation: { on: false, block: false, message: '' },
 };
 const DEFAULTS = JSON.parse(JSON.stringify({ SHIPPING, GIFT_WRAP, RULES }));
-const COVER_RE = /^(https:\/\/res\.cloudinary\.com\/[A-Za-z0-9_-]{2,60}\/image\/upload\/[^\s"'<>]{1,300}|\/img\/produkty\/[a-z0-9-]+\/\d+\.jpg)$/;
+const COVER_RE = /^(https:\/\/res\.cloudinary\.com\/[A-Za-z0-9_-]{2,60}\/image\/upload\/[^\s"'<>]{1,300}|\/img\/produkty\/[a-z0-9-]+\/\d+\.jpg|\/media\/[a-f0-9]{24}\.(?:jpg|png|webp))$/;
 const clean1 = (t, n) => String(t ?? '').normalize('NFC').replace(/[\u0000-\u001F\u007F\u200B-\u200F\u202A-\u202E]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
 
 const SHIP_KEYS = ['zasilkovna', 'zasilkovna_adresa', 'balikovna', 'posta', 'packeta_sk'];

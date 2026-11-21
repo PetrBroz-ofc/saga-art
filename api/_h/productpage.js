@@ -7,7 +7,7 @@ const { RULES, refresh } = require('../_rules');
 // Všechno z databáze se do HTML vkládá escapované.
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const safeImg = u => (/^(https:\/\/res\.cloudinary\.com\/[^\s"'<>]+|\/img\/produkty\/[a-z0-9-]+\/\d+\.jpg)$/.test(String(u || '')) ? String(u) : '');
+const safeImg = u => (/^(https:\/\/res\.cloudinary\.com\/[^\s"'<>]+|\/img\/produkty\/[a-z0-9-]+\/\d+\.jpg|\/media\/[a-f0-9]{24}\.(?:jpg|png|webp))$/.test(String(u || '')) ? String(u) : '');
 const abs = u => (u.startsWith('/') ? SITE_URL + u : u);
 const kc = n => Number(n).toLocaleString('cs-CZ') + ' Kč';
 const jsonLd = o => JSON.stringify(o).replace(/</g, '\\u003c');

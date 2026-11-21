@@ -198,14 +198,7 @@
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 10 * 1024 * 1024) return say('JPG, PNG nebo WebP do 10 MB.', true);
     say('Nahrávám…');
     try {
-      const sig = await api('/api/upload-sign', 'POST', {});
-      const fd = new FormData();
-      fd.append('file', file); fd.append('api_key', sig.apiKey); fd.append('timestamp', sig.timestamp); fd.append('folder', sig.folder);
-      fd.append('allowed_formats', sig.allowed_formats); fd.append('signature', sig.signature); fd.append('signature_algorithm', sig.signatureAlgorithm);
-      const res = await fetch('https://api.cloudinary.com/v1_1/' + encodeURIComponent(sig.cloud) + '/image/upload', { method: 'POST', body: fd });
-      const data = await res.json();
-      const url = typeof data.secure_url === 'string' && /^https:\/\/res\.cloudinary\.com\//.test(data.secure_url) ? data.secure_url : '';
-      if (!url) throw new Error(data.error?.message || 'neznámá chyba');
+      const url = await uploadImage(file);
       S.cur.collections[i].cover = url; render();
     } catch (err) { if (err.message !== 'unauthorized') say('Nenahrálo se: ' + err.message, true); }
   });

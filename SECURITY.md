@@ -23,7 +23,7 @@ Hlášení zranitelností: **info.pebmedia@gmail.com** (PEBMedia) (prosím neve�
 - Session = podepsaný JWT (HS256, issuer/audience, 2 h) v **HttpOnly; Secure; SameSite=Strict** cookie s prefixem `__Host-`. JavaScript na stránce k ní nemá přístup.
 - Okamžité odhlášení všech zařízení: změň `ADMIN_SESSION_VERSION` (např. z `1` na `2`).
 - CSRF: zapisující requesty musí mít Origin vlastní domény a `Content-Type: application/json`.
-- Fotky se nahrávají **podepsaně** přes `/api/upload-sign` — nahrávat smí jen přihlášený admin, Cloudinary secret neopustí server. Uložit lze jen URL z vlastního Cloudinary účtu.
+- Fotky se nahrávají přímo v administraci (`/api/upload`, jen přihlášená majitelka). Prohlížeč je zmenší, server ověří skutečný typ podle obsahu (JPEG, PNG, WebP, ne podle názvu), nepustí nic přes 3 MB a uloží je pod náhodným názvem. Vydávají se z `/media/<název>` s trvalou keší. Jako adresa fotky se u šperků a ve vzhledu přijme jen `/media/…`, `/img/produkty/…` nebo (starší) vlastní Cloudinary.
 
 ### Prohlížeč
 - Přísná **Content-Security-Policy**: skripty jen z vlastní domény, žádný inline JavaScript, žádné cizí skripty.
@@ -53,7 +53,6 @@ Hlášení zranitelností: **info.pebmedia@gmail.com** (PEBMedia) (prosím neve�
 | `RESEND_API_KEY`, `MAIL_FROM`, `OWNER_EMAIL`, `MAIL_REPLY_TO` | Resend → API Keys (právo *Sending access*), doména `sagaart.cz` ověřená v Resend (SPF/DKIM). `OWNER_EMAIL` = kam chodí objednávky |
 | `OWNER_EMAIL` | kam chodí upozornění na objednávky |
 | `BANK_ACCOUNT`, `BANK_IBAN` | účet pro platby převodem |
-| `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Cloudinary → Settings → API Keys. **Smaž všechny unsigned upload presety.** |
 
 Secrety ukládej na Vercelu jako **Sensitive**, nikdy do repozitáře (je veřejný).
 
@@ -64,7 +63,7 @@ Secrety ukládej na Vercelu jako **Sensitive**, nikdy do repozitáře (je veřej
 4. Stripe: webhook + restricted key, zapnout Radar.
 5. Resend: doména ověřená (SPF, DKIM), případně přidat DMARC záznam.
 6. Vercel: Settings → Deployment Protection pro Preview deploymenty; zapnout **Firewall / Bot protection**.
-7. Účty Vercel, GitHub, Stripe, Neon, Cloudinary, Resend: všude **2FA**.
+7. Účty Vercel, GitHub, Stripe, Neon, Resend: všude **2FA**.
 8. Doména: po ověření HTTPS přidat na https://hstspreload.org.
 
 ## Faktury a mazání objednávek
@@ -83,9 +82,9 @@ Secrety ukládej na Vercelu jako **Sensitive**, nikdy do repozitáře (je veřej
 - Slevové kódy: použití se zapisuje ve stejné transakci jako objednávka (limit použití nejde překročit souběžnými objednávkami), při zrušení se vrací. Kontrola kódu v pokladně je omezená na 15 pokusů za 15 minut z jedné IP.
 - Texty e-mailů se vkládají do HTML jen přes escapování, předměty obsahují jen číslo objednávky. Zkušební e-mail jde jen na adresu majitelky a jen ve dvou pevných variantách (6 za hodinu).
 - Odběratelé: seznam a export jen po přihlášení, smazání na žádost o výmaz.
-- Fotky kolekcí a stránky jen z vlastního Cloudinary nebo z `/img/produkty/`.
+- Fotky kolekcí jen z `/media/`, `/img/produkty/` nebo (starší) z vlastního Cloudinary.
 
 ## Recenze a stránky šperků (SEO)
 - Recenze se veřejně ukazují jen schválené. Psát je smí jen přihlášená zákaznice, která šperk koupila (`api/_customer.js`, zákaznické účty zatím nejsou, endpoint proto vrací 401). Nová recenze čeká na schválení, jedna zákaznice = jedna recenze k šperku, jméno se zkracuje.
 - Hvězdičky ve strukturovaných datech (schema.org) se počítají jen ze skutečných schválených recenzí. Nic se nevymýšlí.
-- `/sperk/<id>` a `sitemap.xml` generuje server. Všechno z databáze se do HTML vkládá escapované, JSON-LD má `<` nahrazené, fotky jen z Cloudinary nebo `/img/produkty/`.
+- `/sperk/<id>` a `sitemap.xml` generuje server. Všechno z databáze se do HTML vkládá escapované, JSON-LD má `<` nahrazené, fotky jen z `/media/`, `/img/produkty/` nebo (starší) z Cloudinary.

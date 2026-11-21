@@ -6,7 +6,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c =>
   ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 const safeId = s => String(s ?? '').replace(/[^A-Za-z0-9_-]/g, '');
 // Obrázky jen z https nebo z vlastní složky /img/ (žádné javascript:/data: URL)
-const safeUrl = u => /^(https:\/\/[^\s"'<>]+|\/img\/[A-Za-z0-9_\/.-]+\.(jpe?g|png|webp|svg))$/.test(String(u || '')) ? String(u) : '';
+const safeUrl = u => /^(https:\/\/[^\s"'<>]+|\/img\/[A-Za-z0-9_\/.-]+\.(jpe?g|png|webp|svg)|\/media\/[a-f0-9]{24}\.(jpg|png|webp))$/.test(String(u || '')) ? String(u) : '';
 const kc = n => (Number(n) || 0).toLocaleString('cs-CZ') + ' Kč';
 const $ = id => document.getElementById(id);
 

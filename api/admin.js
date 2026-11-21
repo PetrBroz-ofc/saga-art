@@ -12,6 +12,7 @@ const HANDLERS = {
   mail: require('./_h/mailtexts'),
   coupons: require('./_h/coupons'),
   reviews: require('./_h/reviewsadmin'),
+  upload: require('./_h/upload'),
 };
 
 module.exports = async function handler(req, res) {
