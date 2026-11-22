@@ -61,7 +61,7 @@ let COLLECTIONS = {
   Best:      { cover:'/img/produkty/best-harmonie/1.jpg', desc:'Amazonit z Peru, říční perly a perleťové srdce.', ph1:'#e8f2ec', ph2:'#b6d3c2', gem:'#a9cdb9' },
   Pearl:     { cover:'/img/produkty/silver-pearl/1.jpg', desc:'Vrstvené perlové náhrdelníky v kombinaci se stříbřitou ocelí.', ph1:'#f4f1f1', ph2:'#d6cdcf', gem:'' },
 };
-const CAT_LABELS = { nahrdelniky:'Náhrdelníky', nausnice:'Náušnice', naramky:'Náramky', soupravy:'Sety' };
+const CAT_LABELS = { nahrdelniky:'Náhrdelníky', nausnice:'Náušnice', naramky:'Náramky', prstynky:'Prstýnky', soupravy:'Sety' };
 
 let PRODUCTS = [];
 

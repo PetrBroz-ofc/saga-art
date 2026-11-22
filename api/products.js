@@ -1,7 +1,7 @@
 const { getDb, fail, requireAdmin } = require('./_utils');
 const { ID_RE, clean } = require('./_shop');
 
-const CATEGORIES = ['nahrdelniky', 'nausnice', 'naramky', 'soupravy'];
+const CATEGORIES = ['nahrdelniky', 'nausnice', 'naramky', 'prstynky', 'soupravy'];
 
 // Fotky smí být JEN nahrané přes administraci (/media), ze složky webu /img/produkty nebo (starší) z vlastního
 // Cloudinary účtu. Žádné cizí servery ani sledovací pixely.

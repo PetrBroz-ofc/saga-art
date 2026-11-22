@@ -13,7 +13,7 @@ const icon = name => `<svg class="i"><use href="#i-${name}"/></svg>`;
 const kc = n => (Number(n) || 0).toLocaleString('cs-CZ') + ' Kč';
 const DAY = 864e5;
 
-const CAT_LABELS = { nahrdelniky:'Náhrdelníky', nausnice:'Náušnice', naramky:'Náramky', soupravy:'Sety' };
+const CAT_LABELS = { nahrdelniky:'Náhrdelníky', nausnice:'Náušnice', naramky:'Náramky', prstynky:'Prstýnky', soupravy:'Sety' };
 const SHIPPING = { zasilkovna:'Zásilkovna', zasilkovna_adresa:'Zásilkovna na adresu', balikovna:'Balíkovna', posta:'Česká pošta', packeta_sk:'Packeta SK', email:'E-mailem (poukaz)' };
 const PAY_LABELS = { card:'Kartou online', transfer:'Převodem předem', voucher:'Celé dárkovým poukazem' };
 const INV_PAY = { card:'karta', transfer:'prevod', voucher:'poukaz' };
