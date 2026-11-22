@@ -768,10 +768,10 @@ document.addEventListener('keydown', e => {
   try {
     const res = await fetch('/api/verify-payment?session_id=' + encodeURIComponent(sessionId));
     const data = await res.json();
-    if (!data.paid) { showNotification('Platbu se nepodařilo ověřit. Napište mi prosím na info@sagaart.cz.'); return; }
+    if (!data.paid) { showNotification('Platbu se nepodařilo ověřit. Napište mi prosím na postmaster@sagaart.cz.'); return; }
     showSuccess({ orderNumber: data.orderNumber });
   } catch {
-    showNotification('Platbu se nepodařilo ověřit. Napište mi prosím na info@sagaart.cz.');
+    showNotification('Platbu se nepodařilo ověřit. Napište mi prosím na postmaster@sagaart.cz.');
   }
 })();
 

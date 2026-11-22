@@ -167,7 +167,7 @@
         <label class="field"><span>Text oznámení</span><input type="text" data-th-text="announce-text" maxlength="160" value="${esc(s.texts['announce-text'] || '')}" placeholder="Např. Doprava Zásilkovnou zdarma od 1 490 Kč"></label>
         <label class="field"><span>Odkaz (nepovinný)</span><input type="url" data-th-link="announce" maxlength="300" value="${esc(l.announce || '')}" placeholder="https://… nebo #poukazy"></label>
         <p class="th-h">Kontakt a sociální sítě</p>
-        <label class="field"><span>Kontaktní e-mail</span><input type="email" data-th-link="email" maxlength="254" value="${esc(l.email || '')}" placeholder="info@sagaart.cz"></label>
+        <label class="field"><span>Kontaktní e-mail</span><input type="email" data-th-link="email" maxlength="254" value="${esc(l.email || '')}" placeholder="postmaster@sagaart.cz"></label>
         ${LINK_FIELDS.map(([k, label, ph]) => `<label class="field"><span>${esc(label)}</span><input type="url" data-th-link="${k}" maxlength="300" value="${esc(l[k] || '')}" placeholder="${esc(ph)}"></label>`).join('')}
         <p class="muted">Sociální sítě bez odkazu se v patičce neukážou. Odkaz musí začínat https://.</p>`;
     }

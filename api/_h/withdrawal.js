@@ -35,7 +35,7 @@ module.exports = async function handler(req, res) {
     const snap = await orderRef.get();
     // stejná odpověď pro neexistující objednávku i nesedící e-mail (nic neprozradí)
     if (!snap.exists || !safeEqual(String(snap.data().customer?.email || '').toLowerCase(), d.email)) {
-      return fail(res, 400, 'Číslo objednávky a e-mail k sobě nesedí. Zkontrolujte je prosím, nebo napište na info@sagaart.cz.');
+      return fail(res, 400, 'Číslo objednávky a e-mail k sobě nesedí. Zkontrolujte je prosím, nebo napište na postmaster@sagaart.cz.');
     }
 
     const now = new Date();
@@ -54,6 +54,6 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ok: true, at: when });
   } catch (err) {
     console.error('withdrawal error:', err.message);
-    return fail(res, 500, 'Odeslání se nepovedlo. Napište mi prosím na info@sagaart.cz.');
+    return fail(res, 500, 'Odeslání se nepovedlo. Napište mi prosím na postmaster@sagaart.cz.');
   }
 }
