@@ -2,9 +2,9 @@
 const SELLER = {
   name: 'Petra Miklušáková',
   brand: 'Sága Art',
-  street: 'Hříměždice vedle č74',
-  zip: '262 14',
-  city: 'Hříměždice',
+  street: 'Městečko 212',
+  zip: '270 23',
+  city: 'Křivoklát',
   country: 'Česká republika',
   ico: '47055723',
   vatPayer: false,

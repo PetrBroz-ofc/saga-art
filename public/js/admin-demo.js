@@ -82,7 +82,7 @@
   const loadInv = () => { try { return JSON.parse(localStorage.getItem(INV_KEY)) || null; } catch { return null; } };
   const saveInv = () => { try { localStorage.setItem(INV_KEY, JSON.stringify(invoices)); } catch {} };
   let invoices = [];
-  const SELLER = { name: 'Petra Miklušáková', brand: 'Sága Art', street: 'Hříměždice vedle č74', zip: '262 14', city: 'Hříměždice', country: 'Česká republika', ico: '47055723', vatPayer: false, register: 'Fyzická osoba podnikající podle živnostenského zákona', email: '', web: location.host };
+  const SELLER = { name: 'Petra Miklušáková', brand: 'Sága Art', street: 'Městečko 212', zip: '270 23', city: 'Křivoklát', country: 'Česká republika', ico: '47055723', vatPayer: false, register: 'Fyzická osoba podnikající podle živnostenského zákona', email: '', web: location.host };
   const PAY = { prevod: 'Bankovním převodem', karta: 'Platební kartou', hotove: 'V hotovosti', dobirka: 'Na dobírku', poukaz: 'Dárkovým poukazem' };
   function sampleInvoices() {
     const y = new Date().getFullYear(), d = n => new Date(Date.now() - n * 864e5).toLocaleDateString('sv-SE');
