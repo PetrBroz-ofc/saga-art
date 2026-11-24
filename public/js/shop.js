@@ -650,6 +650,7 @@ function showSuccess(data) {
   $('checkoutModal').classList.add('open');
   const num = String(data.orderNumber || '').replace(/\D/g, '');
   $('successOrderNum').textContent = '#' + num;
+  const wl = $('successWithdraw'); if (wl && /^\d{10}$/.test(num)) wl.href = '/odstoupeni?order=' + num;
   const bankBox = $('bankBox');
   bankBox.hidden = !data.bank;
   if (data.paidByVoucher) {

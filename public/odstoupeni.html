@@ -34,13 +34,44 @@
   <label>Datum převzetí zásilky<input name="received" type="date" required></label>
   <label>Číslo účtu pro vrácení peněz (jen pokud jste platili převodem)<input name="account" maxlength="60" placeholder="123456789/0100"></label>
   <input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-  <p class="doc-small">Odesláním oznamuji, že odstupuji od kupní smlouvy na uvedené zboží.</p>
-  <button type="submit" class="btn-primary">Odstoupit od smlouvy</button>
-  <p class="doc-msg" id="withdrawMsg" role="status" aria-live="polite"></p>
+  <p class="doc-small">Dalším krokem oznamuji, že odstupuji od kupní smlouvy na uvedené zboží. Odeslání ještě potvrdíte.</p>
+  <button type="submit" class="btn-primary">Pokračovat</button>
 </form>
 
+<section class="doc-review" id="withdrawReview" hidden>
+  <h2>Zkontrolujte údaje</h2>
+  <dl class="doc-sum" id="withdrawSummary"></dl>
+  <p class="doc-small">Kliknutím na tlačítko níže odstoupení závazně odešlete. Přijetí vám hned potvrdím e-mailem.</p>
+  <div class="doc-actions">
+    <button type="button" class="btn-primary" id="withdrawConfirm">Potvrdit odstoupení</button>
+    <button type="button" class="doc-link-btn" id="withdrawBack">Upravit údaje</button>
+  </div>
+</section>
+<p class="doc-msg" id="withdrawMsg" role="status" aria-live="polite"></p>
+
 <h2>Co dál</h2>
-<p>Šperk mi pošlete do 14 dnů na adresu Petra Miklušáková, Městečko 212, 270 23 Křivoklát. Peníze vám vrátím do 14 dnů od odstoupení, nejdřív ale ve chvíli, kdy mi šperk dorazí.</p>
+<p>Šperk mi pošlete do 14 dnů od odstoupení na adresu Petra Miklušáková, Městečko 212, 270 23 Křivoklát. Posílejte ho nepoužitý a pokud možno v původním balení. Náklady na vrácení nesete vy.</p>
+<p>Peníze vám vrátím do 14 dnů od odstoupení, stejným způsobem, jakým jste platili. Nejdřív ale ve chvíli, kdy mi šperk dorazí, nebo kdy prokážete, že jste ho odeslali. Vrátím i cenu nejlevnější nabízené dopravy.</p>
+
+<h2>Kdy odstoupit nejde</h2>
+<ul>
+<li>Šperk vyrobený nebo upravený na míru podle vašeho přání.</li>
+<li>Náušnice, které byly nošené nebo mají porušené hygienické balení.</li>
+</ul>
+<p>Dárkový poukaz je elektronický. Dokud jste ho nevyužili, můžete od jeho koupě odstoupit do 14 dnů stejným způsobem.</p>
+
+<h2>Jiný způsob odstoupení</h2>
+<p>Odstoupit můžete i e-mailem na <a href="mailto:postmaster@sagaart.cz">postmaster@sagaart.cz</a> nebo dopisem na adresu výše. Stačí napsat číslo objednávky, jméno a které šperky vracíte. Lhůta 14 dnů se počítá od převzetí zásilky, a pokud jste objednali víc šperků v oddělených zásilkách, od převzetí poslední z nich. Odstoupení je včas, když ho odešlete před koncem lhůty.</p>
+<details class="doc-model">
+<summary>Vzorový formulář pro odstoupení</summary>
+<p>Adresát: Petra Miklušáková, Sága Art, Městečko 212, 270 23 Křivoklát, postmaster@sagaart.cz.<br>
+Oznamuji, že tímto odstupuji od smlouvy o nákupu tohoto zboží: …………<br>
+Číslo objednávky: …………<br>
+Datum převzetí: …………<br>
+Jméno a adresa spotřebitele: …………<br>
+Číslo účtu pro vrácení peněz: …………<br>
+Datum a podpis (jen pokud posíláte na papíře): …………</p>
+</details>
 </main>
 <footer class="doc-footer">
   <p>Sága Art · Petra Miklušáková · IČO 47055723 · neplátce DPH · Městečko 212, 270 23 Křivoklát</p>

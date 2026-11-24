@@ -180,7 +180,8 @@ function orderCustomer(v) {
     ...(v.giftMessage ? ['', `Vzkaz na kartičku: ${v.giftMessage}`] : []),
     '', pay, ...(transfer && v.qrCid ? ['QR kód pro platbu najdete v HTML verzi e-mailu i na faktuře v příloze.'] : []), ship, '',
     ...(v.invoiceNumber ? [`Fakturu č. ${v.invoiceNumber} najdete v příloze tohoto e-mailu.`, ''] : []),
-    `${fill(TEXTS.returnNote, vars)} Obchodní podmínky: ${SITE_URL}/obchodni-podminky`, '',
+    `${fill(TEXTS.returnNote, vars)} Obchodní podmínky: ${SITE_URL}/obchodni-podminky`,
+    `Odstoupit od smlouvy můžete do 14 dnů od převzetí zásilky tady: ${SITE_URL}/odstoupeni?order=${v.number}`, '',
     SIGN(),
   ].join('\n');
   const html = layout(subject,
@@ -195,6 +196,7 @@ function orderCustomer(v) {
     para(ship) +
     (v.invoiceNumber ? para(`Fakturu č. ${v.invoiceNumber} najdete v příloze tohoto e-mailu.`) : '') +
     para(fill(TEXTS.returnNote, vars)) +
+    `<p style="margin:0 0 18px;line-height:1.65">Od smlouvy můžete odstoupit do 14 dnů od převzetí zásilky:<br><a href="${esc(SITE_URL)}/odstoupeni?order=${esc(String(v.number).replace(/\D/g, ''))}" style="display:inline-block;margin-top:8px;padding:11px 22px;background:#3e3a52;color:#ffffff;text-decoration:none;border-radius:6px">Odstoupit od smlouvy</a></p>` +
     para(SIGN()));
   return { subject, text, html };
 }
