@@ -81,7 +81,7 @@ if (!DEMO) {
 
 // ── Nahrání fotky: zmenší se v prohlížeči a uloží přímo do administrace (žádná cizí služba) ──
 // keepAlpha: PNG s průhledností (logo, ikona), jinak se z fotky udělá JPEG.
-async function uploadImage(file, { keepAlpha = false, max = keepAlpha ? 900 : 2000 } = {}) {
+async function uploadImage(file, { keepAlpha = false, max = keepAlpha ? 900 : 1600 } = {}) {
   if (DEMO) return '/img/produkty/more/1.jpg';
   let bmp;
   try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
@@ -92,7 +92,7 @@ async function uploadImage(file, { keepAlpha = false, max = keepAlpha ? 900 : 20
   const ctx = c.getContext('2d');
   if (!keepAlpha) { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, c.width, c.height); }
   ctx.drawImage(bmp, 0, 0, c.width, c.height);
-  const blob = await new Promise(r => c.toBlob(r, keepAlpha ? 'image/png' : 'image/jpeg', 0.86));
+  const blob = await new Promise(r => c.toBlob(r, keepAlpha ? 'image/png' : 'image/jpeg', 0.84));
   if (!blob) throw new Error('Fotku se nepodařilo zmenšit.');
   const data = await new Promise((ok, no) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result).split(',')[1] || ''); fr.onerror = no; fr.readAsDataURL(blob); });
   const res = await api('/api/upload', 'POST', { data });
@@ -929,8 +929,13 @@ async function uploadFiles(files) {
   const progress = $('uploadProgress');
   progress.classList.remove('err');
   const room = MAX_IMGS - ed.imgs.length - ed.uploading;
-  const ok = files.filter(f => FILE_TYPES.includes(f.type) && f.size <= MAX_FILE);
-  if (ok.length < files.length) { progress.textContent = 'Některé soubory se nenahrály: povolené jsou JPG, PNG a WebP do 10 MB.'; progress.classList.add('err'); }
+  const heic = files.some(f => /heic|heif/i.test(f.type + f.name));
+  const ok = files.filter(f => (FILE_TYPES.includes(f.type) || (!f.type && /\.(jpe?g|png|webp)$/i.test(f.name))) && f.size <= MAX_FILE);
+  if (ok.length < files.length) {
+    const m = heic ? 'Fotka z iPhonu ve formátu HEIC se nedá nahrát. V nastavení fotoaparátu zvolte Formáty → Nejkompatibilnější, nebo fotku pošlete jako JPG.' : 'Některé soubory se nenahrály: povolené jsou JPG, PNG a WebP do 10 MB.';
+    progress.textContent = m; progress.classList.add('err'); toast(m, { err: true });
+  }
+  if (!ok.length) return;
   const queue = ok.slice(0, room);
   if (ok.length > room) { progress.textContent = `Vejde se jen ${MAX_IMGS} fotek.`; progress.classList.add('err'); }
   for (const file of queue) {
@@ -946,6 +951,7 @@ async function uploadFiles(files) {
       if (err.message === 'unauthorized') return;
       progress.textContent = 'Fotka se nenahrála: ' + err.message;
       progress.classList.add('err');
+      toast('Fotka se nenahrála: ' + err.message, { err: true });
       return;
     }
     ed.uploading--;
