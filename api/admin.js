@@ -13,6 +13,7 @@ const HANDLERS = {
   coupons: require('./_h/coupons'),
   reviews: require('./_h/reviewsadmin'),
   upload: require('./_h/upload'),
+  backup: require('./_h/backup'),
 };
 
 module.exports = async function handler(req, res) {

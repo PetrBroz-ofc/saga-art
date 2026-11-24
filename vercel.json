@@ -140,6 +140,10 @@
       "destination": "/api/public?r=media&f=:f"
     },
     {
+      "source": "/api/backup",
+      "destination": "/api/admin?r=backup"
+    },
+    {
       "source": "/api/upload",
       "destination": "/api/admin?r=upload"
     },
