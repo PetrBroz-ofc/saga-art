@@ -43,8 +43,8 @@
     frameReady: false, timer: 0,
   };
 
-  const emptySettings = () => ({ theme: clone(T.defaults), texts: {}, links: {}, flags: { announce: false }, images: {}, sections: [], seo: {} });
-  const normalize = x => { x.images = x.images || {}; x.sections = x.sections || []; x.seo = x.seo || {}; x.flags = x.flags || { announce: false }; return x; };
+  const emptySettings = () => ({ theme: clone(T.defaults), texts: {}, links: {}, flags: { announce: false }, images: {}, sections: [], seo: {}, tracking: {} });
+  const normalize = x => { x.images = x.images || {}; x.sections = x.sections || []; x.seo = x.seo || {}; x.tracking = x.tracking || {}; x.flags = x.flags || { announce: false }; return x; };
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   const dirty = () => T.cur && T.saved && !same(T.cur, T.saved);
 
@@ -57,7 +57,7 @@
       theme: { colors: s.theme.colors, radius: s.theme.radius, scale: s.theme.scale,
         fonts: { heading: h.css, body: b.css },
         fontsUrl: 'https://fonts.googleapis.com/css2?' + keys.map(k => 'family=' + k.gf).join('&') + '&display=swap' },
-      texts: s.texts, links: s.links, flags: s.flags, images: s.images, sections: s.sections, seo: s.seo,
+      texts: s.texts, links: s.links, flags: s.flags, images: s.images, sections: s.sections, seo: s.seo, tracking: s.tracking,
     };
   }
   function pushPreview() {
@@ -216,7 +216,11 @@
         <label class="field"><span>Titulek stránky <b id="thSeoTc">${t.length} / 70</b></span><input type="text" data-th-seo="title" maxlength="70" value="${esc(t)}" placeholder="${esc(defT)}"></label>
         <label class="field"><span>Popis ve vyhledávači <b id="thSeoDc">${d.length} / 200</b></span><textarea data-th-seo="description" rows="4" maxlength="200" placeholder="Krátký popis, co na webu najdou (zhruba 150 znaků)">${esc(d)}</textarea></label>
         <div class="th-serp"><small>sagaart.cz</small><b id="thSerpT">${esc(t || defT)}</b><span id="thSerpD">${esc(d || 'Ručně vyráběné šperky z pravých říčních perel, přírodních minerálů a nerezové oceli…')}</span></div>
-        <p class="muted" style="margin-top:12px">Změna se ve vyhledávačích objeví, až web znovu projdou (dny až týdny). Náhled při sdílení na sociálních sítích zatím bere původní údaje.</p>`;
+        <p class="muted" style="margin-top:12px">Změna se ve vyhledávačích objeví, až web znovu projdou (dny až týdny). Náhled při sdílení na sociálních sítích zatím bere původní údaje.</p>
+        <p class="th-h" style="margin-top:22px">Měření návštěvnosti</p>
+        <p class="muted" style="margin-bottom:12px">Nepovinné. Bez ID se nic neměří. S ID se měří jen návštěvníci, kteří v liště cookies souhlasí.</p>
+        <label class="field"><span>Google Analytics 4: ID měření</span><input type="text" data-th-track="gaId" maxlength="20" value="${esc(s.tracking.gaId || '')}" placeholder="G-AB12CD34EF" autocomplete="off" spellcheck="false"></label>
+        <label class="field"><span>Meta Pixel: ID (reklamy na Facebooku a Instagramu)</span><input type="text" data-th-track="metaPixel" maxlength="20" value="${esc(s.tracking.metaPixel || '')}" placeholder="jen číslice" autocomplete="off" inputmode="numeric"></label>`;
     }
 
     document.querySelectorAll('.theme-tab').forEach(b => {
@@ -254,6 +258,8 @@
     } else if (t.dataset.thSec) {
       s.sections = (T.secList || []).map(x => ({ id: x.id, show: x.id === t.dataset.thSec ? t.checked : x.show }));
       t.closest('.th-sec').classList.toggle('is-off', !t.checked);
+    } else if (t.dataset.thTrack) {
+      const v = t.value.trim(); if (v) s.tracking[t.dataset.thTrack] = v; else delete s.tracking[t.dataset.thTrack];
     } else if (t.dataset.thSeo) {
       const v = t.value; if (v.trim()) s.seo[t.dataset.thSeo] = v; else delete s.seo[t.dataset.thSeo];
       const tc = $('thSeoTc'), dc = $('thSeoDc');

@@ -153,7 +153,20 @@ function validate(b) {
   if (!seo.title) delete seo.title;
   if (!seo.description) delete seo.description;
 
-  return { data: { theme: { colors, fonts, radius, scale }, texts, links, flags, images, sections, seo } };
+  // měření návštěvnosti: jen samotná ID v přesném tvaru (nikdy kód ani adresa)
+  const tracking = {};
+  const gaId = cleanText(b.tracking?.gaId, 30).toUpperCase();
+  const metaPixel = cleanText(b.tracking?.metaPixel, 30);
+  if (gaId) {
+    if (!/^G-[A-Z0-9]{4,16}$/.test(gaId)) return { error: 'ID Google Analytics má tvar G-AB12CD34EF' };
+    tracking.gaId = gaId;
+  }
+  if (metaPixel) {
+    if (!/^\d{10,20}$/.test(metaPixel)) return { error: 'ID Meta Pixelu jsou jen číslice' };
+    tracking.metaPixel = metaPixel;
+  }
+
+  return { data: { theme: { colors, fonts, radius, scale }, texts, links, flags, images, sections, seo, tracking } };
 }
 
 const fontsUrl = fonts => {
@@ -169,7 +182,7 @@ function publicView(doc) {
     theme: { colors: doc.theme.colors, radius: doc.theme.radius, scale: doc.theme.scale,
       fonts: { heading: FONTS[f.heading][2], body: FONTS[f.body][2] }, fontsUrl: fontsUrl(f) },
     texts: doc.texts || {}, links: doc.links || {}, flags: doc.flags || {},
-    images: doc.images || {}, sections: doc.sections || [], seo: doc.seo || {},
+    images: doc.images || {}, sections: doc.sections || [], seo: doc.seo || {}, tracking: doc.tracking || {},
   };
 }
 

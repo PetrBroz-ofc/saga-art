@@ -8,7 +8,7 @@ const S = require('../_site');
 // POST /api/site-settings { reset: true } — vrátit původní vzhled (aktuální se uloží do historie)
 
 const iso = v => (v && typeof v.toDate === 'function' ? v.toDate() : v instanceof Date ? v : null)?.toISOString() || null;
-const snapshotOf = d => ({ theme: d.theme || null, texts: d.texts || {}, links: d.links || {}, flags: d.flags || {}, images: d.images || {}, sections: d.sections || [], seo: d.seo || {} });
+const snapshotOf = d => ({ theme: d.theme || null, texts: d.texts || {}, links: d.links || {}, flags: d.flags || {}, images: d.images || {}, sections: d.sections || [], seo: d.seo || {}, tracking: d.tracking || {} });
 
 function adminView(doc) {
   return {
@@ -55,7 +55,7 @@ module.exports = async function handler(req, res) {
 
     // POST
     if (req.body?.reset === true) {
-      return writeNew(() => ({ doc: { theme: null, texts: {}, links: {}, flags: {}, images: {}, sections: [], seo: {} } }));
+      return writeNew(() => ({ doc: { theme: null, texts: {}, links: {}, flags: {}, images: {}, sections: [], seo: {}, tracking: {} } }));
     }
     const n = req.body?.restore;
     if (Number.isInteger(n)) {

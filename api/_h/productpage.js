@@ -98,7 +98,8 @@ ${imgs[0] ? `<meta property="og:image" content="${esc(abs(imgs[0]))}">` : `<meta
   </div>
   ${reviews.length ? `<section class="pp-reviews"><h2>Recenze</h2><p class="pp-rev-note">Recenzi může napsat kdokoli. Neověřuji, že autor šperk koupil, pokud u ní není „ověřený nákup“. Před zveřejněním je kontroluji kvůli spamu.</p>${reviews.slice(0, 20).map(r => `<article class="pp-review"><p class="pp-stars" aria-label="${r.rating} z 5">${stars(r.rating)}</p>${r.title ? `<h3>${esc(r.title)}</h3>` : ''}<p>${esc(r.text)}</p><small>${esc(r.name)}${r.verified ? ' · ověřený nákup' : ''} · ${esc((R.iso(r.createdAt) || '').slice(0, 10).split('-').reverse().join('. '))}</small></article>`).join('')}</section>` : ''}
 </main>
-<footer class="pp-foot"><a href="/">Sága Art</a> · <a href="/obchodni-podminky">Obchodní podmínky</a> · <a href="/ochrana-osobnich-udaju">Ochrana osobních údajů</a> · <a href="/odstoupeni">Odstoupit od smlouvy</a></footer>
+<footer class="pp-foot"><a href="/">Sága Art</a> · <a href="/obchodni-podminky">Obchodní podmínky</a> · <a href="/ochrana-osobnich-udaju">Ochrana osobních údajů</a> · <a href="/odstoupeni">Odstoupit od smlouvy</a> · <a href="/cookies">Cookies</a> · <button type="button" class="foot-cookie" data-cookie-settings>Nastavení cookies</button></footer>
+<script src="/js/consent.js" defer></script>
 </body></html>`;
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=900');
