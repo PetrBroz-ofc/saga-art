@@ -20,7 +20,6 @@
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://sagaart.cz/#org","name":"Sága Art","url":"https://sagaart.cz/","logo":"https://sagaart.cz/apple-touch-icon.png","description":"Ručně vyráběné šperky z pravých říčních perel, přírodních minerálů a nerezové oceli.","founder":{"@type":"Person","name":"Petra Miklušáková"},"address":{"@type":"PostalAddress","streetAddress":"Městečko 212","postalCode":"270 23","addressLocality":"Křivoklát","addressCountry":"CZ"}},{"@type":"WebSite","@id":"https://sagaart.cz/#web","url":"https://sagaart.cz/","name":"Sága Art","inLanguage":"cs","publisher":{"@id":"https://sagaart.cz/#org"}}]}</script>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap" rel="stylesheet">
-<link rel="preload" as="image" href="/img/hero-charlotte.jpg">
 <link rel="stylesheet" href="/css/shop.css">
 <script src="/js/theme.js"></script>
 </head>
@@ -32,7 +31,6 @@
     <div class="intro-card" data-rot="-4" data-target="main2"><img data-cms-img="hero-3" src="/img/produkty/more/1.jpg" alt="" width="750" height="1000"></div>
     <div class="intro-card" data-rot="3" data-target="side2"><img data-cms-img="hero-4" src="/img/produkty/euforie-gold-set/1.jpg" alt="" width="1000" height="1000"></div>
     <div class="intro-card" data-rot="-2" data-target="side"><img data-cms-img="hero-2" src="/img/produkty/duna-set/1.jpg" alt="" width="1000" height="1000"></div>
-    <div class="intro-card" data-rot="2.5"><img src="/img/produkty/euforie-gold-nahrdelnik/1.jpg" alt="" width="1000" height="1000"></div>
     <div class="intro-card" data-rot="0" data-target="main"><img data-cms-img="hero-1" src="/img/hero-charlotte.jpg" alt="" width="746" height="1000" fetchpriority="high"></div>
   </div>
   <div class="intro-word"><span>S</span><span>á</span><span>g</span><span>a</span><span class="gap"> </span><em><span>A</span><span>r</span><span>t</span></em></div>
@@ -86,7 +84,7 @@
         <li><a href="#produkty" data-filter="vse"><span>Všechny šperky</span><small data-count="vse"></small></a></li>
       </ul>
       <a href="#produkty" class="panel-feature" data-filter="soupravy">
-        <img data-cms-img="hero-4" data-cms-label="Malá fotka vlevo" data-cms-group="Úvod" src="/img/produkty/euforie-gold-set/1.jpg" alt="" width="1000" height="1000" loading="lazy">
+        <img data-cms-img="hero-4" src="/img/produkty/euforie-gold-set/1.jpg" alt="" width="1000" height="1000" loading="lazy">
         <span class="caption">Sety: náhrdelník, náramek a náušnice, které k sobě ladí</span>
       </a>
       <a href="#produkty" class="panel-feature" data-filter="nausnice">
@@ -128,13 +126,13 @@
   </div>
   <figure class="hero-media hero-media--left" aria-hidden="true">
     <div class="hero-main" data-slot="main2"><img data-cms-img="hero-3" data-cms-label="Velká fotka vlevo" data-cms-group="Úvod" src="/img/produkty/more/1.jpg" alt="" width="750" height="1000" loading="lazy"></div>
-    <div class="hero-side" data-slot="side2"><img src="/img/produkty/euforie-gold-set/1.jpg" alt="" width="1000" height="1000" loading="lazy"></div>
-    <figcaption class="caption">Moře · akvamarín a říční perly</figcaption>
+    <div class="hero-side" data-slot="side2"><img data-cms-img="hero-4" data-cms-label="Malá fotka vlevo" data-cms-group="Úvod" src="/img/produkty/euforie-gold-set/1.jpg" alt="" width="1000" height="1000" loading="lazy"></div>
+    <figcaption class="caption" data-cms="hero-cap-left" data-cms-label="Popisek pod levými fotkami" data-cms-group="Úvod">Moře · akvamarín a říční perly</figcaption>
   </figure>
   <figure class="hero-media hero-media--right">
     <div class="hero-main" data-slot="main"><img data-cms-img="hero-1" data-cms-label="Velká fotka vpravo" data-cms-group="Úvod" src="/img/hero-charlotte.jpg" alt="Set Charlotte s amazonitem a říčními perlami na krku a zápěstí" width="746" height="1000" fetchpriority="high"></div>
     <div class="hero-side" data-slot="side"><img data-cms-img="hero-2" data-cms-label="Malá fotka vpravo" data-cms-group="Úvod" src="/img/produkty/duna-set/1.jpg" alt="Set Duna položený na písku" width="1000" height="1000" loading="lazy"></div>
-    <figcaption class="caption">Charlotte SET · amazonit a říční perly</figcaption>
+    <figcaption class="caption" data-cms="hero-cap-right" data-cms-label="Popisek pod pravými fotkami" data-cms-group="Úvod">Charlotte SET · amazonit a říční perly</figcaption>
   </figure>
 </section>
 

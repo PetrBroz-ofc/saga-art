@@ -30,7 +30,10 @@
   const wait = ms => new Promise(r => setTimeout(r, ms));
   let finished = false, skipping = false;
 
-  const decoded = Promise.all(cards.map(c => {
+  // Nejdřív počkat na aktuální fotky z administrace (jinak by se animace rozběhla se starými),
+  // pak teprve na jejich stažení.
+  const photos = Promise.resolve(window.SaTheme && window.SaTheme.ready);
+  const decodeAll = () => Promise.all(cards.map(c => {
     const img = c.querySelector('img');
     return img.decode ? img.decode().catch(() => {}) : Promise.resolve();
   }));
@@ -52,7 +55,9 @@
     letters.forEach((l, i) => l.animate(
       [{ transform: 'translateY(110%)' }, { transform: 'none' }],
       { duration: 900, delay: 100 + i * 45, easing: EASE_OUT, fill: 'backwards' }));
-    await Promise.race([decoded, wait(1200)]);
+    await Promise.race([photos, wait(2500)]);   // pojistka, kdyby server neodpovídal
+    if (skipping) return;
+    await Promise.race([decodeAll(), wait(2000)]);
     if (skipping) return;
 
     // 1) fotky se rychle skládají na sebe

@@ -198,7 +198,11 @@
       else run();
     }
   }
-  window.SaTheme = { layout, apply };
+  // ready: splní se, až jsou na stránce uplatněné čerstvé fotky ze serveru (čeká na to úvodní animace)
+  let markReady;
+  const ready = new Promise(r => { markReady = r; });
+  const domReady = new Promise(r => (document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', r, { once: true }) : r()));
+  window.SaTheme = { layout, apply, ready };
 
   // Okamžitě poslední známé nastavení (z minula), pak čerstvé ze serveru
   if (!PREVIEW) {
@@ -212,7 +216,9 @@
         try { if (s.theme) localStorage.setItem(CACHE, JSON.stringify(s)); else localStorage.removeItem(CACHE); } catch {}
         apply(s);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .then(() => domReady)
+      .then(markReady);
   } else {
     addEventListener('message', e => {
       if (e.origin !== location.origin || e.source !== parent) return;
