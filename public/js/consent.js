@@ -3,7 +3,8 @@
 // Dokud návštěvník výslovně nesouhlasí, nic z měření ani reklamy se nenačte.
 //  - analytické: Google Analytics 4,
 //  - marketingové: Meta Pixel (reklamy na Facebooku a Instagramu) a reklamní signály Googlu.
-// ID nástrojů si majitelka vyplní v administraci (Vzhled → Vyhledávače). Bez nich se nenačítá nic ani po souhlasu.
+// Google Tag Manager (GTM_ID níže) se spustí po souhlasu s analytickými nebo marketingovými cookies a dostane
+// stav souhlasu (Consent Mode v2). Další ID jde vyplnit v administraci (Vzhled → Vyhledávače).
 // Odmítnout je stejně snadné jako přijmout, nic není předem zaškrtnuté, volbu jde kdykoli změnit v patičce.
 
 (() => {
@@ -12,6 +13,7 @@
   const KEY = 'sa_consent';
   const VERSION = 1;                 // zvýšit, když se změní účely nebo nástroje: lidé se pak zeptají znovu
   const MAX_AGE = 365 * 864e5;       // souhlas platí rok
+  const GTM_ID = 'GTM-T6996H3R';
   const GA_RE = /^G-[A-Z0-9]{4,16}$/;
   const PIXEL_RE = /^\d{10,20}$/;
   let memory = null;                 // když prohlížeč nedovolí úložiště, platí volba do zavření stránky
@@ -32,7 +34,7 @@
   }
 
   // ── nástroje ──
-  let ids = null, gaOn = false, pixelOn = false;
+  let ids = null, gaOn = false, pixelOn = false, gtmOn = false, gtagReady = false;
   async function loadIds() {
     if (ids) return ids;
     try {
@@ -49,17 +51,28 @@
   const cleanUrl = () => location.origin + location.pathname;
   const sensitiveUrl = () => /[?&](session_id|order|platba|payment)=/i.test(location.search);
 
-  function startGa(c, id) {
+  // gtag + stav souhlasu musí být připravené dřív, než se načte jakýkoli nástroj Googlu
+  function consent(c) {
     const state = {
       analytics_storage: c.analytics ? 'granted' : 'denied', ad_storage: c.marketing ? 'granted' : 'denied',
       ad_user_data: c.marketing ? 'granted' : 'denied', ad_personalization: c.marketing ? 'granted' : 'denied',
     };
-    if (gaOn) { window.gtag('consent', 'update', state); return; }
-    gaOn = true;
+    if (gtagReady) { window.gtag('consent', 'update', state); return; }
+    gtagReady = true;
     window.dataLayer = window.dataLayer || [];
     window.gtag = function () { window.dataLayer.push(arguments); };
     window.gtag('consent', 'default', state);
     window.gtag('js', new Date());
+  }
+  function startGtm() {
+    if (gtmOn || sensitiveUrl()) return;
+    gtmOn = true;
+    window.dataLayer.push({ 'gtm.start': Date.now(), event: 'gtm.js' });
+    addScript('https://www.googletagmanager.com/gtm.js?id=' + GTM_ID);
+  }
+  function startGa(c, id) {
+    if (gaOn) return;
+    gaOn = true;
     window.gtag('config', id, { page_location: cleanUrl(), allow_google_signals: c.marketing });
     addScript('https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(id));
   }
@@ -76,6 +89,8 @@
   }
   async function apply(c) {
     if (!c || (!c.analytics && !c.marketing)) return;
+    consent(c);
+    startGtm();
     const t = await loadIds();
     if (c.analytics && t.ga) startGa(c, t.ga);
     if (c.marketing && t.pixel) startPixel(t.pixel);
@@ -136,7 +151,7 @@
       list = el('ul', 'cc-list');
       list.append(
         row('cc-need', 'Nezbytné', 'Pamatují si obsah košíku, oblíbené šperky a vaši volbu. Bez nich web nefunguje, proto jsou vždy zapnuté.', true, true),
-        row('cc-ana', 'Analytické', 'Google Analytics ukáže, kolik lidí web navštíví a co je zajímá.', cur.analytics, false),
+        row('cc-ana', 'Analytické', 'Nástroje Googlu (Tag Manager, Analytics) ukážou, kolik lidí web navštíví a co je zajímá.', cur.analytics, false),
         row('cc-mkt', 'Marketingové', 'Meta Pixel a reklamní signály Googlu pomáhají měřit a cílit reklamy.', cur.marketing, false));
       box.insertBefore(list, actions);
       settings.replaceWith(button('cc-save', 'Uložit moji volbu', () => choose(box.querySelector('#cc-ana').checked, box.querySelector('#cc-mkt').checked)));
@@ -155,6 +170,7 @@
     // události pro měření (jen když nástroj běží, tedy po souhlasu)
     const send = (name, meta) => {
       if (gaOn) window.gtag('event', name, { page_location: cleanUrl() });
+      if (gtmOn) window.dataLayer.push({ event: name });
       if (pixelOn && meta) window.fbq('track', meta);
     };
     const a = t.closest('a[href]');
