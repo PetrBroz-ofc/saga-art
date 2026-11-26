@@ -717,6 +717,7 @@ img { max-width:100%; display:block; }
 .doc { max-width:760px; margin:0 auto; padding:56px 24px 72px; }
 .doc h1 { font-family:var(--serif); font-weight:400; font-size:clamp(2.2rem,5vw,3.2rem); line-height:1.1; margin-bottom:20px; }
 .doc h2 { font-family:var(--serif); font-weight:400; font-size:1.55rem; margin:44px 0 12px; scroll-margin-top:24px; }
+.doc h3 { font-family:var(--serif); font-weight:400; font-size:1.22rem; margin:26px 0 8px; }
 .doc p, .doc li { font-size:1.04rem; line-height:1.75; color:var(--ink); }
 .doc p { margin-bottom:14px; }
 .doc ul { padding-left:20px; margin-bottom:14px; }
@@ -880,3 +881,23 @@ img { max-width:100%; display:block; }
 .success-withdraw a { text-decoration:underline; }
 @media (max-width:520px) { .doc-sum { grid-template-columns:1fr; } .doc-sum dd { margin-bottom:8px; } }
 .doc-form[hidden], .doc-review[hidden] { display:none; }
+
+/* recenze: hvězdičky na kartě a formulář */
+button.product-rating { display:block; background:none; border:none; padding:4px 0; margin:0; font:inherit; font-size:.84rem; color:var(--ink-2); cursor:pointer; text-align:left; }
+button.product-rating:hover small { text-decoration:underline; }
+.pd-rev-form { display:grid; gap:12px; }
+.pd-rev-form[hidden], .pd-rev-form [hidden], .pd-rev-open[hidden] { display:none !important; }
+.pd-rev-form label { display:grid; gap:5px; }
+.pd-rev-form input[type="text"], .pd-rev-form textarea { font:inherit; font-size:1rem; padding:10px 12px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--ink); width:100%; box-sizing:border-box; }
+.pd-rev-form input.hp { position:absolute; left:-9999px; width:1px; height:1px; opacity:0; }
+.pd-rev-form .btn-primary, .pd-rev-open { border:none; cursor:pointer; justify-self:start; }
+.pd-rate { border:none; padding:0; margin:0; }
+.pd-rate legend { padding:0 0 4px; }
+.pd-rate-stars { display:flex; align-items:center; flex-wrap:wrap; gap:2px; }
+.pd-star { background:none; border:none; font-size:1.9rem; line-height:1; padding:4px; min-width:40px; min-height:44px; color:#c79a3a; cursor:pointer; }
+.pd-star-zero { background:none; border:1px solid var(--line); border-radius:999px; padding:8px 12px; margin-left:8px; font:inherit; font-size:.82rem; cursor:pointer; color:var(--ink-2); }
+.pd-star-zero.on { background:var(--ink); color:#fff; border-color:var(--ink); }
+.pd-rev-note { margin:8px 0 0; font-size:.78rem; color:var(--ink-3); }
+.pd-rev-msg { margin:0; min-height:1.2em; }
+.pd-rev-msg.err { color:#a33a3a; }
+.pd-rev-msg.ok { color:#2f6b43; font-weight:500; }

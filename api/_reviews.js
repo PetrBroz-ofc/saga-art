@@ -1,6 +1,6 @@
 'use strict';
-// Recenze šperků. Veřejně se ukazují jen schválené. Psát je smí jen přihlášená zákaznice, která šperk koupila
-// (účty zatím nejsou, viz _customer.js), do té doby je přidává majitelka ručně v administraci.
+// Recenze šperků. Napsat ji může kdokoli, veřejně se ukáže až po schválení v administraci (ochrana proti spamu).
+// Neověřuje se, že autor šperk koupil. „Ověřený nákup“ může označit jen majitelka.
 // Texty se vkládají do stránek vždy jen jako text (escapované), hvězdičky a průměr se počítají tady.
 
 const crypto = require('crypto');
@@ -22,7 +22,7 @@ function validate(b) {
   const productId = String(b.productId || '');
   if (!ID_RE.test(productId)) return { error: 'Neplatný šperk' };
   const rating = b.rating;
-  if (!Number.isInteger(rating) || rating < 1 || rating > 5) return { error: 'Hodnocení: 1 až 5 hvězdiček' };
+  if (!Number.isInteger(rating) || rating < 0 || rating > 5) return { error: 'Hodnocení: 0 až 5 hvězdiček' };
   const name = clean(b.name, 40);
   if (name.length < 2) return { error: 'Napište prosím jméno (stačí křestní a začátek příjmení)' };
   const text = clean(b.text, 1000, true);
@@ -62,4 +62,8 @@ async function create(data, extra = {}) {
   return { id, ...doc };
 }
 
-module.exports = { STATUSES, ID_RE, clean, validate, publicReview, summarize, approvedFor, summaries, create, iso };
+// Odkazy a internetové adresy do recenze nepatří, bývá to spam.
+const SPAM_RE = /(https?:|www\.|\[\/?url|<\s*a\s|[a-z0-9-]{2,}\.(?:com|net|org|info|ru|cn|xyz|top|shop|online|site|biz|click|link|io|cz|sk|de|eu)\b)/i;
+const looksSpam = d => [d.name, d.title, d.text].some(t => SPAM_RE.test(t || ''));
+
+module.exports = { looksSpam, STATUSES, ID_RE, clean, validate, publicReview, summarize, approvedFor, summaries, create, iso };

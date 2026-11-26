@@ -239,7 +239,7 @@
         <div><p class="eyebrow">Zákaznice</p><h1 id="hRec">Recenze</h1></div>
         <div class="view-tools"><button class="btn btn-accent" data-action="newReview"><svg class="i"><use href="#i-plus"/></svg>Přidat recenzi</button></div>
       </header>
-      <p class="muted" style="margin:-6px 0 14px;max-width:660px">Na webu se ukazují jen schválené recenze. Psát je budou moct přihlášené zákaznice, které šperk koupily (účty připravujeme). Do té doby sem můžete ručně přidat skutečné recenze, které vám zákaznice poslaly. Vymýšlet recenze nejde, vyhledávače i zákon to trestají.</p>
+      <p class="muted" style="margin:-6px 0 14px;max-width:660px">Recenzi může na webu napsat kdokoli. Objeví se tady jako čekající a na web se dostane, až ji schválíte. Spam skryjte nebo smažte. Skutečné kritické recenze ale neskrývejte, zákon to zakazuje. Ručně můžete přidat i recenzi, kterou vám zákaznice poslala. Vymýšlet recenze nejde.</p>
       <div class="filters" role="group" aria-label="Stav recenzí"><div class="chips" id="reviewChips"></div></div>
       <div class="orders" id="reviewList"></div>
     </section>
@@ -571,7 +571,7 @@
       <label class="field"><span>Šperk</span><select class="select" id="rvProduct"></select></label>
       <div class="cp-grid">
         <label class="field"><span>Jméno zákaznice</span><input type="text" id="rvName" maxlength="40" placeholder="Jana K." autocomplete="off"></label>
-        <label class="field"><span>Hodnocení</span><select class="select" id="rvRating"><option value="5">5 hvězdiček</option><option value="4">4 hvězdičky</option><option value="3">3 hvězdičky</option><option value="2">2 hvězdičky</option><option value="1">1 hvězdička</option></select></label>
+        <label class="field"><span>Hodnocení</span><select class="select" id="rvRating"><option value="5">5 hvězdiček</option><option value="4">4 hvězdičky</option><option value="3">3 hvězdičky</option><option value="2">2 hvězdičky</option><option value="1">1 hvězdička</option><option value="0">0 hvězdiček</option></select></label>
       </div>
       <label class="field"><span>Nadpis <small class="muted">nepovinný</small></span><input type="text" id="rvHead" maxlength="80"></label>
       <label class="field"><span>Text recenze</span><textarea id="rvText" rows="5" maxlength="1000"></textarea></label>

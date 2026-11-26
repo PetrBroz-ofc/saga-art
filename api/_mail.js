@@ -53,7 +53,7 @@ async function refresh(force = false) {
   } catch (err) { console.error('Texty e-mailů se nenačetly:', err.message); }
 }
 const SIGN = () => TEXTS.sign;
-const FOOTER = 'Sága Art · Petra Miklušáková · IČO 47055723 · Městečko 212, 270 23 Křivoklát';
+const FOOTER = 'Sága Art · Petra Miklušáková · IČO 47055723 · Městečko 212, 270 23 Křivoklát (adresa pro příjem zboží a reklamace: Hříměždice vedle č74, 262 14 Hříměždice)';
 
 // ── odeslání ──
 // attachments = [{ filename, content }], content je Buffer (do Resend jde jako base64)

@@ -15,6 +15,9 @@ body { background:var(--bg); }
 .pp-rating { color:var(--ink-2); margin:0 0 8px; }
 .pp-stars { color:#c79a3a; letter-spacing:.08em; }
 .pp-rating small { color:var(--ink-3); }
+.pp-write { margin:0 0 10px; font-size:.92rem; }
+.pp-write a { text-decoration:underline; }
+.pp-rev-note { color:var(--ink-3); font-size:.84rem; margin:0 0 12px; }
 .pp-material { color:var(--ink-2); margin:0 0 14px; }
 .pp-price { font-family:var(--serif); font-size:1.9rem; margin:0 0 16px; }
 .pp-desc { line-height:1.75; color:var(--ink); margin:0 0 18px; }

@@ -52,9 +52,9 @@ module.exports = async function handler(req, res) {
         seller: { '@type': 'Organization', name: 'Sága Art' },
       },
       ...(sum.count ? {
-        aggregateRating: { '@type': 'AggregateRating', ratingValue: String(sum.avg), reviewCount: String(sum.count) },
+        aggregateRating: { '@type': 'AggregateRating', ratingValue: String(sum.avg), reviewCount: String(sum.count), bestRating: '5', worstRating: '0' },
         review: reviews.slice(0, 20).map(r => ({ '@type': 'Review', author: { '@type': 'Person', name: r.name }, datePublished: (R.iso(r.createdAt) || '').slice(0, 10),
-          reviewRating: { '@type': 'Rating', ratingValue: String(r.rating), bestRating: '5', worstRating: '1' }, reviewBody: r.text })),
+          reviewRating: { '@type': 'Rating', ratingValue: String(r.rating), bestRating: '5', worstRating: '0' }, reviewBody: r.text })),
       } : {}),
     };
     const crumbs = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: [
@@ -88,6 +88,7 @@ ${imgs[0] ? `<meta property="og:image" content="${esc(abs(imgs[0]))}">` : `<meta
     <nav class="pp-crumbs" aria-label="Drobečková navigace"><a href="/">Sága Art</a> / <a href="/#produkty">Šperky</a>${p.collection ? ` / <span>${esc(p.collection)}</span>` : ''}</nav>
     <h1>${esc(name)}</h1>
     ${sum.count ? `<p class="pp-rating" aria-label="Hodnocení ${sum.avg} z 5"><span class="pp-stars" aria-hidden="true">${stars(Math.round(sum.avg))}</span> ${esc(String(sum.avg).replace('.', ','))} <small>(${sum.count} ${sum.count === 1 ? 'recenze' : sum.count < 5 ? 'recenze' : 'recenzí'})</small></p>` : ''}
+    ${RULES.reviewsShow ? `<p class="pp-write"><a href="/?produkt=${encodeURIComponent(id)}&amp;recenze=1">Zanechat recenzi</a></p>` : ''}
     ${p.material ? `<p class="pp-material">${esc(p.material)}</p>` : ''}
     <p class="pp-price">${esc(kc(p.price))}</p>
     ${desc ? `<p class="pp-desc">${esc(desc)}</p>` : ''}
@@ -95,7 +96,7 @@ ${imgs[0] ? `<meta property="og:image" content="${esc(abs(imgs[0]))}">` : `<meta
     ${inStock ? `<a class="btn-primary" href="/?produkt=${encodeURIComponent(id)}">Koupit v e-shopu</a>` : '<p class="pp-sold">Tenhle šperk je prodaný. Podobný ráda vytvořím na míru.</p>'}
     <p class="pp-ship">Doprava Zásilkovnou od ${esc(Math.min(...Object.values(require('../_rules').SHIPPING).filter(x => !x.voucherOnly && !x.off).map(x => x.price)))} Kč${RULES.freeFrom > 0 ? `, nad ${esc(kc(RULES.freeFrom))} zdarma` : ''}. Každý šperk dostanete v dárkové krabičce.</p>
   </div>
-  ${reviews.length ? `<section class="pp-reviews"><h2>Recenze</h2>${reviews.slice(0, 20).map(r => `<article class="pp-review"><p class="pp-stars" aria-label="${r.rating} z 5">${stars(r.rating)}</p>${r.title ? `<h3>${esc(r.title)}</h3>` : ''}<p>${esc(r.text)}</p><small>${esc(r.name)}${r.verified ? ' · ověřený nákup' : ''} · ${esc((R.iso(r.createdAt) || '').slice(0, 10).split('-').reverse().join('. '))}</small></article>`).join('')}</section>` : ''}
+  ${reviews.length ? `<section class="pp-reviews"><h2>Recenze</h2><p class="pp-rev-note">Recenzi může napsat kdokoli. Neověřuji, že autor šperk koupil, pokud u ní není „ověřený nákup“. Před zveřejněním je kontroluji kvůli spamu.</p>${reviews.slice(0, 20).map(r => `<article class="pp-review"><p class="pp-stars" aria-label="${r.rating} z 5">${stars(r.rating)}</p>${r.title ? `<h3>${esc(r.title)}</h3>` : ''}<p>${esc(r.text)}</p><small>${esc(r.name)}${r.verified ? ' · ověřený nákup' : ''} · ${esc((R.iso(r.createdAt) || '').slice(0, 10).split('-').reverse().join('. '))}</small></article>`).join('')}</section>` : ''}
 </main>
 <footer class="pp-foot"><a href="/">Sága Art</a> · <a href="/obchodni-podminky">Obchodní podmínky</a> · <a href="/ochrana-osobnich-udaju">Ochrana osobních údajů</a> · <a href="/odstoupeni">Odstoupit od smlouvy</a></footer>
 </body></html>`;
