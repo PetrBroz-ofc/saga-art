@@ -95,6 +95,8 @@
       if (btn && !filled(btn)) btn.hidden = true;
       promo.hidden = !(flags.promo === true && [...promo.querySelectorAll('[data-cms]')].some(filled));
     }
+    // vánoční výzdobu majitelka může vypnout (js/xmas.js)
+    document.documentElement.dataset.xmas = flags.xmas === false ? 'off' : 'on';
     const bar = document.getElementById('announce');
     if (bar) {
       const on = flags.announce === true && !!texts['announce-text'];

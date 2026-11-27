@@ -43,7 +43,7 @@
     frameReady: false, timer: 0,
   };
 
-  const emptySettings = () => ({ theme: clone(T.defaults), texts: {}, links: {}, flags: { announce: false, promo: false }, images: {}, sections: [], seo: {}, tracking: {} });
+  const emptySettings = () => ({ theme: clone(T.defaults), texts: {}, links: {}, flags: { announce: false, promo: false, xmas: true }, images: {}, sections: [], seo: {}, tracking: {} });
   const normalize = x => { x.images = x.images || {}; x.sections = x.sections || []; x.seo = x.seo || {}; x.tracking = x.tracking || {}; x.flags = x.flags || { announce: false, promo: false }; return x; };
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   const dirty = () => T.cur && T.saved && !same(T.cur, T.saved);
@@ -165,6 +165,7 @@
         : `<input type="text" data-th-text="${key}" maxlength="${max}" value="${esc(s.texts[key] || '')}" placeholder="${esc(ph)}">`}</label>`;
       pane.innerHTML = `
         <p class="muted" style="margin-bottom:12px">Velký blok s akcí pod úvodními fotkami. Napište, co chcete (třeba slevu, dárek k nákupu nebo jen vzkaz zákazníkům). Prázdná pole se na webu neukážou. Až akce skončí, blok vypněte.</p>
+        <label class="th-switch"><input type="checkbox" id="thXmasOn" ${s.flags.xmas !== false ? 'checked' : ''}><span>Vánoční výzdoba (girlanda, sníh a vánoční sekce)<small>Sama se ukazuje od 15. 11. do 6. 1. Texty sekce upravíte v záložce Texty, část Vánoce.</small></span></label>
         <label class="th-switch"><input type="checkbox" id="thPromoOn" ${s.flags.promo ? 'checked' : ''}><span>Zobrazit akci na webu</span></label>
         ${txt('promo-label', 'Malý nadpis nad titulkem', 'Např. Vánoční akce', 40)}
         ${txt('promo-title', 'Velký nadpis', 'Např. Letos si dárek vyberete s mojí slevou', 120, 2)}
@@ -281,6 +282,8 @@
       const v = t.value.trim(); if (v) s.links[t.dataset.thLink] = v; else delete s.links[t.dataset.thLink];
     } else if (t.id === 'thAnnounceOn') {
       s.flags.announce = t.checked;
+    } else if (t.id === 'thXmasOn') {
+      s.flags.xmas = t.checked;
     } else if (t.id === 'thPromoOn') {
       s.flags.promo = t.checked;
     } else if (t.dataset.thSec) {

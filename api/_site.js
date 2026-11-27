@@ -122,7 +122,7 @@ function validate(b) {
     links.email = e;
   }
 
-  const flags = { announce: b.flags?.announce === true, promo: b.flags?.promo === true };
+  const flags = { announce: b.flags?.announce === true, promo: b.flags?.promo === true, xmas: b.flags?.xmas !== false };
 
   // fotky: jen nahrané přes administraci (/media) nebo z Cloudinary (jiné adresy CSP stejně nepustí)
   const images = {};

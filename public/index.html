@@ -21,6 +21,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;1,6..72,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/shop.css">
+<link rel="stylesheet" href="/css/xmas.css">
 <script src="/js/theme.js"></script>
 </head>
 <body>
@@ -160,6 +161,36 @@
       </div>
       <a class="btn-primary promo-btn" data-cms="promo-btn" data-cms-link="promo" data-cms-label="Tlačítko" data-cms-group="Akce" href="#" hidden></a>
     </div>
+  </div>
+</section>
+
+<!-- ═══ VÁNOCE (js/xmas.js ji ukáže od 15. 11. do 6. 1., vypíná se v administraci: Vzhled → Akce) ═══ -->
+<section class="xmas" id="vanoce" aria-labelledby="xmasTitle" hidden>
+  <div class="xmas-inner">
+    <p class="xmas-count" data-xm-count></p>
+    <h2 id="xmasTitle" data-cms="xmas-title" data-cms-label="Vánoční nadpis" data-cms-group="Vánoce">Dárek, který pod stromečkem zazáří</h2>
+    <p class="xmas-lead" data-cms="xmas-lead" data-cms-label="Text pod nadpisem" data-cms-group="Vánoce">Každý šperk tvořím ručně a dostanete ho v dárkové krabičce. Na vánoční objednávky myslete raději včas.</p>
+    <div class="xmas-cards">
+      <a class="xmas-card" href="#produkty">
+        <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M9 14c3 13 9 20 15 20s12-7 15-20"/><circle cx="24" cy="39" r="4.5"/><circle cx="13" cy="24" r="1.6"/><circle cx="35" cy="24" r="1.6"/><circle cx="18" cy="31" r="1.6"/><circle cx="30" cy="31" r="1.6"/></svg>
+        <h3 data-cms="xmas-1-title" data-cms-label="Karta 1: nadpis" data-cms-group="Vánoce">Šperky skladem</h3>
+        <p data-cms="xmas-1-text" data-cms-label="Karta 1: text" data-cms-group="Vánoce">Hotové kousky z pravých perel, minerálů a nerezové oceli, připravené k obdarování.</p>
+        <span class="xmas-go">Vybrat šperk</span>
+      </a>
+      <a class="xmas-card" href="#poukazy">
+        <svg viewBox="0 0 48 48" aria-hidden="true"><rect x="7" y="19" width="34" height="22" rx="2"/><path d="M5 13h38v6H5zM24 13v28M24 13c-3-7-13-8-12-2 .6 3 7 2 12 2zm0 0c3-7 13-8 12-2-.6 3-7 2-12 2z"/></svg>
+        <h3 data-cms="xmas-2-title" data-cms-label="Karta 2: nadpis" data-cms-group="Vánoce">Dárkový poukaz</h3>
+        <p data-cms="xmas-2-text" data-cms-label="Karta 2: text" data-cms-group="Vánoce">Nevíte, co vybrat? Poukaz přijde e-mailem a obdarovaná si šperk zvolí sama.</p>
+        <span class="xmas-go">Koupit poukaz</span>
+      </a>
+      <a class="xmas-card" href="#na-miru">
+        <svg viewBox="0 0 48 48" aria-hidden="true"><path d="M24 5l4.6 12.8L42 18.4l-10.6 8.4 3.7 13.2L24 32.4 12.9 40l3.7-13.2L6 18.4l13.4-.6z"/></svg>
+        <h3 data-cms="xmas-3-title" data-cms-label="Karta 3: nadpis" data-cms-group="Vánoce">Šperk na míru</h3>
+        <p data-cms="xmas-3-text" data-cms-label="Karta 3: text" data-cms-group="Vánoce">Vytvořím šperk podle vašeho přání. Ruční výroba chce čas, ozvěte se mi proto co nejdřív.</p>
+        <span class="xmas-go">Napsat mi</span>
+      </a>
+    </div>
+    <p class="xmas-wish" data-cms="xmas-wish" data-cms-label="Přání na konci" data-cms-group="Vánoce">Přeji vám klidné a krásné Vánoce.</p>
   </div>
 </section>
 
@@ -634,6 +665,7 @@
 <div class="notification" id="notification"></div>
 
 <script src="/js/intro.js" defer></script>
+<script src="/js/xmas.js" defer></script>
 <script src="/js/shop.js" defer></script>
 <script src="/js/fx.js" defer></script>
 <script src="/js/nav.js" defer></script>
