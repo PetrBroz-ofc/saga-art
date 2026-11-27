@@ -2,7 +2,7 @@ const { getDb, SITE_URL, guard, fail } = require('../_utils');
 
 // GET /sitemap.xml — mapa stránek pro vyhledávače: úvodní stránka, informační stránky a každý šperk skladem.
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[c]));
-const STATIC = [['/', 'weekly', '1.0'], ['/obchodni-podminky', 'yearly', '0.3'], ['/ochrana-osobnich-udaju', 'yearly', '0.3'], ['/pece-o-sperky', 'yearly', '0.5'], ['/cookies', 'yearly', '0.2'], ['/miyuki', 'yearly', '0.5']];
+const STATIC = [['/', 'weekly', '1.0'], ['/obchodni-podminky', 'yearly', '0.3'], ['/ochrana-osobnich-udaju', 'yearly', '0.3'], ['/pece-o-sperky', 'yearly', '0.5'], ['/cookies', 'yearly', '0.2'], ['/miyuki', 'yearly', '0.5'], ['/nerezova-ocel', 'yearly', '0.5']];
 
 module.exports = async function handler(req, res) {
   if (!guard(req, res, ['GET'])) return;
