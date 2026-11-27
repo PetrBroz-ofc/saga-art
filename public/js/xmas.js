@@ -1,5 +1,5 @@
 'use strict';
-// Vánoční výzdoba: girlanda z perel se světýlky, jemný sníh, sekce „Vánoce“ s odpočtem do Štědrého dne.
+// Vánoční výzdoba: sníh s hloubkou, teplá rozostřená světla v sekci „Vánoce“ a odpočet do Štědrého dne.
 // Ukazuje se sama od 15. 11. do 6. 1. a jde vypnout v administraci (Vzhled → Akce).
 // theme.js nastaví <html data-xmas="off">, když ji majitelka vypnula.
 
@@ -24,89 +24,100 @@
     return days === 1 ? 'Do Štědrého dne zbývá 1 den' : days <= 4 ? 'Do Štědrého dne zbývají ' + days + ' dny' : 'Do Štědrého dne zbývá ' + days + ' dní';
   }
 
-  // ── girlanda ──
-  let garland = null;
-  function drawGarland() {
-    const hero = document.querySelector('.hero');
-    if (!hero) return;
-    if (!garland) {
-      garland = document.createElement('div');
-      garland.className = 'xm-garland'; garland.setAttribute('aria-hidden', 'true');
-      hero.before(garland);
-      // šířka se může změnit i bez události resize (načítání, posuvník, rám náhledu)
+  // ── rozostřená světla, jako když se fotí stromek mimo ostrost ──
+  let lights = null;
+  function drawLights() {
+    if (!section) return;
+    if (!lights) {
+      lights = document.createElement('canvas'); lights.className = 'xm-bokeh'; lights.setAttribute('aria-hidden', 'true');
+      section.prepend(lights);
       if ('ResizeObserver' in window) {
-        let seen = 0;
-        new ResizeObserver(e => { const x = Math.round(e[0].contentRect.width); if (x && x !== seen && active) { seen = x; drawGarland(); size(); } }).observe(garland);
+        let seen = '';
+        new ResizeObserver(() => {
+          const key = section.clientWidth + 'x' + section.clientHeight;
+          if (active && key !== seen) { seen = key; drawLights(); }
+        }).observe(section);
       }
     }
-    const NS = 'http://www.w3.org/2000/svg';
-    const w = Math.max(320, Math.round(garland.getBoundingClientRect().width) || root.clientWidth);
-    const swags = Math.max(2, Math.round(w / 260));
-    const step = w / swags, top = 4, sag = w < 700 ? 22 : 34, gap = w < 700 ? 15 : 17;
-    const svg = document.createElementNS(NS, 'svg');
-    svg.setAttribute('viewBox', '0 0 ' + w + ' 90'); svg.setAttribute('width', w); svg.setAttribute('height', 90);
-    const add = (tag, attrs, parent = svg) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; };
-    let n = 0;
-    for (let s = 0; s < swags; s++) {
-      const x0 = s * step, x1 = x0 + step, cx = x0 + step / 2, cy = top + sag * 2;
-      add('path', { d: `M${x0} ${top} Q${cx} ${cy} ${x1} ${top}`, class: 'xm-string' });
-      const count = Math.floor(step / gap);
-      for (let i = 1; i < count; i++) {
-        const t = i / count;
-        const x = (1 - t) ** 2 * x0 + 2 * (1 - t) * t * cx + t ** 2 * x1;
-        const y = (1 - t) ** 2 * top + 2 * (1 - t) * t * cy + t ** 2 * top;
-        if (i % 4 === 2) {
-          add('circle', { cx: x, cy: y + 7, r: 9, class: 'xm-glow', style: `animation-delay:-${(n * 0.37) % 3}s` });
-          add('circle', { cx: x, cy: y + 7, r: 3.6, class: 'xm-bulb xm-bulb-' + (n % 3) });
-          n++;
-        } else add('circle', { cx: x, cy: y, r: i % 4 === 0 ? 4.2 : 3.2, class: 'xm-pearl' });
+    const w = section.clientWidth, h = section.clientHeight;
+    if (!w || !h) return;
+    const k = Math.min(1.5, devicePixelRatio || 1);
+    lights.width = w * k; lights.height = h * k;
+    const g = lights.getContext('2d');
+    g.setTransform(k, 0, 0, k, 0, 0);
+    g.globalCompositeOperation = 'lighter';
+    let seed = 7;                                   // pevné rozložení, ať světla při změně šířky neskáčou
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const warm = ['255,184,92', '255,206,128', '255,164,74', '255,226,170', '226,128,72'];
+    const spot = (x, y, r, color, a) => {           // kolečko objektivu: skoro rovná plocha s jemným jasnějším okrajem
+      const gr = g.createRadialGradient(x, y, 0, x, y, r);
+      gr.addColorStop(0, `rgba(${color},${a * 0.75})`);
+      gr.addColorStop(0.72, `rgba(${color},${a * 0.8})`);
+      gr.addColorStop(0.86, `rgba(${color},${a})`);
+      gr.addColorStop(1, `rgba(${color},0)`);
+      g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 6.2832); g.fill();
+    };
+    const unit = Math.max(0.6, Math.min(1.25, w / 1200));
+    // dva volné oblouky světel (jako navinuté na větvích) a pár dalších kolem
+    for (const [from, mid, to, count] of [[0.02, 0.2, 0.06, 46], [0.16, 0.02, 0.3, 30]]) {
+      for (let i = 0; i < count; i++) {
+        const t = (i + rnd() * 0.8) / count;
+        const x = t * w;
+        const y = ((1 - t) ** 2 * from + 2 * (1 - t) * t * mid + t ** 2 * to) * Math.min(h, w < 700 ? 300 : 640) + (rnd() - 0.5) * 36;
+        spot(x, y, (5 + rnd() ** 2 * 20) * unit, warm[(rnd() * warm.length) | 0], 0.14 + rnd() * 0.3);
+        if (rnd() < 0.35) spot(x + (rnd() - 0.5) * 30, y + (rnd() - 0.5) * 30, 1.6 * unit, '255,236,200', 0.85);
       }
-      // přívěsek uprostřed oblouku: střídavě hvězdička a baňka
-      const my = top + sag;
-      add('line', { x1: cx, y1: my, x2: cx, y2: my + 16, class: 'xm-string' });
-      if (s % 2 === 0) add('path', { d: `M${cx} ${my + 14} l3 7.2 7.6 .6 -5.8 5 1.8 7.4 -6.6 -4 -6.6 4 1.8 -7.4 -5.8 -5 7.6 -.6z`, class: 'xm-star' });
-      else { add('circle', { cx, cy: my + 26, r: 10, class: 'xm-ball' }); add('circle', { cx: cx - 3.4, cy: my + 22.6, r: 2.6, class: 'xm-shine' }); }
     }
-    garland.replaceChildren(svg);
+    for (let i = 0; i < 26; i++) {
+      const edge = rnd() < 0.5 ? rnd() * 0.22 : 0.78 + rnd() * 0.22;
+      spot(edge * w, h * (0.35 + rnd() * 0.65), (14 + rnd() * 44) * unit, warm[(rnd() * warm.length) | 0], 0.05 + rnd() * 0.1);
+    }
   }
 
-  // ── sníh ──
-  let canvas = null, ctx = null, flakes = [], raf = 0, last = 0, toggle = null;
+  // ── sníh: tři vzdálenosti, bližší vločky jsou větší, rychlejší a rozostřené, vítr se pomalu mění ──
+  let canvas = null, ctx = null, flakes = [], sprites = null, raf = 0, last = 0, clock = 0, toggle = null;
+  const LAYERS = [
+    { share: 0.62, r: [0.9, 1.9], v: [16, 28], a: [0.45, 0.75], sprite: 0 },
+    { share: 0.31, r: [2, 3.4], v: [30, 48], a: [0.55, 0.85], sprite: 1 },
+    { share: 0.07, r: [5, 10], v: [55, 85], a: [0.25, 0.45], sprite: 2 },
+  ];
+  // vločka je měkký chumáček bez obrysu; lehce modrošedý, aby byl vidět i na světlém pozadí
+  function makeSprite(core) {
+    const c = document.createElement('canvas'); c.width = c.height = 64;
+    const g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    gr.addColorStop(0, 'rgba(198,207,232,1)');
+    gr.addColorStop(core, 'rgba(194,203,229,.9)');
+    gr.addColorStop(1, 'rgba(188,198,226,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+    return c;
+  }
   const snowWanted = () => { try { return localStorage.getItem(SNOW_KEY) !== 'off'; } catch { return true; } };
+  const between = ([a, b]) => a + Math.random() * (b - a);
+  function newFlake(layer, anywhere) {
+    const L = LAYERS[layer];
+    return { layer, x: Math.random() * (innerWidth + 80) - 40, y: anywhere ? Math.random() * innerHeight : -24,
+      r: between(L.r), v: between(L.v), a: between(L.a), p: Math.random() * 6.28, f: 0.5 + Math.random(), sway: 4 + Math.random() * 12 };
+  }
   function size() {
     if (!canvas) return;
     const k = Math.min(2, devicePixelRatio || 1);
     canvas.width = innerWidth * k; canvas.height = innerHeight * k;
     ctx.setTransform(k, 0, 0, k, 0, 0);
-    const want = innerWidth < 700 ? 22 : 46;
-    flakes = Array.from({ length: want }, (_, i) => flakes[i] || newFlake(true));
-  }
-  function newFlake(anywhere) {
-    const big = Math.random() < 0.28;
-    return { x: Math.random() * innerWidth, y: anywhere ? Math.random() * innerHeight : -12, r: big ? 4 + Math.random() * 3.5 : 1.4 + Math.random() * 1.8,
-      big, v: 14 + Math.random() * 26, sway: 8 + Math.random() * 20, p: Math.random() * 6.28, a: 0.28 + Math.random() * 0.34, spin: Math.random() * 6.28 };
+    const total = innerWidth < 700 ? 60 : 130;
+    flakes = [];
+    LAYERS.forEach((L, i) => { for (let n = 0; n < Math.round(total * L.share); n++) flakes.push(newFlake(i, true)); });
   }
   function paint(now) {
-    const dt = Math.min(0.05, (now - last) / 1000 || 0.016); last = now;
+    const dt = Math.min(0.05, (now - last) / 1000 || 0.016); last = now; clock += dt;
+    const wind = Math.sin(clock * 0.13) * 14 + Math.sin(clock * 0.41 + 2) * 7;
     ctx.clearRect(0, 0, innerWidth, innerHeight);
-    const color = getComputedStyle(root).getPropertyValue('--xm-snow').trim() || '#8d8fc0';
-    ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 1; ctx.lineCap = 'round';
     for (const f of flakes) {
-      f.y += f.v * dt; f.p += dt; f.spin += dt * 0.4;
-      if (f.y > innerHeight + 12) Object.assign(f, newFlake(false));
-      const x = f.x + Math.sin(f.p) * f.sway;
+      f.y += f.v * dt; f.p += dt * f.f; f.x += wind * (0.35 + f.layer * 0.4) * dt;
+      if (f.y > innerHeight + 24) Object.assign(f, newFlake(f.layer, false));
+      if (f.x > innerWidth + 40) f.x = -40; else if (f.x < -40) f.x = innerWidth + 40;
+      const x = f.x + Math.sin(f.p) * f.sway, d = f.r * 3;
       ctx.globalAlpha = f.a;
-      if (f.big) {
-        ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
-          const a = f.spin + i * Math.PI / 3, ex = x + Math.cos(a) * f.r, ey = f.y + Math.sin(a) * f.r;
-          ctx.moveTo(x, f.y); ctx.lineTo(ex, ey);
-          const bx = x + Math.cos(a) * f.r * 0.6, by = f.y + Math.sin(a) * f.r * 0.6;
-          ctx.moveTo(bx, by); ctx.lineTo(bx + Math.cos(a + 0.9) * f.r * 0.32, by + Math.sin(a + 0.9) * f.r * 0.32);
-          ctx.moveTo(bx, by); ctx.lineTo(bx + Math.cos(a - 0.9) * f.r * 0.32, by + Math.sin(a - 0.9) * f.r * 0.32);
-        }
-        ctx.stroke();
-      } else { ctx.beginPath(); ctx.arc(x, f.y, f.r, 0, 6.2832); ctx.fill(); }
+      ctx.drawImage(sprites[LAYERS[f.layer].sprite], x - d / 2, f.y - d / 2, d, d);
     }
     ctx.globalAlpha = 1;
     raf = requestAnimationFrame(paint);
@@ -115,14 +126,15 @@
     cancelAnimationFrame(raf); raf = 0;
     if (!on) { canvas?.remove(); canvas = null; return; }
     if (!canvas) {
+      sprites = sprites || [makeSprite(0.42), makeSprite(0.3), makeSprite(0.06)];
       canvas = document.createElement('canvas'); canvas.className = 'xm-snow'; canvas.setAttribute('aria-hidden', 'true');
-      document.body.appendChild(canvas); ctx = canvas.getContext('2d'); flakes = []; size();
+      document.body.appendChild(canvas); ctx = canvas.getContext('2d'); size();
     }
     last = performance.now(); raf = requestAnimationFrame(paint);
   }
   function snowButton() {
     if (toggle || reduce.matches) return;
-    toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'xm-toggle'; toggle.textContent = '❄';
+    toggle = document.createElement('button'); toggle.type = 'button'; toggle.className = 'xm-toggle'; toggle.textContent = 'Sníh';
     const label = () => {
       const on = snowWanted();
       toggle.setAttribute('aria-pressed', String(on)); toggle.classList.toggle('is-off', !on);
@@ -147,17 +159,17 @@
       const c = section.querySelector('[data-xm-count]'); if (c && on) c.textContent = countdownText(today());
     }
     if (on) {
-      drawGarland(); snowButton(); if (toggle) toggle.hidden = false;
+      drawLights(); snowButton(); if (toggle) toggle.hidden = false;
       snow(!reduce.matches && snowWanted());
     } else {
-      snow(false); garland?.remove(); garland = null; if (toggle) toggle.hidden = true;
+      snow(false); if (toggle) toggle.hidden = true;
     }
     try { window.ScrollTrigger && window.ScrollTrigger.refresh(); } catch {}
   }
   const wanted = () => root.dataset.xmas !== 'off' && inSeason(today());
 
   let timer = 0;
-  addEventListener('resize', () => { clearTimeout(timer); timer = setTimeout(() => { if (active) { drawGarland(); size(); } }, 150); });
+  addEventListener('resize', () => { clearTimeout(timer); timer = setTimeout(() => { if (active) { drawLights(); size(); } }, 150); });
   document.addEventListener('visibilitychange', () => {
     if (!canvas) return;
     cancelAnimationFrame(raf); raf = 0;

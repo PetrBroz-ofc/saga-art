@@ -165,7 +165,7 @@
         : `<input type="text" data-th-text="${key}" maxlength="${max}" value="${esc(s.texts[key] || '')}" placeholder="${esc(ph)}">`}</label>`;
       pane.innerHTML = `
         <p class="muted" style="margin-bottom:12px">Velký blok s akcí pod úvodními fotkami. Napište, co chcete (třeba slevu, dárek k nákupu nebo jen vzkaz zákazníkům). Prázdná pole se na webu neukážou. Až akce skončí, blok vypněte.</p>
-        <label class="th-switch"><input type="checkbox" id="thXmasOn" ${s.flags.xmas !== false ? 'checked' : ''}><span>Vánoční výzdoba (girlanda, sníh a vánoční sekce)<small>Sama se ukazuje od 15. 11. do 6. 1. Texty sekce upravíte v záložce Texty, část Vánoce.</small></span></label>
+        <label class="th-switch"><input type="checkbox" id="thXmasOn" ${s.flags.xmas !== false ? 'checked' : ''}><span>Vánoční výzdoba (sníh, světýlka a vánoční sekce)<small>Sama se ukazuje od 15. 11. do 6. 1. Texty sekce upravíte v záložce Texty, část Vánoce.</small></span></label>
         <label class="th-switch"><input type="checkbox" id="thPromoOn" ${s.flags.promo ? 'checked' : ''}><span>Zobrazit akci na webu</span></label>
         ${txt('promo-label', 'Malý nadpis nad titulkem', 'Např. Vánoční akce', 40)}
         ${txt('promo-title', 'Velký nadpis', 'Např. Letos si dárek vyberete s mojí slevou', 120, 2)}
