@@ -1007,3 +1007,10 @@ button.product-rating:hover small { text-decoration:underline; }
 @media (max-width:520px) { .doc-table table { font-size:.8rem; } .doc-table th, .doc-table td { padding-right:8px; } }
 .doc .doc-table th, .doc .doc-table td { overflow-wrap:normal; word-break:normal; }
 @media (max-width:520px) { .doc .doc-table table { font-size:.74rem; } .doc .doc-table th, .doc .doc-table td { padding-right:6px; } }
+/* slevy */
+.product-price.is-sale { color:#a8324a; }
+s.was { color:var(--ink-3); font-weight:400; font-size:.82em; margin-left:4px; white-space:nowrap; }
+.pp-price s { color:var(--ink-3); font-size:.65em; }
+.product-badge.is-sale { background:#a8324a; color:#fff; }
+.sale-pct { display:inline-block; vertical-align:middle; margin-left:6px; padding:3px 8px; border-radius:4px; background:#a8324a; color:#fff; font-family:var(--sans); font-size:.8rem; font-weight:500; }
+.sale-note { margin:-12px 0 18px; font-size:.82rem; color:var(--ink-3); }

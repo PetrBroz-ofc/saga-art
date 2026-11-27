@@ -740,3 +740,7 @@ a.btn { text-decoration:none; }
   .inv-list-row > :nth-child(5) { grid-area:total; }
   .inv-list-row > :nth-child(6) { grid-area:tools; justify-content:flex-start; }
 }
+.sale-picks { display:flex; flex-wrap:wrap; gap:8px; margin:-4px 0 8px; }
+.sale-info { margin:0 0 14px; font-size:.84rem; color:var(--ink-2); }
+.sale-info:empty { display:none; }
+.price-was { color:var(--ink-3); font-weight:400; font-size:.85em; margin-left:6px; }

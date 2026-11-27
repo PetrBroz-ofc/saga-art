@@ -1,5 +1,6 @@
 const { getDb, SITE_URL, guard } = require('../_utils');
 const R = require('../_reviews');
+const Price = require('../_price');
 const { RULES, refresh } = require('../_rules');
 
 // GET /sperk/<id> — samostatná stránka šperku pro vyhledávače a sdílení: název, popis, cena, fotky, recenze,
@@ -35,6 +36,7 @@ module.exports = async function handler(req, res) {
     const metaDesc = (desc || `${name}, ručně vyráběný šperk Sága Art.`).slice(0, 155);
     const url = `${SITE_URL}/sperk/${encodeURIComponent(id)}`;
     const inStock = p.inStock !== false;
+    const cost = Price.shown(p);
     const props = Object.entries({ Kolekce: p.collection, ...(p.props || {}) }).filter(([k, v]) => k && v);
 
     const ld = {
@@ -44,7 +46,7 @@ module.exports = async function handler(req, res) {
       brand: { '@type': 'Brand', name: 'Sága Art' },
       ...(p.material ? { material: String(p.material) } : {}),
       offers: {
-        '@type': 'Offer', url, priceCurrency: 'CZK', price: String(Number(p.price) || 0),
+        '@type': 'Offer', url, priceCurrency: 'CZK', price: String(cost.price || 0),
         availability: inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
         itemCondition: 'https://schema.org/NewCondition',
         seller: { '@type': 'Organization', name: 'Sága Art' },
@@ -63,7 +65,7 @@ module.exports = async function handler(req, res) {
 <meta property="og:type" content="product"><meta property="og:site_name" content="Sága Art"><meta property="og:locale" content="cs_CZ">
 <meta property="og:title" content="${esc(name)} | Sága Art"><meta property="og:description" content="${esc(metaDesc)}"><meta property="og:url" content="${esc(url)}">
 ${imgs[0] ? `<meta property="og:image" content="${esc(abs(imgs[0]))}">` : `<meta property="og:image" content="${SITE_URL}/img/og.jpg">`}
-<meta property="product:price:amount" content="${esc(Number(p.price) || 0)}"><meta property="product:price:currency" content="CZK">
+<meta property="product:price:amount" content="${esc(cost.price || 0)}"><meta property="product:price:currency" content="CZK">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32"><link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <meta name="theme-color" content="#f8f7fb">
@@ -82,7 +84,7 @@ ${imgs[0] ? `<meta property="og:image" content="${esc(abs(imgs[0]))}">` : `<meta
     <h1>${esc(name)}</h1>
     ${RULES.reviewsShow ? `<p class="pp-write"><a href="/#recenze">Recenze zákaznic</a></p>` : ''}
     ${p.material ? `<p class="pp-material">${esc(p.material)}</p>` : ''}
-    <p class="pp-price">${esc(kc(p.price))}</p>
+    <p class="pp-price">${esc(kc(cost.price))}${cost.was ? ` <s>${esc(kc(cost.was))}</s> <span class="sale-pct">−${cost.percent} %</span>` : ''}</p>${cost.was ? `<p class="sale-note">Přeškrtnutá je nejnižší cena za 30 dní před slevou.${p.saleTo ? ` Sleva platí do ${esc(p.saleTo.split('-').reverse().map(Number).join('. '))}.` : ''}</p>` : ''}
     ${desc ? `<p class="pp-desc">${esc(desc)}</p>` : ''}
     ${props.length ? `<dl class="pp-props">${props.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` : ''}
     ${inStock ? `<a class="btn-primary" href="/?produkt=${encodeURIComponent(id)}">Koupit v e-shopu</a>` : '<p class="pp-sold">Tenhle šperk je prodaný. Podobný ráda vytvořím na míru.</p>'}

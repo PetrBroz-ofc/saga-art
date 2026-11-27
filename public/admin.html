@@ -377,6 +377,18 @@
             <label class="field"><span>Cena</span><span class="input-suffix"><input type="number" id="fPrice" min="1" max="1000000" step="1" inputmode="numeric" placeholder="987" required><i>Kč</i></span></label>
             <label class="field"><span>Kolekce</span><input type="text" id="fCollection" list="collectionList" maxlength="60" placeholder="Charlotte"><datalist id="collectionList"></datalist></label>
           </div>
+          <div class="row2">
+            <label class="field"><span>Cena ve slevě <small class="muted">prázdné = bez slevy</small></span><span class="input-suffix"><input type="number" id="fSale" min="1" max="1000000" step="1" inputmode="numeric" placeholder="bez slevy"><i>Kč</i></span></label>
+            <label class="field"><span>Sleva platí do <small class="muted">nepovinné</small></span><input type="date" id="fSaleTo"></label>
+          </div>
+          <div class="sale-picks">
+            <button type="button" class="pick" data-action="salePick" data-arg="10">−10 %</button>
+            <button type="button" class="pick" data-action="salePick" data-arg="15">−15 %</button>
+            <button type="button" class="pick" data-action="salePick" data-arg="20">−20 %</button>
+            <button type="button" class="pick" data-action="salePick" data-arg="30">−30 %</button>
+            <button type="button" class="pick" data-action="salePick" data-arg="0">Zrušit slevu</button>
+          </div>
+          <p class="sale-info" id="saleInfo" aria-live="polite"></p>
           <div class="field">
             <span>Kategorie</span>
             <div class="seg seg-full" id="fCat" role="radiogroup" aria-label="Kategorie">

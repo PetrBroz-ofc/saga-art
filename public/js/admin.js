@@ -754,7 +754,7 @@ function renderProducts() {
         <b>${esc(x.name)}</b>
       </div>
       <div class="pcard-foot">
-        <span class="pcard-price">${kc(x.price)}</span>
+        <span class="pcard-price">${kc(nowPrice(x))}${saleRunning(x) ? ` <s class="price-was">${kc(x.price)}</s>` : ''}</span>
         <label class="stock-toggle"><input type="checkbox" class="switch" data-stock="${id}" ${sold ? '' : 'checked'}><span>${sold ? 'Prodáno' : 'Skladem'}</span></label>
       </div>
     </article>`;
@@ -806,6 +806,23 @@ async function delProduct(id) {
   }
 }
 
+// ═══ SLEVA U ŠPERKU ═══
+const todayPrague = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Prague' });
+const saleRunning = p => Number(p.salePrice) > 0 && p.salePrice < p.price && (!p.saleTo || todayPrague() <= p.saleTo);
+const nowPrice = p => (saleRunning(p) ? p.salePrice : p.price);
+function renderSaleInfo(d) {
+  const box = $('saleInfo');
+  if (!box) return;
+  if (!d.salePrice) { box.textContent = ''; return; }
+  if (!(d.price > 0) || d.salePrice >= d.price) { box.textContent = 'Cena ve slevě musí být nižší než běžná cena.'; return; }
+  const p = ed.id ? productById(ed.id) : null;
+  if (!p) { box.textContent = 'Nový šperk dřívější cenu nemá, takže se na webu nic nepřeškrtne. Slevu nastavte až u šperku, který už se prodával.'; return; }
+  if (saleRunning(p) && !p.saleRef) { box.textContent = 'U tohoto šperku se nic nepřeškrtne, protože před slevou neměl dřívější cenu.'; return; }
+  box.textContent = saleRunning(p)
+    ? (p.saleRef > d.salePrice ? `Na webu bude přeškrtnuto ${kc(p.saleRef)}, sleva ${Math.floor((p.saleRef - d.salePrice) * 100 / p.saleRef)} %.` : 'Za posledních 30 dní před slevou byl šperk levnější, takže se nic nepřeškrtne.')
+    : 'Po uložení web přeškrtne nejnižší cenu za posledních 30 dní (tak to chce zákon) a podle ní spočítá procenta.';
+}
+
 // ═══ EDITOR ŠPERKU ═══
 const ed = { id: null, cat: 'nahrdelniky', imgs: [], uploading: 0, snapshot: '' };
 
@@ -817,6 +834,10 @@ function openEditor(id, { duplicate = false } = {}) {
   ed.uploading = 0;
   $('fName').value = duplicate ? (src.name || '') + ' (kopie)' : src.name || '';
   $('fPrice').value = src.price || '';
+  // skončenou slevu a slevu z kopírovaného šperku do formuláře nepřenášet
+  const running = !duplicate && saleRunning(src);
+  $('fSale').value = running ? src.salePrice : '';
+  $('fSaleTo').value = running ? src.saleTo || '' : '';
   $('fCollection').value = src.collection || '';
   $('fMaterial').value = src.material || '';
   $('fDesc').value = src.desc || '';
@@ -832,6 +853,8 @@ function openEditor(id, { duplicate = false } = {}) {
 const editorData = () => ({
   name: $('fName').value.trim(),
   price: Number($('fPrice').value),
+  salePrice: Number($('fSale').value) || 0,
+  saleTo: Number($('fSale').value) ? $('fSaleTo').value : '',
   cat: ed.cat,
   collection: $('fCollection').value.trim(),
   material: $('fMaterial').value.trim(),
@@ -852,6 +875,7 @@ function renderCat() {
 }
 function renderPreview() {
   const d = editorData();
+  renderSaleInfo(d);
   $('editorTitle').textContent = d.name || 'Bez názvu';
   $('descCount').textContent = `${$('fDesc').value.length} / 3000`;
   document.querySelectorAll('#badgePicks .pick').forEach(b => b.classList.toggle('is-on', b.dataset.arg === d.badge));
@@ -866,7 +890,7 @@ function renderPreview() {
       <small>${esc(d.collection || CAT_LABELS[d.cat])}</small>
       <b>${esc(d.name || 'Název šperku')}</b>
       <p>${esc(d.material || 'Materiál')}</p>
-      <p class="pv-price">${d.price > 0 ? kc(d.price) : '— Kč'}</p>
+      <p class="pv-price">${d.price > 0 ? kc(d.salePrice > 0 && d.salePrice < d.price ? d.salePrice : d.price) : '— Kč'}${d.salePrice > 0 && d.salePrice < d.price ? ` <s class="price-was">${kc(d.price)}</s>` : ''}</p>
     </div>`;
 }
 $('productForm').addEventListener('input', renderPreview);
@@ -964,6 +988,7 @@ $('productForm').addEventListener('submit', async e => {
   const data = editorData();
   if (!data.name) { toast('Doplňte prosím název.', { err: true }); $('fName').focus(); return; }
   if (!Number.isInteger(data.price) || data.price <= 0) { toast('Cena musí být celé číslo v Kč.', { err: true }); $('fPrice').focus(); return; }
+  if (data.salePrice && (!Number.isInteger(data.salePrice) || data.salePrice >= data.price)) { toast('Cena ve slevě musí být celé číslo a nižší než běžná cena.', { err: true }); $('fSale').focus(); return; }
   if (ed.uploading) { toast('Počkejte, až se nahrají fotky.', { err: true }); return; }
   const btn = $('saveBtn');
   btn.disabled = true;
@@ -1332,6 +1357,13 @@ const ACTIONS = {
   setCat: a => { ed.cat = a; renderCat(); renderPreview(); },
   pickBadge: a => { $('fBadge').value = a; renderPreview(); },
   pickFiles: () => $('fImgFile').click(),
+  salePick: arg => {
+    const price = Number($('fPrice').value), pct = Number(arg);
+    if (!pct) { $('fSale').value = ''; $('fSaleTo').value = ''; }
+    else if (price > 0) $('fSale').value = Math.max(1, Math.round(price * (100 - pct) / 100));
+    else { toast('Nejdřív doplňte cenu.', { err: true }); return; }
+    renderPreview();
+  },
   photoRemove: a => { ed.imgs.splice(Number(a), 1); renderPhotos(); renderPreview(); },
   photoLeft: a => { const i = Number(a); [ed.imgs[i - 1], ed.imgs[i]] = [ed.imgs[i], ed.imgs[i - 1]]; renderPhotos(); renderPreview(); },
   newInvoice: () => openInvoiceEditor(),

@@ -1,5 +1,6 @@
 const { getDb, fail, requireAdmin } = require('./_utils');
 const { ID_RE, clean } = require('./_shop');
+const Price = require('./_price');
 
 const CATEGORIES = ['nahrdelniky', 'nausnice', 'naramky', 'prstynky', 'soupravy'];
 
@@ -33,7 +34,11 @@ function sanitizeProduct(body) {
   if (imgs.length > 10) return { error: 'Maximálně 10 fotek' };
   if (!imgs.every(allowedImg)) return { error: 'Fotky musí být nahrané přes administraci' };
 
+  const sale = Price.validateSale(body, price);
+  if (sale.error) return { error: sale.error };
+
   return {
+    sale,
     data: {
       name,
       price,
@@ -59,9 +64,9 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const { data, error } = sanitizeProduct(req.body);
+      const { data, sale, error } = sanitizeProduct(req.body);
       if (error) return fail(res, 400, error);
-      const ref = await col.add({ ...data, createdAt: new Date().toISOString() });
+      const ref = await col.add({ ...data, ...Price.priceFields(null, { price: data.price, ...sale }), createdAt: new Date().toISOString() });
       return res.status(200).json({ id: ref.id });
     }
 
@@ -69,9 +74,14 @@ export default async function handler(req, res) {
     if (typeof id !== 'string' || !ID_RE.test(id)) return fail(res, 400, 'Neplatné ID');
 
     if (req.method === 'PUT') {
-      const { data, error } = sanitizeProduct(req.body);
+      const { data, sale, error } = sanitizeProduct(req.body);
       if (error) return fail(res, 400, error);
-      await col.doc(id).update({ ...data, updatedAt: new Date().toISOString() });
+      const before = await col.doc(id).get();
+      if (!before.exists) return fail(res, 404, 'Šperk neexistuje');
+      // administrace ze staré záložky slevu neposílá: v tom případě se rozběhnutá sleva nemá tiše zrušit
+      const keep = req.body.salePrice === undefined && Price.saleActive(before.data()) && before.data().salePrice < data.price;
+      const wanted = keep ? { salePrice: before.data().salePrice, saleTo: before.data().saleTo || '' } : sale;
+      await col.doc(id).update({ ...data, ...Price.priceFields(before.data(), { price: data.price, ...wanted }), updatedAt: new Date().toISOString() });
       return res.status(200).json({ ok: true });
     }
 

@@ -76,7 +76,7 @@ async function priceCart(items) {
   const snaps = ids.length ? await db.getAll(...ids.map(id => db.collection('products').doc(id))) : [];
   for (const snap of snaps) {
     const p = snap.exists ? snap.data() : null;
-    const price = Number(p?.price);
+    const price = require('./_price').effectivePrice(p);
     if (!p || p.inStock === false || !Number.isInteger(price) || price <= 0) {
       return { error: 'Některý šperk už není dostupný. Obnovte prosím stránku.' };
     }

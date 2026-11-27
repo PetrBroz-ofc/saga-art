@@ -273,19 +273,27 @@ function renderNavMenus() {
 const filteredProducts = () => PRODUCTS.filter(p =>
   (filter.cat === 'vse' || p.cat === filter.cat) && (!filter.collection || p.collection === filter.collection));
 
+// Sleva: přeškrtnutá je nejnižší cena za 30 dní před slevou (posílá ji server)
+const wasHtml = p => (p.was > p.price ? ' <s class="was"><span class="sr-only">Dříve </span>' + kc(Number(p.was)) + '</s>' : '');
+function saleNote(p) {
+  if (!(p.was > p.price)) return '';
+  const to = /^\d{4}-\d{2}-\d{2}$/.test(p.saleTo || '') ? ' Sleva platí do ' + p.saleTo.split('-').reverse().map(Number).join('. ') + '.' : '';
+  return '<p class="sale-note">Přeškrtnutá je nejnižší cena za 30 dní před slevou.' + to + '</p>';
+}
+
 function productCardHtml(p) {
   const id = safeId(p.id), fav = wishlist.includes(id);
   const photos = (Array.isArray(p.imgs) ? p.imgs : []).map(safeUrl).filter(Boolean);
   return '<div class="product-card" data-action="openProduct" data-arg="' + id + '">'
     + '<div class="product-img">' + imgHtml(p, firstImg(p))
     + (photos[1] ? '<img class="alt" src="' + esc(photos[1]) + '" alt="" loading="lazy" referrerpolicy="no-referrer"/>' : '')
-    + (p.badge ? '<div class="product-badge">' + esc(p.badge) + '</div>' : '')
+    + (p.was && p.percent > 0 ? '<div class="product-badge is-sale">−' + Number(p.percent) + ' %</div>' : p.badge ? '<div class="product-badge">' + esc(p.badge) + '</div>' : '')
     + '<button class="product-wishlist' + (fav ? ' on' : '') + '" data-action="toggleWish" data-arg="' + id + '" aria-label="Uložit do oblíbených" aria-pressed="' + fav + '">' + HEART + '</button>'
     + '</div><div class="product-info">'
     + (p.collection ? '<p class="product-collection">' + esc(p.collection) + '</p>' : '')
     + '<h3 class="product-name">' + esc(p.name) + '</h3>'
     + '<p class="product-material">' + esc(p.material) + '</p>'
-    + '<div class="product-bottom"><span class="product-price">' + kc(p.price) + '</span>'
+    + '<div class="product-bottom"><span class="product-price' + (p.was ? ' is-sale' : '') + '">' + kc(p.price) + wasHtml(p) + '</span>'
     + '<button class="product-add" data-action="addToCart" data-arg="' + id + '" aria-label="Přidat ' + esc(p.name) + ' do košíku">' + BAG + '<span>Do košíku</span></button>'
     + '</div></div></div>';
 }
@@ -371,7 +379,8 @@ function openProduct(id, opts = {}) {
     (p.badge ? '<div class="pdetail-badge">' + esc(p.badge) + '</div>' : '') +
     '<h2 class="pdetail-name">' + esc(p.name) + '</h2>' +
     '<p class="pdetail-material">' + esc(p.material) + '</p>' +
-    '<div class="pdetail-price">' + kc(p.price) + '</div>' +
+    '<div class="pdetail-price">' + kc(p.price) + wasHtml(p) + (p.was && p.percent > 0 ? ' <span class="sale-pct">−' + Number(p.percent) + ' %</span>' : '') + '</div>' +
+    saleNote(p) +
     '<p class="pdetail-desc">' + esc(p.desc) + '</p>' +
     '<hr class="pdetail-divider"/>' +
     '<div class="pdetail-props">' + propsHtml + '</div>' +

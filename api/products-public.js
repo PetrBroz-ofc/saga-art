@@ -1,5 +1,6 @@
 const { getDb, fail, guard } = require('./_utils');
 const { refresh, publicRules } = require('./_rules');
+const Price = require('./_price');
 
 // GET /api/products-public — veřejný katalog + ceník dopravy (jen pro čtení).
 export default async function handler(req, res) {
@@ -16,7 +17,7 @@ export default async function handler(req, res) {
         return {
           id: d.id,
           name: p.name,
-          price: p.price,
+          ...(({ price, was, percent }) => (was ? { price, was, percent, saleTo: p.saleTo || '' } : { price }))(Price.shown(p)),
           cat: p.cat,
           collection: p.collection || '',
           material: p.material || '',
