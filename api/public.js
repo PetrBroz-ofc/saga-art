@@ -11,6 +11,7 @@ const HANDLERS = {
   media: require('./_h/media'),
   coupon: require('./_h/coupon'),
   reviews: require('./_h/reviews'),
+  reviewphoto: require('./_h/reviewphoto'),
   product: require('./_h/productpage'),
   sitemap: require('./_h/sitemap'),
 };

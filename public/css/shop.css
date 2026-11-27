@@ -953,3 +953,46 @@ button.product-rating:hover small { text-decoration:underline; }
   .promo-box { padding:30px 22px; }
   .promo-card { padding:22px 20px; }
 }
+
+/* ═══ Recenze celého obchodu ═══ */
+.reviews { background:var(--paper); }
+.reviews.rev-off, .rev-off { display:none !important; }
+.rev-sum { font-size:1rem; color:var(--ink-2); margin:0; }
+.rev-sum b { color:var(--ink); font-weight:500; }
+.rev-sum small { color:var(--ink-3); }
+.rev-avg-stars, .rev-stars { color:#c79a3a; letter-spacing:.06em; }
+.rev-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:20px; }
+.rev-card { background:var(--bg); border:1px solid var(--line); border-radius:var(--radius); padding:24px 26px; display:flex; flex-direction:column; gap:8px; }
+.rev-card h3 { font-family:var(--serif); font-weight:400; font-size:1.2rem; margin:2px 0 0; color:var(--ink); }
+.rev-text { margin:0; line-height:1.65; color:var(--ink-2); white-space:pre-line; overflow-wrap:anywhere; }
+.rev-card small { margin-top:auto; padding-top:6px; color:var(--ink-3); }
+.rev-photos { display:flex; flex-wrap:wrap; gap:8px; margin-top:4px; }
+.rev-photo { display:block; width:84px; height:84px; border-radius:calc(var(--radius) + 2px); overflow:hidden; border:1px solid var(--line); }
+.rev-photo img { width:100%; height:100%; object-fit:cover; display:block; }
+.rev-empty { color:var(--ink-3); grid-column:1 / -1; }
+.rev-more { margin-top:26px; text-align:center; }
+.rev-more[hidden] { display:none; }
+.rev-more button { background:none; border:none; cursor:pointer; font:inherit; text-decoration:underline; text-underline-offset:4px; color:var(--ink); padding:10px; }
+.rev-write { margin-top:40px; max-width:640px; }
+.rev-open { border:none; cursor:pointer; }
+.rev-open[hidden], .rev-form[hidden], .rev-form [hidden] { display:none !important; }
+.rev-form { display:grid; gap:14px; background:var(--lilac); border:1px solid var(--line); border-radius:var(--radius); padding:26px; }
+.rev-form h3 { font-family:var(--serif); font-weight:400; font-size:1.4rem; margin:0; }
+.rev-form label { display:grid; gap:5px; }
+.rev-form input[type="text"], .rev-form textarea { font:inherit; font-size:1rem; padding:11px 13px; border:1px solid var(--line); border-radius:8px; background:#fff; color:var(--ink); width:100%; box-sizing:border-box; }
+.rev-form input.hp { position:absolute; left:-9999px; width:1px; height:1px; opacity:0; }
+.rev-form .btn-primary { border:none; cursor:pointer; justify-self:start; }
+.rev-upload { display:grid; gap:8px; }
+.rev-upload-label { font-size:.95rem; }
+.rev-pick { display:inline-flex !important; align-items:center; justify-self:start; gap:8px; padding:11px 16px; border:1px dashed var(--accent); border-radius:var(--radius); background:var(--paper); cursor:pointer; color:var(--accent-dk); font-weight:500; }
+.rev-pick input { position:absolute; width:1px; height:1px; opacity:0; overflow:hidden; }
+.rev-pick:focus-within { outline:2px solid var(--accent); outline-offset:2px; }
+.rev-thumbs { display:flex; flex-wrap:wrap; gap:10px; }
+.rev-thumb { position:relative; width:84px; height:84px; }
+.rev-thumb img { width:100%; height:100%; object-fit:cover; border-radius:8px; border:1px solid var(--line); display:block; }
+.rev-thumb button { position:absolute; top:-8px; right:-8px; width:28px; height:28px; border-radius:50%; border:none; background:var(--ink); color:#fff; font-size:1.1rem; line-height:1; cursor:pointer; }
+@media (max-width:760px) {
+  .rev-grid { grid-template-columns:1fr; }
+  .rev-form { padding:20px 16px; }
+  .rev-sum { margin-top:10px; }
+}

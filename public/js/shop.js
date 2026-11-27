@@ -65,51 +65,42 @@ const CAT_LABELS = { nahrdelniky:'Náhrdelníky', nausnice:'Náušnice', naramky
 
 let PRODUCTS = [];
 
-// ─── RECENZE ───
-let REVIEW_SUMMARY = {};
-let REVIEWS_ON = false;
+// ─── RECENZE (celkové pro celý obchod, s fotkami) ───
 const stars = n => '★'.repeat(n) + '☆'.repeat(5 - n);
 const avgText = a => String(a).replace('.', ',');
-const countText = n => n + ' ' + (n >= 1 && n <= 4 ? 'recenze' : 'recenzí');
-// Hvězdičky na kartě šperku, po kliknutí se otevře detail rovnou na recenzích
-function ratingHtml(id) {
-  if (!REVIEWS_ON) return '';
-  const r = REVIEW_SUMMARY[id], n = r && r.count || 0;
-  const label = n ? 'Hodnocení ' + avgText(r.avg) + ' z 5, ' + countText(n) + '. Zobrazit recenze' : 'Zatím bez recenzí. Zobrazit a napsat recenzi';
-  return '<button type="button" class="product-rating" data-action="openReviews" data-arg="' + id + '" aria-label="' + label + '">'
-    + '<span aria-hidden="true">' + stars(n ? Math.round(r.avg) : 0) + '</span> '
-    + (n ? avgText(r.avg) + ' <small>(' + countText(n) + ')</small>' : '<small>0 recenzí</small>') + '</button>';
+const countText = n => n + ' ' + (n === 1 ? 'recenze' : n >= 2 && n <= 4 ? 'recenze' : 'recenzí');
+const REV = { list: [], shown: 6, files: [], busy: false };
+const REV_MAX_PHOTOS = 3;
+
+function reviewCardHtml(r) {
+  const photos = (r.photos || []).map((u, i) => '<a href="' + esc(u) + '" target="_blank" rel="noopener" class="rev-photo"><img src="' + esc(u) + '" alt="Fotka od zákaznice ' + esc(r.name) + (i ? ' (' + (i + 1) + ')' : '') + '" loading="lazy"></a>').join('');
+  return '<article class="rev-card"><p class="rev-stars" aria-label="' + r.rating + ' z 5">' + stars(r.rating) + '</p>'
+    + (r.title ? '<h3>' + esc(r.title) + '</h3>' : '') + '<p class="rev-text">' + esc(r.text) + '</p>'
+    + (photos ? '<div class="rev-photos">' + photos + '</div>' : '')
+    + '<small>' + esc(r.name) + (r.verified ? ' · ověřený nákup' : '') + '</small></article>';
 }
-function updateRatings() {
-  document.querySelectorAll('#productsGrid .product-card').forEach(card => {
-    const id = card.dataset.arg, name = card.querySelector('.product-name');
-    if (!name) return;
-    card.querySelector('.product-rating')?.remove();
-    name.insertAdjacentHTML('afterend', ratingHtml(id));
-  });
-}
-async function loadReviewSummary() {
-  try {
-    const res = await fetch('/api/reviews');
-    if (!res.ok) return;
-    const j = await res.json();
-    REVIEWS_ON = !!j.on;
-    REVIEW_SUMMARY = j.on && j.summary ? j.summary : {};
-    updateRatings();
-  } catch {}
+function renderReviews() {
+  const list = REV.list, n = list.length;
+  $('revSummary').innerHTML = n ? '<span class="rev-avg-stars" aria-hidden="true">' + stars(Math.round(REV.avg)) + '</span> <b>' + avgText(REV.avg) + '</b> z 5 <small>(' + countText(n) + ')</small>' : '';
+  $('revList').innerHTML = n ? list.slice(0, REV.shown).map(reviewCardHtml).join('') : '<p class="rev-empty">Zatím tu není žádná recenze. Buďte první.</p>';
+  $('revMore').hidden = n <= REV.shown;
 }
 function reviewFormHtml() {
-  return '<div class="pd-rev-write"><button type="button" class="btn-primary pd-rev-open" data-action="showReviewForm" aria-controls="pdRevForm">Zanechat recenzi</button>'
-    + '<form class="pd-rev-form" id="pdRevForm" hidden novalidate>'
-    + '<fieldset class="pd-rate"><legend>Vaše hodnocení</legend><div class="pd-rate-stars">'
+  return '<button type="button" class="btn-primary rev-open" data-action="showReviewForm" aria-controls="revForm">Napsat recenzi</button>'
+    + '<form class="rev-form" id="revForm" hidden novalidate>'
+    + '<h3>Vaše recenze</h3>'
+    + '<fieldset class="pd-rate"><legend>Hodnocení</legend><div class="pd-rate-stars">'
     + [1, 2, 3, 4, 5].map(n => '<button type="button" class="pd-star" data-action="setRating" data-arg="' + n + '" aria-label="' + n + ' z 5" aria-pressed="false">☆</button>').join('')
     + '<button type="button" class="pd-star-zero" data-action="setRating" data-arg="0" aria-pressed="false">0 hvězd</button></div></fieldset>'
     + '<label>Jméno<input type="text" name="name" maxlength="40" autocomplete="given-name" placeholder="Jana K."></label>'
-    + '<label>Text recenze<textarea name="text" rows="4" maxlength="1000" placeholder="Jak se vám šperk líbí?"></textarea></label>'
+    + '<label>Text recenze<textarea name="text" rows="4" maxlength="1000" placeholder="Jak se vám šperky líbí? Jak proběhl nákup?"></textarea></label>'
+    + '<div class="rev-upload"><span class="rev-upload-label">Fotky (nepovinné, až ' + REV_MAX_PHOTOS + ')</span>'
+    + '<label class="rev-pick"><input type="file" name="photos" accept="image/*" multiple> <span>Přidat fotku z telefonu nebo počítače</span></label>'
+    + '<div class="rev-thumbs" id="revThumbs"></div></div>'
     + '<input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">'
-    + '<p class="pd-rev-note">Recenze se zveřejní po kontrole. Jméno a text uvidí všichni.</p>'
+    + '<p class="pd-rev-note">Recenzi může napsat kdokoli. Neověřuji, že autor něco koupil, pokud u ní není „ověřený nákup“. Před zveřejněním ji kontroluji kvůli spamu. Jméno, text a fotky uvidí všichni.</p>'
     + '<button type="submit" class="btn-primary">Odeslat recenzi</button>'
-    + '<p class="pd-rev-msg" role="status" aria-live="polite"></p></form></div>';
+    + '<p class="pd-rev-msg" role="status" aria-live="polite"></p></form>';
 }
 function setRating(v, el) {
   const form = el.closest('form'); if (!form) return;
@@ -124,54 +115,98 @@ function setRating(v, el) {
   z.classList.toggle('on', n === 0); z.setAttribute('aria-pressed', String(n === 0));
 }
 function showReviewForm() {
-  const form = $('pdRevForm'); if (!form) return;
+  const form = $('revForm'); if (!form) return;
   form.hidden = false;
-  form.parentElement.querySelector('.pd-rev-open').hidden = true;
+  $('revWrite').querySelector('.rev-open').hidden = true;
   form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
-async function sendReview(form, productId) {
+function renderThumbs() {
+  const box = $('revThumbs'); if (!box) return;
+  box.innerHTML = REV.files.map((f, i) => '<span class="rev-thumb"><img src="' + esc(f.preview) + '" alt="Vybraná fotka ' + (i + 1) + '">'
+    + '<button type="button" data-action="revPhotoDel" data-arg="' + i + '" aria-label="Odebrat fotku ' + (i + 1) + '">×</button></span>').join('');
+}
+// Fotka z mobilu bývá obrovská: před nahráním ji zmenšíme (delší strana 1600 px, JPEG) a opravíme natočení.
+async function shrinkPhoto(file) {
+  let bmp;
+  try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
+  catch { throw new Error('Tuhle fotku se nepodařilo přečíst. Zkuste jinou (JPG, PNG nebo WebP).'); }
+  const k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(bmp.width * k)); c.height = Math.max(1, Math.round(bmp.height * k));
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, c.width, c.height);
+  ctx.drawImage(bmp, 0, 0, c.width, c.height);
+  if (bmp.close) bmp.close();
+  const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.84));
+  if (!blob) throw new Error('Fotku se nepodařilo zmenšit.');
+  return blob;
+}
+const blobToDataUrl = blob => new Promise((ok, no) => { const fr = new FileReader(); fr.onload = () => ok(String(fr.result)); fr.onerror = no; fr.readAsDataURL(blob); });
+async function addReviewFiles(input, form) {
+  const msg = form.querySelector('.pd-rev-msg');
+  const say = (t, c) => { msg.className = 'pd-rev-msg' + (c ? ' ' + c : ''); msg.textContent = t; };
+  const picked = [...input.files]; input.value = '';
+  for (const f of picked) {
+    if (REV.files.length >= REV_MAX_PHOTOS) { say('Fotky můžete přidat nejvýš ' + REV_MAX_PHOTOS + '.', 'err'); break; }
+    if (f.type && !f.type.startsWith('image/')) { say('Vyberte prosím jen fotky.', 'err'); continue; }
+    try {
+      const blob = await shrinkPhoto(f);
+      REV.files.push({ blob, preview: await blobToDataUrl(blob) });
+      say('');
+    } catch (err) { say(err.message, 'err'); }
+  }
+  renderThumbs();
+}
+async function uploadReviewPhoto(blob) {
+  const data = (await blobToDataUrl(blob)).split(',')[1] || '';
+  const res = await fetch('/api/review-photo', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ data }) });
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok || !j.url) throw new Error(j.error || 'Fotku se nepodařilo nahrát. Zkuste to prosím znovu.');
+  return j.url;
+}
+async function sendReview(form) {
+  if (REV.busy) return;
   const msg = form.querySelector('.pd-rev-msg'), btn = form.querySelector('button[type="submit"]');
   const say = (t, c) => { msg.className = 'pd-rev-msg' + (c ? ' ' + c : ''); msg.textContent = t; };
   const name = form.elements.name.value.trim(), text = form.elements.text.value.trim();
   if (form.dataset.rating === undefined) return say('Vyberte prosím počet hvězdiček.', 'err');
   if (name.length < 2) return say('Napište prosím jméno.', 'err');
   if (text.length < 10) return say('Napište prosím aspoň 10 znaků.', 'err');
-  btn.disabled = true; say('Odesílám…');
+  REV.busy = true; btn.disabled = true;
   try {
+    const photos = [];
+    for (let i = 0; i < REV.files.length; i++) {
+      say('Nahrávám fotky (' + (i + 1) + ' z ' + REV.files.length + ')…');
+      photos.push(await uploadReviewPhoto(REV.files[i].blob));
+    }
+    say('Odesílám…');
     const res = await fetch('/api/reviews', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ productId, rating: Number(form.dataset.rating), name, text, website: form.elements.website.value }) });
+      body: JSON.stringify({ rating: Number(form.dataset.rating), name, text, photos, website: form.elements.website.value }) });
     const j = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(j.error || 'Odeslání se nepovedlo. Zkuste to prosím znovu.');
-    form.querySelectorAll('fieldset, label, .pd-rev-note, button[type="submit"]').forEach(x => { x.hidden = true; });
+    REV.files = [];
+    form.querySelectorAll('h3, fieldset, label, .rev-upload, .pd-rev-note, button[type="submit"]').forEach(x => { x.hidden = true; });
     say(j.message || 'Děkuji! Recenze se objeví po schválení.', 'ok');
   } catch (err) { say(err.message, 'err'); btn.disabled = false; }
+  finally { REV.busy = false; }
 }
-function scrollToReviews() { $('pdReviews')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-// Recenze v detailu šperku
-async function loadProductReviews(id, opts = {}) {
-  const box = $('pdReviews');
-  if (!box) return;
-  box.innerHTML = '';
+async function loadReviews() {
+  const sec = $('recenze'); if (!sec) return;
   try {
-    const res = await fetch('/api/reviews?product=' + encodeURIComponent(id));
+    const res = await fetch('/api/reviews', { headers: { Accept: 'application/json' } });
     const j = await res.json();
     if (!res.ok || !j.on) return;
-    if ($('pdetailOverlay').dataset.pid !== id) return; // mezitím se otevřel jiný šperk
-    const list = Array.isArray(j.reviews) ? j.reviews : [];
-    const n = j.summary && j.summary.count || 0;
-    const top = $('pdRatingTop');
-    if (top) top.innerHTML = '<button type="button" class="product-rating" data-action="scrollToReviews"><span aria-hidden="true">' + stars(n ? Math.round(j.summary.avg) : 0) + '</span> '
-      + (n ? avgText(j.summary.avg) + ' <small>(' + countText(n) + ')</small>' : '<small>0 recenzí</small>') + '</button>';
-    box.innerHTML = '<hr class="pdetail-divider"/><div class="pd-reviews"><h3 class="pd-rev-h">Recenze'
-      + (n ? ' <span class="pd-rev-sum"><span aria-hidden="true">' + stars(Math.round(j.summary.avg)) + '</span> ' + avgText(j.summary.avg) + ' <small>(' + n + ')</small></span>' : '') + '</h3>'
-      + (list.length ? list.map(r => '<article class="pd-rev"><p class="pd-rev-stars" aria-label="' + r.rating + ' z 5">' + stars(r.rating) + '</p>'
-          + (r.title ? '<h4>' + esc(r.title) + '</h4>' : '') + '<p>' + esc(r.text) + '</p><small>' + esc(r.name) + (r.verified ? ' · ověřený nákup' : '') + '</small></article>').join('')
-        : '<p class="pd-rev-empty">Zatím tu není žádná recenze. Buďte první.</p>')
-      + reviewFormHtml()
-      + '<p class="pd-rev-note">Recenzi může napsat kdokoli. Neověřuji, že autor šperk koupil, pokud u ní není „ověřený nákup“. Před zveřejněním je kontroluji kvůli spamu.</p></div>';
-    $('pdRevForm').addEventListener('submit', e => { e.preventDefault(); sendReview(e.currentTarget, id); });
-    if (opts.write) showReviewForm();
-    if (opts.reviews || opts.write) scrollToReviews();
+    REV.list = Array.isArray(j.reviews) ? j.reviews : [];
+    REV.avg = j.summary && j.summary.avg || 0;
+    $('revWrite').innerHTML = reviewFormHtml();
+    $('revForm').addEventListener('submit', e => { e.preventDefault(); sendReview(e.currentTarget); });
+    $('revForm').elements.photos.addEventListener('change', e => addReviewFiles(e.currentTarget, $('revForm')));
+    renderReviews();
+    sec.classList.remove('rev-off');
+    if (new URLSearchParams(location.search).get('recenze') === '1') {
+      history.replaceState(null, '', location.pathname + '#recenze');
+      showReviewForm(); sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   } catch {}
 }
 
@@ -249,7 +284,6 @@ function productCardHtml(p) {
     + '</div><div class="product-info">'
     + (p.collection ? '<p class="product-collection">' + esc(p.collection) + '</p>' : '')
     + '<h3 class="product-name">' + esc(p.name) + '</h3>'
-    + ratingHtml(id)
     + '<p class="product-material">' + esc(p.material) + '</p>'
     + '<div class="product-bottom"><span class="product-price">' + kc(p.price) + '</span>'
     + '<button class="product-add" data-action="addToCart" data-arg="' + id + '" aria-label="Přidat ' + esc(p.name) + ' do košíku">' + BAG + '<span>Do košíku</span></button>'
@@ -337,17 +371,14 @@ function openProduct(id, opts = {}) {
     (p.badge ? '<div class="pdetail-badge">' + esc(p.badge) + '</div>' : '') +
     '<h2 class="pdetail-name">' + esc(p.name) + '</h2>' +
     '<p class="pdetail-material">' + esc(p.material) + '</p>' +
-    '<div id="pdRatingTop"></div>' +
     '<div class="pdetail-price">' + kc(p.price) + '</div>' +
     '<p class="pdetail-desc">' + esc(p.desc) + '</p>' +
     '<hr class="pdetail-divider"/>' +
     '<div class="pdetail-props">' + propsHtml + '</div>' +
     '<div class="pdetail-buy"><span class="pdetail-buy-price">' + kc(p.price) + '</span>' +
     '<button class="pdetail-add-btn" data-action="addToCart" data-arg="' + safeId(p.id) + '">Přidat do košíku</button></div>' +
-    '<p class="pdetail-page"><a href="/sperk/' + encodeURIComponent(safeId(p.id)) + '">Stránka tohoto šperku</a></p>' +
-    '<div id="pdReviews"></div>';
+    '<p class="pdetail-page"><a href="/sperk/' + encodeURIComponent(safeId(p.id)) + '">Stránka tohoto šperku</a></p>';
   $('pdetailOverlay').dataset.pid = safeId(p.id);
-  loadProductReviews(safeId(p.id), opts);
   $('pdetailOverlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
@@ -770,10 +801,10 @@ const ACTIONS = {
   selectShipping: arg => selectShipping(arg),
   filterByCollection: arg => filterByCollection(arg),
   openProduct: arg => openProduct(arg),
-  openReviews: arg => openProduct(arg, { reviews: true }),
+  revMore: () => { REV.shown += 6; renderReviews(); },
+  revPhotoDel: a => { REV.files.splice(Number(a), 1); renderThumbs(); },
   showReviewForm: () => showReviewForm(),
   setRating: (arg, el) => setRating(arg, el),
-  scrollToReviews: () => scrollToReviews(),
   addToCart: (arg, el) => addToCart(arg, el),
   toggleWish: (arg, el) => toggleWish(arg, el),
   changeQty: arg => { const [i, d] = arg.split(':').map(Number); changeQty(i, d); },
@@ -910,11 +941,10 @@ async function loadCatalog() {
   renderGrid();
   renderCart();
   renderShipGrid();
-  loadReviewSummary();
+  loadReviews();
   const wanted = new URLSearchParams(location.search).get('produkt');
   if (wanted) {
-    const write = new URLSearchParams(location.search).get('recenze') === '1';
-    history.replaceState(null, '', location.pathname); openProduct(safeId(wanted), { write });
+    history.replaceState(null, '', location.pathname); openProduct(safeId(wanted));
   }
 }
 

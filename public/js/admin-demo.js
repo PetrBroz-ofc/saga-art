@@ -165,7 +165,7 @@
     if (method === 'POST') { reviews.unshift({ id: Math.random().toString(16).slice(2, 22).padEnd(20, '0'), ...body, product: (products.find(p => p.id === body.productId) || {}).name || body.productId, status: 'approved', source: 'manual', createdAt: new Date().toISOString() }); return { ok: true }; }
     const r = reviews.find(x => x.id === body.id); if (!r) throw new Error('Recenze neexistuje');
     if (method === 'DELETE') { reviews = reviews.filter(x => x !== r); return { ok: true }; }
-    Object.assign(r, Object.fromEntries(Object.entries(body).filter(([k]) => ['status', 'name', 'rating', 'title', 'text', 'verified'].includes(k)))); return { ok: true };
+    Object.assign(r, Object.fromEntries(Object.entries(body).filter(([k]) => ['status', 'name', 'rating', 'title', 'text', 'verified', 'photos'].includes(k)))); return { ok: true };
   }
   let coupons = [
     { code: 'JARO10', type: 'percent', value: 10, minGoods: 0, validFrom: '', validTo: '', maxUses: 0, used: 4, enabled: true, note: 'Instagram', createdAt: new Date().toISOString() },

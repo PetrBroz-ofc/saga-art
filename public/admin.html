@@ -239,7 +239,7 @@
         <div><p class="eyebrow">Zákaznice</p><h1 id="hRec">Recenze</h1></div>
         <div class="view-tools"><button class="btn btn-accent" data-action="newReview"><svg class="i"><use href="#i-plus"/></svg>Přidat recenzi</button></div>
       </header>
-      <p class="muted" style="margin:-6px 0 14px;max-width:660px">Recenzi může na webu napsat kdokoli. Objeví se tady jako čekající a na web se dostane, až ji schválíte. Spam skryjte nebo smažte. Skutečné kritické recenze ale neskrývejte, zákon to zakazuje. Ručně můžete přidat i recenzi, kterou vám zákaznice poslala. Vymýšlet recenze nejde.</p>
+      <p class="muted" style="margin:-6px 0 14px;max-width:660px">Recenze jsou společné pro celý obchod (ne u jednotlivých šperků) a zákaznice k nim mohou přiložit až 3 fotky. Recenzi může na webu napsat kdokoli. Objeví se tady jako čekající a na web se dostane, až ji schválíte. Spam skryjte nebo smažte. Skutečné kritické recenze ale neskrývejte, zákon to zakazuje. Ručně můžete přidat i recenzi, kterou vám zákaznice poslala. Vymýšlet recenze nejde.</p>
       <div class="filters" role="group" aria-label="Stav recenzí"><div class="chips" id="reviewChips"></div></div>
       <div class="orders" id="reviewList"></div>
     </section>
@@ -569,13 +569,15 @@
     <div class="sheet-body">
       <div class="od-top"><div><p class="eyebrow">Recenze</p><h2 id="rvTitle">Nová recenze</h2></div>
         <button type="button" class="icon-btn" data-action="closeSheet" aria-label="Zavřít"><svg class="i"><use href="#i-x"/></svg></button></div>
-      <label class="field"><span>Šperk</span><select class="select" id="rvProduct"></select></label>
       <div class="cp-grid">
         <label class="field"><span>Jméno zákaznice</span><input type="text" id="rvName" maxlength="40" placeholder="Jana K." autocomplete="off"></label>
         <label class="field"><span>Hodnocení</span><select class="select" id="rvRating"><option value="5">5 hvězdiček</option><option value="4">4 hvězdičky</option><option value="3">3 hvězdičky</option><option value="2">2 hvězdičky</option><option value="1">1 hvězdička</option><option value="0">0 hvězdiček</option></select></label>
       </div>
       <label class="field"><span>Nadpis <small class="muted">nepovinný</small></span><input type="text" id="rvHead" maxlength="80"></label>
       <label class="field"><span>Text recenze</span><textarea id="rvText" rows="5" maxlength="1000"></textarea></label>
+      <div class="field"><span>Fotky <small class="muted">nepovinné, až 3</small></span>
+        <div class="rv-photos" id="rvPhotos"></div>
+        <button type="button" class="btn btn-ghost btn-sm" data-action="rvPhotoAdd" id="rvPhotoAddBtn" style="justify-self:start;margin-top:8px">Přidat fotku</button></div>
       <label class="th-switch"><input type="checkbox" id="rvVerified"><span>Ověřený nákup<small>Zákaznice šperk skutečně koupila u vás.</small></span></label>
       <div class="od-actions" style="margin-top:18px"><button type="submit" class="btn btn-accent" id="rvSave"><svg class="i"><use href="#i-check"/></svg>Uložit</button></div>
     </div>

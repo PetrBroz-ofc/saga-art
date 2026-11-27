@@ -40,7 +40,7 @@ const DEFAULT_THEME = {
   scale: 100,
 };
 const LINK_KEYS = ['instagram', 'facebook', 'announce', 'promo'];
-const SECTION_IDS = ['about', 'materials', 'quote', 'collections', 'gallery', 'products', 'shipping', 'vouchers', 'custom', 'newsletter'];
+const SECTION_IDS = ['about', 'materials', 'quote', 'collections', 'gallery', 'products', 'shipping', 'vouchers', 'custom', 'reviews', 'newsletter'];
 const LOCKED_SECTIONS = ['products']; // bez nabídky šperků by e-shop nedával smysl
 const IMG_RE = /^(https:\/\/res\.cloudinary\.com\/[A-Za-z0-9_-]{2,60}\/image\/upload\/[^\s"'<>]{1,300}|\/media\/[a-f0-9]{24}\.(?:jpg|png|webp))$/;
 const MAX_IMAGES = 40;

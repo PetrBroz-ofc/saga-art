@@ -192,6 +192,10 @@
       "destination": "/api/public?r=reviews"
     },
     {
+      "source": "/api/review-photo",
+      "destination": "/api/public?r=reviewphoto"
+    },
+    {
       "source": "/api/reviews-admin",
       "destination": "/api/admin?r=reviews"
     },

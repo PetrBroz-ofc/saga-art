@@ -91,7 +91,7 @@
   }
 
   // ═══ RECENZE ═══
-  const V = { list: [], loaded: false, filter: 'pending', editing: '' };
+  const V = { list: [], loaded: false, filter: 'pending', editing: '', photos: [] };
   const STARS = n => '★'.repeat(n) + '☆'.repeat(5 - n);
   const REV_FILTERS = [['pending', 'Čekající'], ['approved', 'Schválené'], ['hidden', 'Skryté'], ['all', 'Vše']];
   const REV_STATUS = { pending: ['Čeká na schválení', 'warn'], approved: ['Zveřejněná', 'ok'], hidden: ['Skrytá', 'mute'] };
@@ -113,8 +113,8 @@
     box.innerHTML = list.map((r, k) => {
       const [label, tone] = REV_STATUS[r.status] || ['', 'mute'];
       return `<div class="order-row review-row" style="animation-delay:${Math.min(k, 12) * 25}ms">
-        <span class="who"><b>${esc(r.product)}</b><small class="rev-stars">${STARS(r.rating)}</small></span>
-        <span class="who rev-body"><b>${esc(r.title || r.name)}</b><small>${esc(r.text)}</small><small>${esc(r.name)}${r.verified ? ' · ověřený nákup' : ''} · ${r.source === 'manual' ? 'přidala jste ručně' : 'od zákaznice'} · ${esc(czDate(r.createdAt))}</small></span>
+        <span class="who"><b>${esc(r.name)}</b><small class="rev-stars">${STARS(r.rating)}</small></span>
+        <span class="who rev-body"><b>${esc(r.title || r.name)}</b><small>${esc(r.text)}</small>${(r.photos || []).length ? `<span class="rev-thumbs">${r.photos.map(u => `<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="Fotka k recenzi" loading="lazy"></a>`).join('')}</span>` : ''}<small>${r.product ? 'dříve u šperku ' + esc(r.product) + ' · ' : ''}${r.verified ? 'ověřený nákup · ' : ''}${r.source === 'manual' ? 'přidala jste ručně' : 'od zákaznice'} · ${esc(czDate(r.createdAt))}</small></span>
         <span class="status"><span class="pill ${tone}">${esc(label)}</span></span>
         <span class="row-tools">
           ${r.status !== 'approved' ? `<button class="btn btn-ghost btn-sm" data-action="reviewSet" data-arg="${esc(r.id)}:approved">Schválit</button>` : ''}
@@ -128,23 +128,33 @@
     try { V.list = await api('/api/reviews-admin'); V.loaded = true; renderReviews(); }
     catch (err) { if (err.message !== 'unauthorized') toast(err.message || 'Recenze se nepodařilo načíst', { err: true }); }
   }
+  function renderRvPhotos() {
+    $('rvPhotos').innerHTML = V.photos.map((u, i) => `<span class="rv-photo"><img src="${esc(u)}" alt="Fotka ${i + 1}"><button type="button" data-action="rvPhotoDel" data-arg="${i}" aria-label="Odebrat fotku ${i + 1}">×</button></span>`).join('');
+    $('rvPhotoAddBtn').hidden = V.photos.length >= 3;
+  }
   function openReviewEditor(id) {
     const r = id ? V.list.find(x => x.id === id) : null;
     V.editing = id || '';
-    const products = (typeof state !== 'undefined' ? state.products : []).slice().sort((a, b) => String(a.name).localeCompare(String(b.name), 'cs'));
-    $('rvProduct').innerHTML = products.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join('');
+    V.photos = r ? (r.photos || []).slice() : [];
     $('rvTitle').textContent = r ? 'Upravit recenzi' : 'Nová recenze';
-    $('rvProduct').value = r ? r.productId : (products[0]?.id || '');
-    $('rvProduct').disabled = !!r;
     $('rvName').value = r ? r.name : ''; $('rvRating').value = r ? String(r.rating) : '5';
     $('rvHead').value = r ? r.title : ''; $('rvText').value = r ? r.text : '';
     $('rvVerified').checked = r ? r.verified : false;
+    renderRvPhotos();
     openSheet('reviewSheet');
     setTimeout(() => $(r ? 'rvText' : 'rvName').focus({ preventScroll: true }), 90);
   }
+  const rvFile = document.createElement('input');
+  rvFile.type = 'file'; rvFile.accept = 'image/jpeg,image/png,image/webp'; rvFile.hidden = true;
+  document.body.appendChild(rvFile);
+  rvFile.addEventListener('change', async () => {
+    const f = rvFile.files[0]; rvFile.value = ''; if (!f) return;
+    try { V.photos.push(await uploadImage(f)); renderRvPhotos(); }
+    catch (err) { if (err.message !== 'unauthorized') toast(err.message || 'Fotka se nenahrála', { err: true }); }
+  });
   async function saveReview(e) {
     e.preventDefault();
-    const body = { productId: $('rvProduct').value, name: $('rvName').value.trim(), rating: Number($('rvRating').value), title: $('rvHead').value.trim(), text: $('rvText').value.trim(), verified: $('rvVerified').checked };
+    const body = { name: $('rvName').value.trim(), rating: Number($('rvRating').value), title: $('rvHead').value.trim(), text: $('rvText').value.trim(), verified: $('rvVerified').checked, photos: V.photos };
     const btn = $('rvSave'); btn.disabled = true;
     try {
       if (V.editing) await api('/api/reviews-admin', 'PATCH', { id: V.editing, ...body });
@@ -271,6 +281,8 @@
     },
     exportSubs,
     newReview: () => openReviewEditor(''),
+    rvPhotoAdd: () => rvFile.click(),
+    rvPhotoDel: a => { V.photos.splice(Number(a), 1); renderRvPhotos(); },
     reviewEdit: a => openReviewEditor(a),
     reviewFilter: a => { V.filter = a; renderReviews(); },
     reviewSet: async a => {

@@ -4,11 +4,10 @@ const R = require('../_reviews');
 const { RULES, refresh } = require('../_rules');
 const { sendMail, notice } = require('../_mail');
 
-// Veřejné recenze.
-// GET  /api/reviews                  — průměry hodnocení všech šperků { summary: { id: { count, avg } } }
-// GET  /api/reviews?product=<id>     — schválené recenze jednoho šperku
-// POST /api/reviews                  — napsat recenzi může kdokoli. Vždy čeká na schválení v administraci,
-//                                      takže spam se na web sám nikdy nedostane.
+// Veřejné recenze (celkové, ne u jednotlivých šperků).
+// GET  /api/reviews  — průměr a schválené recenze { on, summary: { count, avg }, reviews: [...] }
+// POST /api/reviews  — napsat recenzi může kdokoli, volitelně s fotkami (nejdřív se nahrají přes /api/review-photo).
+//                      Vždy čeká na schválení v administraci, takže spam se na web sám nikdy nedostane.
 const MAX_PENDING = 200; // pojistka proti zahlcení databáze
 const DONE = 'Děkuji! Recenze se na webu objeví po schválení.';
 
@@ -18,12 +17,9 @@ module.exports = async function handler(req, res) {
     await refresh();
     if (req.method === 'GET') {
       res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-      if (!RULES.reviewsShow) return res.status(200).json({ on: false, summary: {}, reviews: [] });
-      const product = req.query?.product;
-      if (product === undefined) return res.status(200).json({ on: true, summary: await R.summaries() });
-      if (typeof product !== 'string' || !R.ID_RE.test(product)) return fail(res, 400, 'Neplatný šperk');
-      const list = await R.approvedFor(product);
-      return res.status(200).json({ on: true, summary: R.summarize(list), reviews: list.slice(0, 50).map(R.publicReview), canWrite: true });
+      if (!RULES.reviewsShow) return res.status(200).json({ on: false, summary: { count: 0, avg: 0 }, reviews: [] });
+      const list = await R.approvedAll();
+      return res.status(200).json({ on: true, summary: R.summarize(list), reviews: list.slice(0, 100).map(R.publicReview) });
     }
 
     noStore(res);
@@ -32,15 +28,14 @@ module.exports = async function handler(req, res) {
     if (b.website) return res.status(201).json({ ok: true, message: DONE }); // past na roboty (skryté pole)
     if (!(await limitOrReject(res, 'review_ip', clientIp(req), 5, 60 * 60 * 1000))) return;
 
-    const v = R.validate({ productId: b.productId, rating: b.rating, name: b.name, title: '', text: b.text });
+    const v = R.validate({ rating: b.rating, name: b.name, title: '', text: b.text, photos: b.photos });
     if (v.error) return fail(res, 400, v.error);
     if (R.looksSpam(v.data)) return fail(res, 400, 'Do recenze prosím nepište odkazy ani internetové adresy.');
 
     const db = getDb();
-    const product = await db.collection('products').doc(v.data.productId).get();
-    if (!product.exists) return fail(res, 404, 'Šperk neexistuje');
+    if (v.data.photos.length && !(await R.photosExist(v.data.photos, { onlyReview: true }))) return fail(res, 400, 'Fotka se nepodařila načíst, nahrajte ji prosím znovu.');
 
-    const hash = crypto.createHash('sha256').update(v.data.productId + '|' + v.data.text.toLowerCase().replace(/\s+/g, ' ')).digest('hex');
+    const hash = crypto.createHash('sha256').update(v.data.text.toLowerCase().replace(/\s+/g, ' ')).digest('hex');
     const dup = await db.collection('reviews').where('hash', '==', hash).get();
     if (dup.size) return res.status(201).json({ ok: true, message: DONE });
 
@@ -51,7 +46,7 @@ module.exports = async function handler(req, res) {
 
     await R.create(v.data, { hash });
     if (process.env.OWNER_EMAIL) {
-      await sendMail({ to: process.env.OWNER_EMAIL, ...notice('Nová recenze čeká na schválení', `Šperk: ${product.data().name}\nHodnocení: ${v.data.rating} z 5\nJméno: ${v.data.name}\n\n${v.data.text}\n\nSchválit nebo skrýt ji můžete v administraci v části Recenze: https://sagaart.cz/admin`) })
+      await sendMail({ to: process.env.OWNER_EMAIL, ...notice('Nová recenze čeká na schválení', `Hodnocení: ${v.data.rating} z 5\nJméno: ${v.data.name}\nFotky: ${v.data.photos.length}\n\n${v.data.text}\n\nSchválit nebo skrýt ji můžete v administraci v části Recenze: https://sagaart.cz/admin`) })
         .catch(e => console.error('oznámení o recenzi selhalo:', e.message));
     }
     return res.status(201).json({ ok: true, message: DONE });
