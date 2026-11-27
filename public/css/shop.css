@@ -996,3 +996,6 @@ button.product-rating:hover small { text-decoration:underline; }
   .rev-form { padding:20px 16px; }
   .rev-sum { margin-top:10px; }
 }
+.mat-more { margin:8px 0 0; font-size:.9rem; }
+.mat-more a { color:var(--accent-dk); text-decoration:underline; text-underline-offset:4px; }
+.doc a.doc-cta { display:inline-block; text-decoration:none; color:var(--on-accent, #fff); }
