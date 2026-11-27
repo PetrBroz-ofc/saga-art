@@ -86,6 +86,15 @@
       a.setAttribute('href', email ? 'mailto:' + email + q : a.__cmsHref);
       if (a.hasAttribute('data-cms-email-text')) a.textContent = email || a.__cmsText;
     });
+    // Blok Akce: ukáže se, jen když je zapnutý a je v něm aspoň nějaký text. Prázdné karty se schovají.
+    const promo = document.getElementById('akce');
+    if (promo) {
+      const filled = el => !!el.textContent.trim();
+      promo.querySelectorAll('[data-promo-card]').forEach(c => { c.hidden = ![...c.querySelectorAll('[data-cms]')].some(filled); });
+      const btn = promo.querySelector('[data-cms-link="promo"]');
+      if (btn && !filled(btn)) btn.hidden = true;
+      promo.hidden = !(flags.promo === true && [...promo.querySelectorAll('[data-cms]')].some(filled));
+    }
     const bar = document.getElementById('announce');
     if (bar) {
       const on = flags.announce === true && !!texts['announce-text'];

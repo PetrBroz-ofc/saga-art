@@ -43,8 +43,8 @@
     frameReady: false, timer: 0,
   };
 
-  const emptySettings = () => ({ theme: clone(T.defaults), texts: {}, links: {}, flags: { announce: false }, images: {}, sections: [], seo: {}, tracking: {} });
-  const normalize = x => { x.images = x.images || {}; x.sections = x.sections || []; x.seo = x.seo || {}; x.tracking = x.tracking || {}; x.flags = x.flags || { announce: false }; return x; };
+  const emptySettings = () => ({ theme: clone(T.defaults), texts: {}, links: {}, flags: { announce: false, promo: false }, images: {}, sections: [], seo: {}, tracking: {} });
+  const normalize = x => { x.images = x.images || {}; x.sections = x.sections || []; x.seo = x.seo || {}; x.tracking = x.tracking || {}; x.flags = x.flags || { announce: false, promo: false }; return x; };
   const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
   const dirty = () => T.cur && T.saved && !same(T.cur, T.saved);
 
@@ -82,7 +82,7 @@
       const def = multi ? [...el.childNodes].map(n => (n.nodeName === 'BR' ? '\n' : n.textContent)).join('') : el.textContent;
       return { key: el.getAttribute('data-cms'), label: el.getAttribute('data-cms-label') || el.getAttribute('data-cms'),
         group: el.getAttribute('data-cms-group') || 'Ostatní', def: def.replace(/ /g, ' ').trim(), multi };
-    }).filter(f => f.key !== 'announce-text');
+    }).filter(f => f.key !== 'announce-text' && !f.key.startsWith('promo-'));
     const slots = new Map();
     doc.querySelectorAll('[data-cms-img]').forEach(el => {
       const key = el.getAttribute('data-cms-img');
@@ -157,6 +157,32 @@
                      : `<input type="text" data-th-text="${esc(f.key)}" maxlength="600" value="${esc(v)}" placeholder="${esc(f.def)}">`}</label>`;
           }).join('')}
         </details>`).join('');
+    }
+
+    if (T.tab === 'promo') {
+      const txt = (key, label, ph, max, rows) => `<label class="field"><span>${esc(label)}</span>${rows
+        ? `<textarea data-th-text="${key}" rows="${rows}" maxlength="${max}" placeholder="${esc(ph)}">${esc(s.texts[key] || '')}</textarea>`
+        : `<input type="text" data-th-text="${key}" maxlength="${max}" value="${esc(s.texts[key] || '')}" placeholder="${esc(ph)}">`}</label>`;
+      pane.innerHTML = `
+        <p class="muted" style="margin-bottom:12px">Velký blok s akcí pod úvodními fotkami. Napište, co chcete (třeba slevu, dárek k nákupu nebo jen vzkaz zákazníkům). Prázdná pole se na webu neukážou. Až akce skončí, blok vypněte.</p>
+        <label class="th-switch"><input type="checkbox" id="thPromoOn" ${s.flags.promo ? 'checked' : ''}><span>Zobrazit akci na webu</span></label>
+        ${txt('promo-label', 'Malý nadpis nad titulkem', 'Např. Vánoční akce', 40)}
+        ${txt('promo-title', 'Velký nadpis', 'Např. Letos si dárek vyberete s mojí slevou', 120, 2)}
+        ${txt('promo-lead', 'Úvodní text (nepovinný)', 'Krátký text pod nadpisem', 400, 3)}
+        <p class="th-h">První akce</p>
+        ${txt('promo-1-big', 'Velké číslo nebo slovo', 'Např. -15 %', 12)}
+        ${txt('promo-1-title', 'Nadpis', 'Např. Sleva na všechny náušnice', 80)}
+        ${txt('promo-1-text', 'Text', 'Kdy akce platí a co k ní patří', 300, 3)}
+        ${txt('promo-1-note', 'Poznámka (nepovinná)', 'Např. Platí do 24. 12.', 80)}
+        <p class="th-h">Druhá akce (nepovinná)</p>
+        ${txt('promo-2-big', 'Velké číslo nebo slovo', 'Např. Zdarma', 12)}
+        ${txt('promo-2-title', 'Nadpis', 'Např. Doprava zdarma', 80)}
+        ${txt('promo-2-text', 'Text', 'Podmínky akce', 300, 3)}
+        ${txt('promo-2-note', 'Poznámka (nepovinná)', 'Např. Od nákupu nad 1 490 Kč', 80)}
+        <p class="th-h">Tlačítko (nepovinné)</p>
+        ${txt('promo-btn', 'Text tlačítka', 'Např. Prohlédnout šperky', 40)}
+        <label class="field"><span>Kam tlačítko vede</span><input type="url" data-th-link="promo" maxlength="300" value="${esc(s.links.promo || '')}" placeholder="https://… nebo #produkty"></label>
+        <p class="muted">Tlačítko se ukáže, jen když je vyplněný text i odkaz. Změny vidíte hned v náhledu, na web se dostanou až po uložení.</p>`;
     }
 
     if (T.tab === 'links') {
@@ -255,6 +281,8 @@
       const v = t.value.trim(); if (v) s.links[t.dataset.thLink] = v; else delete s.links[t.dataset.thLink];
     } else if (t.id === 'thAnnounceOn') {
       s.flags.announce = t.checked;
+    } else if (t.id === 'thPromoOn') {
+      s.flags.promo = t.checked;
     } else if (t.dataset.thSec) {
       s.sections = (T.secList || []).map(x => ({ id: x.id, show: x.id === t.dataset.thSec ? t.checked : x.show }));
       t.closest('.th-sec').classList.toggle('is-off', !t.checked);
