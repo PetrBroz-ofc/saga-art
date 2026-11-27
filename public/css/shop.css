@@ -999,3 +999,11 @@ button.product-rating:hover small { text-decoration:underline; }
 .mat-more { margin:8px 0 0; font-size:.9rem; }
 .mat-more a { color:var(--accent-dk); text-decoration:underline; text-underline-offset:4px; }
 .doc a.doc-cta { display:inline-block; text-decoration:none; color:var(--on-accent, #fff); }
+.doc-fig { margin:26px auto; text-align:center; }
+.doc-fig img { display:block; width:auto; max-width:100%; height:auto; max-height:520px; margin:0 auto; border-radius:6px; }
+.doc-fig figcaption { margin-top:8px; font-size:.85rem; color:var(--ink-2); }
+.doc li .doc-fig { margin:14px auto 20px; }
+.doc-table { overflow-x:auto; }
+@media (max-width:520px) { .doc-table table { font-size:.8rem; } .doc-table th, .doc-table td { padding-right:8px; } }
+.doc .doc-table th, .doc .doc-table td { overflow-wrap:normal; word-break:normal; }
+@media (max-width:520px) { .doc .doc-table table { font-size:.74rem; } .doc .doc-table th, .doc .doc-table td { padding-right:6px; } }
